@@ -1,0 +1,2 @@
+config FMN_ADK
+	bool "FMN ADK source files"
