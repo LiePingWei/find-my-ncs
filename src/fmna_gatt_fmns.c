@@ -5,11 +5,15 @@
 #include <zephyr/types.h>
 #include <zephyr.h>
 
+#include "fmna_gatt_pkt_manager.h"
+
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/conn.h>
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
+
+#include <net/buf.h>
 
 #include <logging/log.h>
 
@@ -67,8 +71,20 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 				const void *buf, uint16_t len,
 				uint16_t offset, uint8_t flags)
 {
-	LOG_INF("FMN Pairing CP write, handle: %u, conn: %p",
-		attr->handle, conn);
+	bool pkt_complete;
+
+	NET_BUF_SIMPLE_DEFINE_STATIC(pairing_buf, FMNA_GATT_PKT_MAX_LEN);
+
+	LOG_INF("FMN Pairing CP write, handle: %u, conn: %p, len: %d",
+		attr->handle, conn, len);
+
+	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&pairing_buf, buf, len);
+	if (pkt_complete) {
+		LOG_HEXDUMP_INF(pairing_buf.data, pairing_buf.len, "Pairing packet:");
+		LOG_INF("Total packet length: %d", pairing_buf.len);
+
+		net_buf_simple_reset(&pairing_buf);
+	}
 
 	return len;
 }
