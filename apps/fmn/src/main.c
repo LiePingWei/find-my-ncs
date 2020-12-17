@@ -14,6 +14,8 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 
+#include <fmna.h>
+
 #include <settings/settings.h>
 
 #define DEVICE_NAME             CONFIG_BT_DEVICE_NAME
@@ -114,4 +116,12 @@ void main(void)
 	}
 
 	printk("Advertising successfully started\n");
+
+	err = fmna_init();
+	if (err) {
+		printk("FMNA init failed (err %d)\n", err);
+		return;
+	}
+
+	printk("FMNA initialized\n");
 }
