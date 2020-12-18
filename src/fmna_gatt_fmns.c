@@ -7,6 +7,8 @@
 
 #include "fmna_gatt_pkt_manager.h"
 
+#include "events/fmna_pair_event.h"
+
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/conn.h>
@@ -30,6 +32,15 @@ LOG_MODULE_REGISTER(fmna_gatt_fmns, 3);
 #define BT_UUID_FMNS_NONOWNER BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0003))
 #define BT_UUID_FMNS_OWNER    BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0004))
 #define BT_UUID_FMNS_DEBUG_CP BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0005))
+
+enum pairing_cp_opcode {
+	PAIRING_CP_OPCODE_BASE                 = 0x0100,
+	PAIRING_CP_OPCODE_INITIATE_PAIRING     = 0x0100,
+	PAIRING_CP_OPCODE_SEND_PAIRING_DATA    = 0x0101,
+	PAIRING_CP_OPCODE_FINALIZE_PAIRING     = 0x0102,
+	PAIRING_CP_OPCODE_SEND_PAIRING_STATUS  = 0x0103,
+	PAIRING_CP_OPCODE_PAIRING_COMPLETE     = 0x0104,
+};
 
 static void pairing_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 				       uint16_t value)
@@ -80,8 +91,38 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 
 	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&pairing_buf, buf, len);
 	if (pkt_complete) {
+		uint16_t opcode;
+		enum fmna_pair_operation op;
+
 		LOG_HEXDUMP_INF(pairing_buf.data, pairing_buf.len, "Pairing packet:");
 		LOG_INF("Total packet length: %d", pairing_buf.len);
+
+		opcode = net_buf_simple_pull_le16(&pairing_buf);
+		switch (opcode) {
+		case PAIRING_CP_OPCODE_INITIATE_PAIRING:
+			op = FMNA_INITIATE_PAIRING;
+			break;
+		case PAIRING_CP_OPCODE_FINALIZE_PAIRING:
+			op = FMNA_FINALIZE_PAIRING;
+			break;
+		case PAIRING_CP_OPCODE_PAIRING_COMPLETE:
+			op = FMNA_PAIRING_COMPLETE;
+			break;
+		default:
+			LOG_ERR("FMN Pairing CP, unexpected opcode: 0x%02X",
+				opcode);
+			net_buf_simple_reset(&pairing_buf);
+			return len;
+		}
+
+		struct fmna_pair_event *event = new_fmna_pair_event();
+
+		event->op = op;
+		event->conn = conn;
+		event->buf.len = pairing_buf.len;
+		memcpy(event->buf.data, pairing_buf.data, pairing_buf.len);
+
+		EVENT_SUBMIT(event);
 
 		net_buf_simple_reset(&pairing_buf);
 	}

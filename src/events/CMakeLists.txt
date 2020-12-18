@@ -1,0 +1,1 @@
+zephyr_library_sources(fmna_pair_event.c)
