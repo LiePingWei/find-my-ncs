@@ -4,7 +4,9 @@
 
 LOG_MODULE_REGISTER(fmna_gatt_pkt_manager);
 
-#define FRAGMENTATION_HEADER_LENGTH 1
+#define BLE_GATT_ATT_MTU_DEFAULT 23
+#define BLE_GATT_HEADER_LEN 3
+#define BLE_GATT_PKT_CHUNK_LEN (BLE_GATT_ATT_MTU_DEFAULT - BLE_GATT_HEADER_LEN)
 
 enum {
 	FRAGMENTED_FLAG_START_OR_CONTINUE = 0x0,
@@ -27,10 +29,35 @@ bool fmna_gatt_pkt_manager_chunk_collect(struct net_buf_simple *pkt,
 		LOG_ERR("FMN Packet header: unexpected value: 0x%02X", chunk[0]);
 		return false;
 	}
-	chunk += FRAGMENTATION_HEADER_LENGTH;
+	chunk += FMNA_GATT_PKT_HEADER_LEN;
 	chunk_len--;
 
 	net_buf_simple_add_mem(pkt, chunk, chunk_len);
 
 	return pkt_complete;
+}
+
+void *fmna_gatt_pkt_manager_chunk_prepare(struct net_buf_simple *pkt,
+					  uint16_t *chunk_len)
+{
+	uint8_t *chunk;
+
+	if (pkt->len == 0) {
+		return NULL;
+	}
+
+	/* TODO: Get the real MTU value to  know how divide packets */
+	*chunk_len = BLE_GATT_PKT_CHUNK_LEN;
+
+	if (*chunk_len > pkt->len) {
+		/* The last chunk */
+		net_buf_simple_push_u8(pkt, FRAGMENTED_FLAG_FINAL);
+		*chunk_len = pkt->len;
+	} else {
+		net_buf_simple_push_u8(pkt, FRAGMENTED_FLAG_START_OR_CONTINUE);
+	}
+
+	chunk = net_buf_simple_pull_mem(pkt, *chunk_len);
+
+	return chunk;
 }
