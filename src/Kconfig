@@ -1,2 +1,23 @@
 config FMN_ADK
 	bool "FMN ADK source files"
+
+if FMN_ADK
+
+# MTU and DLE related configuration
+
+config BT_L2CAP_TX_MTU
+	default 247
+
+config BT_L2CAP_RX_MTU
+	default 247
+
+config BT_RX_BUF_LEN
+	default 255
+
+config BT_CTLR_TX_BUFFER_SIZE
+	default 251
+
+config BT_CTLR_DATA_LENGTH_MAX
+	default 251
+
+endif # FMN_ADK
