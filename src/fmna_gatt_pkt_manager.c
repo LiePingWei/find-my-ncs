@@ -4,10 +4,6 @@
 
 LOG_MODULE_REGISTER(fmna_gatt_pkt_manager);
 
-#define BLE_GATT_ATT_MTU_DEFAULT 23
-#define BLE_GATT_HEADER_LEN 3
-#define BLE_GATT_PKT_CHUNK_LEN (BLE_GATT_ATT_MTU_DEFAULT - BLE_GATT_HEADER_LEN)
-
 enum {
 	FRAGMENTED_FLAG_START_OR_CONTINUE = 0x0,
 	FRAGMENTED_FLAG_FINAL,
@@ -42,12 +38,9 @@ void *fmna_gatt_pkt_manager_chunk_prepare(struct net_buf_simple *pkt,
 {
 	uint8_t *chunk;
 
-	if (pkt->len == 0) {
+	if (pkt->len == 0 || *chunk_len == 0) {
 		return NULL;
 	}
-
-	/* TODO: Get the real MTU value to  know how divide packets */
-	*chunk_len = BLE_GATT_PKT_CHUNK_LEN;
 
 	if (*chunk_len > pkt->len) {
 		/* The last chunk */

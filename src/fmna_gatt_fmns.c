@@ -34,6 +34,8 @@ LOG_MODULE_REGISTER(fmna_gatt_fmns, 3);
 #define BT_UUID_FMNS_OWNER    BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0004))
 #define BT_UUID_FMNS_DEBUG_CP BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0005))
 
+#define BT_ATT_HEADER_LEN 3
+
 enum pairing_cp_opcode {
 	PAIRING_CP_OPCODE_BASE                 = 0x0100,
 	PAIRING_CP_OPCODE_INITIATE_PAIRING     = 0x0100,
@@ -215,6 +217,23 @@ BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),
 		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 );
 
+static uint16_t pairing_ind_len_get(struct bt_conn *conn)
+{
+	uint16_t ind_data_len;
+
+	ind_data_len = bt_gatt_get_mtu(conn);
+	if (ind_data_len <= BT_ATT_HEADER_LEN) {
+		LOG_ERR("FMNS: MTU value too low: %d", ind_data_len);
+		LOG_ERR("FMNS: 0 MTU might indicate that the link is "
+			"disconnecting");
+
+		return 0;
+	}
+	ind_data_len -= BT_ATT_HEADER_LEN;
+
+	return ind_data_len;
+}
+
 static void pairing_cp_ind_cb(struct bt_conn *conn,
 			      struct bt_gatt_indicate_params *params,
 			      uint8_t err)
@@ -225,6 +244,7 @@ static void pairing_cp_ind_cb(struct bt_conn *conn,
 	LOG_INF("Received FMN Pairing CP indication ACK with status: 0x%04X",
 		err);
 
+	ind_data_len = pairing_ind_len_get(conn);
 	ind_data = fmna_gatt_pkt_manager_chunk_prepare(&pairing_cp_ind_buf,
 						       &ind_data_len);
 	if (!ind_data) {
@@ -270,8 +290,14 @@ static int fmns_pairing_cp_indicate(struct bt_conn *conn,
 	net_buf_simple_add_le16(&pairing_cp_ind_buf, opcode);
 	net_buf_simple_add_mem(&pairing_cp_ind_buf, buf->data, buf->len);
 
+	ind_data_len = pairing_ind_len_get(conn);
 	ind_data = fmna_gatt_pkt_manager_chunk_prepare(&pairing_cp_ind_buf,
 						       &ind_data_len);
+	if (!ind_data) {
+		k_sem_give(&pairing_cp_tx_sem);
+
+		return -EINVAL;
+	}
 
 	memset(&indicate_params, 0, sizeof(indicate_params));
 	indicate_params.attr = &fmns_svc.attrs[2];
