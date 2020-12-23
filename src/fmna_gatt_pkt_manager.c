@@ -2,7 +2,7 @@
 
 #include <logging/log.h>
 
-LOG_MODULE_REGISTER(fmna_gatt_pkt_manager);
+LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
 enum {
 	FRAGMENTED_FLAG_START_OR_CONTINUE = 0x0,

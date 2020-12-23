@@ -20,7 +20,7 @@
 
 #include <logging/log.h>
 
-LOG_MODULE_REGISTER(fmna_gatt_fmns, 3);
+LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
 #define BT_UUID_FMNS_VAL 0xFD44
 #define BT_UUID_FMNS     BT_UUID_DECLARE_16(BT_UUID_FMNS_VAL)

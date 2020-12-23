@@ -20,4 +20,10 @@ config BT_CTLR_TX_BUFFER_SIZE
 config BT_CTLR_DATA_LENGTH_MAX
 	default 251
 
+# Logger configuration
+
+module = FMN_ADK
+module-str = FMN_ADK
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
 endif # FMN_ADK
