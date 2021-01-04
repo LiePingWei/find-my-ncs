@@ -3,6 +3,13 @@ config FMN_ADK
 
 if FMN_ADK
 
+config FMN_HARDCODED_PAIRING
+	bool "FMN hardcoded pairing variant"
+
+config FMN_PRODUCT_DATA
+	hex "FMN Product Data value"
+	default f86ae43a63829ed8
+
 # MTU and DLE related configuration
 
 config BT_L2CAP_TX_MTU
