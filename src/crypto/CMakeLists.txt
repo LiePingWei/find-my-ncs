@@ -1,0 +1,1 @@
+zephyr_library_sources(fm_crypto_oberon.c)

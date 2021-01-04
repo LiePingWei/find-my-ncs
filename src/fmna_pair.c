@@ -1,4 +1,5 @@
 #include "fmna_gatt_fmns.h"
+#include "crypto/fm_crypto.h"
 #include "events/fmna_pair_event.h"
 
 #include <logging/log.h>
