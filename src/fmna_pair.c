@@ -45,6 +45,18 @@ struct __packed fmna_send_pairing_status {
 	uint8_t  e4[E4_BLEN];
 };
 
+int fmna_pair_init(void)
+{
+	int err;
+
+	err = fm_crypto_ckg_init(NULL);
+	if (err) {
+		LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
+	}
+
+	return err;
+}
+
 static void initiate_pairing_cmd_handle(struct bt_conn *conn,
 					struct fmna_pair_buf *buf)
 {
