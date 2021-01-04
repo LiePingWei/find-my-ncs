@@ -2,6 +2,7 @@ zephyr_library()
 zephyr_library_include_directories(.)
 zephyr_library_sources_ifdef(CONFIG_FMN_ADK fmna_gatt_fmns.c)
 zephyr_library_sources_ifdef(CONFIG_FMN_ADK fmna_gatt_pkt_manager.c)
+zephyr_library_sources_ifdef(CONFIG_FMN_ADK fmna_pair.c)
 zephyr_library_sources_ifdef(CONFIG_FMN_ADK fmna.c)
 
 add_subdirectory_ifdef(CONFIG_FMN_ADK events)
