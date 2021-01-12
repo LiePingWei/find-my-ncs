@@ -43,8 +43,8 @@ int fm_crypto_ckg_gen_c1(fm_crypto_ckg_context_t ctx, byte out[32]);
  @return 0 on success, a negative value on error.
  */
 int fm_crypto_ckg_gen_c3(fm_crypto_ckg_context_t ctx,
-                         const byte c2[89],
-                         byte out[60]);
+			 const byte c2[89],
+			 byte out[60]);
 
 /*! @function fm_crypto_ckg_finish
  @abstract Finalizes collaborative key generation.
@@ -57,9 +57,9 @@ int fm_crypto_ckg_gen_c3(fm_crypto_ckg_context_t ctx,
  @return 0 on success, a negative value on error.
  */
 int fm_crypto_ckg_finish(fm_crypto_ckg_context_t ctx,
-                         byte p[57],
-                         byte skn[32],
-                         byte sks[32]);
+			 byte p[57],
+			 byte skn[32],
+			 byte sks[32]);
 
 /*! @function fm_crypto_ckg_free
  @abstract Frees a given collaborative key generation context.
@@ -87,8 +87,8 @@ int fm_crypto_generate_seedk1(byte out[32]);
  @return 0 on success, a negative value on error.
  */
 int fm_crypto_derive_server_shared_secret(const byte seeds[32],
-                                          const byte seedk1[32],
-                                          byte out[32]);
+					  const byte seedk1[32],
+					  byte out[32]);
 
 /*! @function fm_crypto_authenticate_with_ksn
  @abstract Authenticates a given message using the KSN.
@@ -118,10 +118,10 @@ int fm_crypto_authenticate_with_ksn(const byte serverss[32],
  @return 0 on success, a negative value on error.
  */
 int fm_crypto_encrypt_to_server(const byte pub[65],
-                                word32 msg_nbytes,
-                                const byte *msg,
-                                word32 *out_nbytes,
-                                byte *out);
+				word32 msg_nbytes,
+				const byte *msg,
+				word32 *out_nbytes,
+				byte *out);
 
 /*! @function fm_crypto_verify_s2
  @abstract Verifies signature S2 received from the server.
@@ -135,10 +135,10 @@ int fm_crypto_encrypt_to_server(const byte pub[65],
  @return 0 if the signature is valid, a negative value otherwise.
  */
 int fm_crypto_verify_s2(const byte pub[65],
-                        word32 sig_nbytes,
-                        const byte *sig,
-                        word32 msg_nbytes,
-                        const byte *msg);
+			word32 sig_nbytes,
+			const byte *sig,
+			word32 msg_nbytes,
+			const byte *msg);
 
 /*! @function fm_crypto_decrypt_e3
  @abstract Decrypts server message E3.
@@ -153,10 +153,10 @@ int fm_crypto_verify_s2(const byte pub[65],
  @return 0 on success, a negative value on error.
  */
 int fm_crypto_decrypt_e3(const byte serverss[32],
-                         word32 e3_nbytes,
-                         const byte *e3,
-                         word32 *out_nbytes,
-                         byte *out);
+			 word32 e3_nbytes,
+			 const byte *e3,
+			 word32 *out_nbytes,
+			 byte *out);
 
 /*! @function fm_crypto_roll_sk
  @abstract Computes SK_i+1 from a given SK_i. SK can be SKN or SKS.
@@ -188,7 +188,7 @@ int fm_crypto_derive_ltk(const byte skn[32], byte out[16]);
  @return 0 on success, a negative value on error.
  */
 int fm_crypto_derive_primary_or_secondary_x(const byte sk[32],
-                                            const byte p[57],
-                                            byte out[28]);
+					    const byte p[57],
+					    byte out[28]);
 
 #endif /* FM_CRYPTO_H_ */
