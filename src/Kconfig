@@ -3,6 +3,14 @@ config FMN_ADK
 
 if FMN_ADK
 
+config FMN_STORAGE
+	bool
+	default y if !FMN_HARDCODED_PAIRING
+	select FLASH
+	select FLASH_MAP
+	select NVS
+	select SETTINGS
+
 config FMN_CRYPTO
 	bool
 	default y if !FMN_HARDCODED_PAIRING
