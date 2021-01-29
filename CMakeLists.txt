@@ -1,3 +1,3 @@
 zephyr_include_directories(include)
 
-add_subdirectory(src)
+add_subdirectory_ifdef(CONFIG_FMN_ADK src)
