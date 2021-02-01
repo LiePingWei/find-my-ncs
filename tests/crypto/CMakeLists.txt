@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+
+cmake_minimum_required(VERSION 3.13.1)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(fmna_crypto_test)
+
+FILE(GLOB app_sources src/*.c)
+target_sources(app PRIVATE ${app_sources})
+zephyr_library_include_directories(${CMAKE_CURRENT_LIST_DIR}/../../src/crypto)
+zephyr_library_include_directories($<TARGET_PROPERTY:mbedcrypto_oberon_imported,BASE_INCLUDE_PATH>)
