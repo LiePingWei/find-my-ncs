@@ -10,7 +10,19 @@ config FMN_PRODUCT_DATA
 	hex "FMN Product Data value"
 	default f86ae43a63829ed8
 
-# MTU and DLE related configuration
+# BLE related configuration
+
+config BT
+	default y
+
+config BT_PERIPHERAL
+	default y
+
+config BT_SMP
+	default y
+
+config BT_DEVICE_NAME
+	default "Nordic_FMN"
 
 config BT_L2CAP_TX_MTU
 	default 247
