@@ -21,9 +21,57 @@ config FMN_CRYPTO
 config FMN_HARDCODED_PAIRING
 	bool "FMN hardcoded pairing variant"
 
+# AIS configuration
+menu "Accessory Information Service (AIS)"
+
 config FMN_PRODUCT_DATA
-	hex "FMN Product Data value"
+	hex "FMN Product Data"
 	default 0
+
+config FMN_MANUFACTURER_NAME
+	string "FMN Manufacturer Name"
+	default "Manufacturer"
+
+config FMN_MODEL_NAME
+	string "FMN Model Name"
+	default "Model"
+
+config FMN_ACC_CATEGORY
+	int "FMN Accessory Category"
+	range 1 167
+	default 128
+
+config FMN_ACC_CAPABILITY_PLAY_SOUND_ENABLED
+	bool "FMN Accessory Capability: declare sound playing capability"
+
+config FMN_ACC_CAPABILITY_DETECT_MOTION_ENABLED
+	bool "FMN Accessory Capability: declare motion detecting capability"
+
+config FMN_ACC_CAPABILITY_NFC_SN_LOOKUP_ENABLED
+	bool "FMN Accessory Capability: declare Serial Number NFC lookup capability"
+
+config FMN_ACC_CAPABILITY_BLE_SN_LOOKUP_ENABLED
+	bool "FMN Accessory Capability: declare Serial Number BLE lookup capability"
+
+config FMN_ACC_CAPABILITY_FW_UPDATE_SVC_ENABLED
+	bool "FMN Accessory Capability: declare Firmware Update Service capability"
+
+choice
+	prompt "FMN battery type"
+	default FMN_BATTERY_TYPE_POWERED
+
+config FMN_BATTERY_TYPE_POWERED
+	bool "Powered"
+
+config FMN_BATTERY_TYPE_NON_RECHARGEABLE
+	bool "Non-rechargeable battery"
+
+config FMN_BATTERY_TYPE_RECHARGEABLE
+	bool "Rechargeable battery"
+
+endchoice
+
+endmenu
 
 # BLE related configuration
 

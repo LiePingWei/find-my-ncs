@@ -1,5 +1,6 @@
 zephyr_library()
 zephyr_library_include_directories(.)
+zephyr_library_sources(fmna_gatt_ais.c)
 zephyr_library_sources(fmna_gatt_fmns.c)
 zephyr_library_sources(fmna_gatt_pkt_manager.c)
 zephyr_library_sources(fmna_pair.c)
