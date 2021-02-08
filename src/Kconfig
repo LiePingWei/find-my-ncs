@@ -23,7 +23,7 @@ config FMN_HARDCODED_PAIRING
 
 config FMN_PRODUCT_DATA
 	hex "FMN Product Data value"
-	default f86ae43a63829ed8
+	default 0
 
 # BLE related configuration
 
