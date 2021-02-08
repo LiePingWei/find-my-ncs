@@ -44,7 +44,7 @@ manifest:
       import: true
 
 
-  # West-related configuration for the nrf repository.
+  # West-related configuration for the fmn repository.
   self:
-    # This repository should be cloned to ncs/ncs-fmn.
-    path: ncs-fmn
+    # This repository should be cloned to ncs/fmn.
+    path: fmn
