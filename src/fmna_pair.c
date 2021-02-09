@@ -96,6 +96,7 @@ static uint8_t session_nonce[SESSION_NONCE_BLEN];
 static uint8_t e1[E1_BLEN];
 static uint8_t seedk1[SK_BLEN];
 static uint8_t server_shared_secret[SERVER_SHARED_SECRET_BLEN];
+static struct fm_crypto_ckg_context ckg_ctx;
 
 /* Serial number. */
 static uint8_t serial_number[SERIAL_NUMBER_RAW_BLEN];
@@ -157,7 +158,7 @@ int fmna_pair_init(void)
 {
 	int err;
 
-	err = fm_crypto_ckg_init(NULL);
+	err = fm_crypto_ckg_init(&ckg_ctx);
 	if (err) {
 		LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
 	}
@@ -262,7 +263,7 @@ static int pairing_data_generate(struct net_buf_simple *buf)
 	memcpy(e1, initiate_cmd->e1, sizeof(e1));
 
 	/* Generate C1, SeedK1, and E2. */
-	err = fm_crypto_ckg_gen_c1(NULL, c1);
+	err = fm_crypto_ckg_gen_c1(&ckg_ctx, c1);
 	if (err) {
 		LOG_ERR("fm_crypto_ckg_gen_c1 err %d", err);
 		return err;
@@ -347,7 +348,7 @@ static int pairing_status_generate(struct net_buf_simple *buf)
 
 	/* Prepare Send Pairing Status response: C3, status and E4 */
 	status_data = net_buf_simple_add(buf, C3_BLEN);
-	err = fm_crypto_ckg_gen_c3(NULL, finalize_cmd->c2, status_data);
+	err = fm_crypto_ckg_gen_c3(&ckg_ctx, finalize_cmd->c2, status_data);
 	if (err) {
 		LOG_ERR("fm_crypto_ckg_gen_c3 err %d", err);
 		return err;
@@ -452,15 +453,15 @@ static void pairing_complete_cmd_handle(struct bt_conn *conn,
 	LOG_INF("FMNA: RX: Pairing complete command");
 
 	if (!IS_ENABLED(CONFIG_FMN_HARDCODED_PAIRING)) {
-		err = fm_crypto_ckg_finish(NULL,
-					pk,
-					current_primary_sk,
-					current_secondary_sk);
+		err = fm_crypto_ckg_finish(&ckg_ctx,
+					   pk,
+					   current_primary_sk,
+					   current_secondary_sk);
 		if (err) {
 			LOG_ERR("fm_crypto_ckg_finish: %d", err);
 		}
 
-		fm_crypto_ckg_free(NULL);
+		fm_crypto_ckg_free(&ckg_ctx);
 	}
 
 	/* TODO: Emit FMN pairing complete event. */
