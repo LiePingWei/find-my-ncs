@@ -8,7 +8,8 @@ setup(name='ncsfmntools',
             'click~=7.1.2',
             'intelhex~=2.3.0',
             'Jinja2~=2.9.6',
-            'six~=1.15.0'
+            'six~=1.15.0',
+            'pynrfjprog~=10.10.0',
       ],
       entry_points='''
               [console_scripts]
