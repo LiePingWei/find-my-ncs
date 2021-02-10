@@ -1,4 +1,5 @@
 #include "fmna_gatt_fmns.h"
+#include "fmna_storage.h"
 #include "crypto/fm_crypto.h"
 #include "events/fmna_pair_event.h"
 
@@ -28,8 +29,6 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 #define SEEDS_BLEN                32
 #define ICLOUD_IDENTIFIER_BLEN    60
 
-#define SOFTWARE_AUTH_TOKEN_BLEN 1024
-#define SOFTWARE_AUTH_UUID_BLEN  16
 #define SERIAL_NUMBER_RAW_BLEN   16
 
 #define APPLE_SERVER_ENCRYPTION_KEY_BLEN       65
@@ -64,8 +63,8 @@ struct __packed fmna_send_pairing_status {
 
 struct __packed e2_encr_msg {
 	uint8_t  session_nonce[SESSION_NONCE_BLEN];
-	char     software_auth_token[SOFTWARE_AUTH_TOKEN_BLEN];
-	uint8_t  software_auth_uuid[SOFTWARE_AUTH_UUID_BLEN];
+	char     software_auth_token[FMNA_SW_AUTH_TOKEN_BLEN];
+	uint8_t  software_auth_uuid[FMNA_SW_AUTH_UUID_BLEN];
 	uint8_t  serial_number[SERIAL_NUMBER_RAW_BLEN];
 	uint8_t  product_data[PROD_DATA_MAX_LEN];
 	uint32_t fw_version;
@@ -74,16 +73,16 @@ struct __packed e2_encr_msg {
 };
 
 struct __packed e4_encr_msg {
-	uint8_t  software_auth_uuid[SOFTWARE_AUTH_UUID_BLEN];
+	uint8_t  software_auth_uuid[FMNA_SW_AUTH_UUID_BLEN];
 	uint8_t  serial_number[SERIAL_NUMBER_RAW_BLEN];
 	uint8_t  session_nonce[SESSION_NONCE_BLEN];
 	uint8_t  e1[E1_BLEN];
-	uint8_t  latest_sw_token[SOFTWARE_AUTH_TOKEN_BLEN];
+	uint8_t  latest_sw_token[FMNA_SW_AUTH_TOKEN_BLEN];
 	uint32_t status;
 };
 
 struct __packed s2_verif_msg {
-	uint8_t  software_auth_uuid[SOFTWARE_AUTH_UUID_BLEN];
+	uint8_t  software_auth_uuid[FMNA_SW_AUTH_UUID_BLEN];
 	uint8_t  session_nonce[SESSION_NONCE_BLEN];
 	uint8_t  seeds[SEEDS_BLEN];
 	uint8_t  h1[H1_BLEN];
@@ -100,10 +99,6 @@ static struct fm_crypto_ckg_context ckg_ctx;
 
 /* Serial number. */
 static uint8_t serial_number[SERIAL_NUMBER_RAW_BLEN];
-
-/* Authentication tokens. */
-uint8_t software_auth_uuid[SOFTWARE_AUTH_UUID_BLEN];
-uint8_t software_auth_token[SOFTWARE_AUTH_TOKEN_BLEN];
 
 /* Server encryption and signature verification keys. */
 static uint8_t q_e[APPLE_SERVER_ENCRYPTION_KEY_BLEN] = {0x04, 0x9c, 0xc5, 0xad, 0xdd, 0xd0, 0x29, 0xb7, 0x53, 0x5d, 0x30, 0xe6, 0xe5, 0xd1, 0x6d, 0xb7, 0xa8, 0xd2, 0x1b, 0x1b, 0x48, 0xb5, 0x5b, 0x19, 0xd5, 0xb1, 0x10, 0xe9, 0x5b, 0xf3, 0x15, 0x45, 0xe7, 0x74, 0xcf, 0x51, 0x8d, 0xeb, 0xbe, 0x3c, 0x71, 0x68, 0x33, 0xe4, 0x43, 0xf1, 0x14, 0x47, 0x6e, 0x5a, 0x4b, 0x05, 0x4e, 0x36, 0x75, 0x07, 0x05, 0x6e, 0x39, 0x95, 0xcc, 0x6b, 0x96, 0x90, 0x96};
@@ -170,20 +165,24 @@ int fmna_pair_init(void)
 	return err;
 }
 
-static void e2_msg_populate(struct fmna_initiate_pairing *init_pairing,
-			    struct e2_encr_msg *e2_encr_msg)
+static int e2_msg_populate(struct fmna_initiate_pairing *init_pairing,
+			   struct e2_encr_msg *e2_encr_msg)
 {
+	int err;
+
 	memcpy(e2_encr_msg->session_nonce,
 	       init_pairing->session_nonce,
 	       sizeof(e2_encr_msg->session_nonce));
 
-	memcpy(e2_encr_msg->software_auth_uuid,
-	       software_auth_uuid,
-	       sizeof(e2_encr_msg->software_auth_uuid));
+	err = fmna_storage_uuid_load(e2_encr_msg->software_auth_uuid);
+	if (err) {
+		return err;
+	}
 
-	memcpy(e2_encr_msg->software_auth_token,
-	       software_auth_token,
-	       sizeof(e2_encr_msg->software_auth_token));
+	err = fmna_storage_auth_token_load(e2_encr_msg->software_auth_token);
+	if (err) {
+		return err;
+	}
 
 	memcpy(e2_encr_msg->serial_number,
 	       serial_number,
@@ -197,17 +196,22 @@ static void e2_msg_populate(struct fmna_initiate_pairing *init_pairing,
 	e2_encr_msg->fw_version = (1 << 16) | (0 << 8) | 16;
 
 	fmna_product_data_get((uint64_t *) e2_encr_msg->product_data);
+
+	return err;
 }
 
-static void e4_msg_populate(struct e4_encr_msg *e4_encr_msg)
+static int e4_msg_populate(struct e4_encr_msg *e4_encr_msg)
 {
+	int err;
+
 	memcpy(e4_encr_msg->session_nonce,
 	       session_nonce,
 	       sizeof(e4_encr_msg->session_nonce));
 
-	memcpy(e4_encr_msg->software_auth_uuid,
-	       software_auth_uuid,
-	       sizeof(e4_encr_msg->software_auth_uuid));
+	err = fmna_storage_uuid_load(e4_encr_msg->software_auth_uuid);
+	if (err) {
+		return err;
+	}
 
 	memcpy(e4_encr_msg->serial_number,
 	       serial_number,
@@ -215,23 +219,29 @@ static void e4_msg_populate(struct e4_encr_msg *e4_encr_msg)
 
 	memcpy(e4_encr_msg->e1, e1, sizeof(e4_encr_msg->e1));
 
-	memcpy(e4_encr_msg->latest_sw_token,
-	       software_auth_token,
-	       sizeof(e4_encr_msg->latest_sw_token));
+	err = fmna_storage_auth_token_load(e4_encr_msg->latest_sw_token);
+	if (err) {
+		return err;
+	}
 
 	e4_encr_msg->status = 0;
+
+	return err;
 }
 
 static int s2_verif_msg_populate(struct fmna_finalize_pairing *finalize_cmd,
 				 struct s2_verif_msg *s2_verif_msg)
 {
+	int err;
+
 	memcpy(s2_verif_msg->session_nonce,
 	       session_nonce,
 	       sizeof(s2_verif_msg->session_nonce));
 
-	memcpy(s2_verif_msg->software_auth_uuid,
-	       software_auth_uuid,
-	       sizeof(s2_verif_msg->software_auth_uuid));
+	err = fmna_storage_uuid_load(s2_verif_msg->software_auth_uuid);
+	if (err) {
+		return err;
+	}
 
 	memcpy(s2_verif_msg->seeds,
 	       finalize_cmd->seeds,
@@ -275,7 +285,12 @@ static int pairing_data_generate(struct net_buf_simple *buf)
 		return err;
 	}
 
-	e2_msg_populate(initiate_cmd, &e2_encr_msg);
+	err = e2_msg_populate(initiate_cmd, &e2_encr_msg);
+	if (err) {
+		LOG_ERR("e2_msg_populate err %d", err);
+		return err;
+	}
+
 	e2_blen = E2_BLEN;
 
 	/* Prepare Send Pairing Data response */
@@ -334,15 +349,26 @@ static int pairing_status_generate(struct net_buf_simple *buf)
 		return err;
 	}
 
-	/* Decrypt E3 and obtain the update SW Authentication Token. */
-	e3_decrypt_plaintext_blen = sizeof(software_auth_token);
+	/* Use E4 encryption message descriptor to store the new token. */
+	memset(msg.e4_encr.latest_sw_token, 0,
+	       sizeof(msg.e4_encr.latest_sw_token));
+
+	/* Decrypt E3 message. */
+	e3_decrypt_plaintext_blen = sizeof(msg.e4_encr.latest_sw_token);
 	err = fm_crypto_decrypt_e3((const uint8_t *) server_shared_secret,
 				   sizeof(finalize_cmd->e3),
 				   (const uint8_t *) finalize_cmd->e3,
 				   &e3_decrypt_plaintext_blen,
-				   software_auth_token);
+				   msg.e4_encr.latest_sw_token);
 	if (err) {
 		LOG_ERR("fm_crypto_decrypt_e3 err %d", err);
+		return err;
+	}
+
+	/* Update the SW Authentication Token in the storage module. */
+	err = fmna_storage_auth_token_update(msg.e4_encr.latest_sw_token);
+	if (err) {
+		LOG_ERR("fmna_storage_auth_token_update err %d", err);
 		return err;
 	}
 
@@ -357,7 +383,12 @@ static int pairing_status_generate(struct net_buf_simple *buf)
 	status_data = net_buf_simple_add(buf, sizeof(uint32_t));
 	memset(status_data, 0, sizeof(uint32_t));
 
-	e4_msg_populate(&msg.e4_encr);
+	err = e4_msg_populate(&msg.e4_encr);
+	if (err) {
+		LOG_ERR("e4_msg_populate err %d", err);
+		return err;
+	}
+
 	e4_blen = E4_BLEN;
 	status_data = net_buf_simple_add(buf, e4_blen);
 	err = fm_crypto_encrypt_to_server((const uint8_t *) q_e,
