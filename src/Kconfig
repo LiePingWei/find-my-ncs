@@ -1,5 +1,5 @@
 config FMN_ADK
-	bool "FMN ADK source files"
+	bool "Enable FMN ADK"
 
 if FMN_ADK
 

@@ -1,5 +1,1 @@
-menu "FMN ADK"
-
 rsource "src/Kconfig"
-
-endmenu
