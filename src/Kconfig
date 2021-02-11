@@ -93,14 +93,17 @@ config BT_L2CAP_TX_MTU
 config BT_L2CAP_RX_MTU
 	default 247
 
-config BT_RX_BUF_LEN
-	default 255
-
 config BT_CTLR_TX_BUFFER_SIZE
 	default 251
 
 config BT_CTLR_DATA_LENGTH_MAX
 	default 251
+
+config BT_EXT_ADV
+	default y
+
+config BT_CTLR_ADV_EXT
+	default y
 
 # Logger configuration
 

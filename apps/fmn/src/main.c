@@ -18,15 +18,7 @@
 
 #include <settings/settings.h>
 
-#define DEVICE_NAME             CONFIG_BT_DEVICE_NAME
-#define DEVICE_NAME_LEN         (sizeof(DEVICE_NAME) - 1)
-
-static const struct bt_data ad[] = {
-	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
-	BT_DATA_BYTES(BT_DATA_UUID16_ALL, 0x44, 0xfd), /* FMN Service */
-};
-
-static const struct bt_data sd[] = {};
+#define BT_ID_FMN 1
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -87,6 +79,49 @@ static struct bt_conn_auth_cb conn_auth_callbacks = {
 	.pairing_failed = pairing_failed
 };
 
+static int fmna_id_create(uint8_t id)
+{
+	int ret;
+	bt_addr_le_t addrs[CONFIG_BT_ID_MAX];
+	size_t count;
+
+	bt_id_get(addrs, &count);
+	if (id < count) {
+		return 0;
+	}
+
+	do {
+		ret = bt_id_create(NULL, NULL);
+		if (ret < 0) {
+			return ret;
+		}
+	} while (ret != id);
+
+	return 0;
+}
+
+static int fmna_initialize(void)
+{
+	int err;
+	struct fmna_init_params init_params = {0};
+
+	err = fmna_id_create(BT_ID_FMN);
+	if (err) {
+		printk("fmna_id_create failed (err %d)\n", err);
+		return err;
+	}
+
+	init_params.bt_id = BT_ID_FMN;
+
+	err = fmna_init(&init_params);
+	if (err) {
+		printk("fmna_init failed (err %d)\n", err);
+		return err;
+	}
+
+	return err;
+}
+
 void main(void)
 {
 	int err;
@@ -108,16 +143,7 @@ void main(void)
 		settings_load();
 	}
 
-	err = bt_le_adv_start(BT_LE_ADV_CONN, ad, ARRAY_SIZE(ad),
-			      sd, ARRAY_SIZE(sd));
-	if (err) {
-		printk("Advertising failed to start (err %d)\n", err);
-		return;
-	}
-
-	printk("Advertising successfully started\n");
-
-	err = fmna_init();
+	err = fmna_initialize();
 	if (err) {
 		printk("FMNA init failed (err %d)\n", err);
 		return;

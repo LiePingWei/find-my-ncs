@@ -5,7 +5,11 @@
 extern "C" {
 #endif
 
-int fmna_init(void);
+struct fmna_init_params {
+	uint8_t bt_id;
+};
+
+int fmna_init(const struct fmna_init_params *init_params);
 
 
 #ifdef __cplusplus
