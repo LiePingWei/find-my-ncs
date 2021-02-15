@@ -10,6 +10,7 @@ zephyr_library_sources(fmna_gatt_fmns.c)
 zephyr_library_sources(fmna_gatt_pkt_manager.c)
 zephyr_library_sources(fmna_keys.c)
 zephyr_library_sources(fmna_pair.c)
+zephyr_library_sources(fmna_state.c)
 zephyr_library_sources(fmna_storage.c)
 zephyr_library_sources(fmna.c)
 
