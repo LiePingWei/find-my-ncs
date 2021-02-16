@@ -1,0 +1,50 @@
+//
+// Copyright (c) 2020 Nordic Semiconductor ASA. All Rights Reserved.
+//
+// The information contained herein is confidential property of Nordic Semiconductor ASA.
+// The use, copying, transfer or disclosure of such information is prohibited except by
+// express written agreement with Nordic Semiconductor ASA.
+//
+
+pipeline
+{
+    environment {
+        HOME="$WORKSPACE"
+    }
+    agent {
+        docker {
+            image 'docker-dtr.nordicsemi.no/sw-production/ncs-int:2.4.1'
+            label 'build-node' // label of jenkins node to be used
+        }
+    }
+
+    stages {
+
+        stage('Prepare Python and fmntools') {  steps { script {
+            sh "python -m pip install --user jinja2"
+            sh "python3 -m pip install --user markdown pygments"
+            sh "python3 -m pip install --user tools/."
+        } } }
+
+        stage('West init') { steps { script { sh "west init" } } }
+
+        stage('West update') { steps { script { sh "west update" } } }
+
+        stage('Build FMN') { steps { script { sh "west build apps/fmn" } } }
+
+        stage('Build crypto') { steps { script { sh "west build tests/crypto" } } }
+
+
+
+
+    } //stages
+
+    post {
+        always {
+            script {
+//                    archiveArtifacts artifacts: 'exe/**/*', allowEmptyArchive: false
+            }
+        }
+        cleanup { cleanWs disableDeferredWipeout: true, deleteDirs: true }
+    } //post
+} //pipeline
