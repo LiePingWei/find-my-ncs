@@ -1,7 +1,9 @@
+#include "fmna_keys.h"
 #include "fmna_gatt_fmns.h"
 #include "fmna_storage.h"
 #include "crypto/fm_crypto.h"
 #include "events/fmna_pair_event.h"
+#include "events/fmna_event.h"
 
 #include <sys/byteorder.h>
 #include <logging/log.h>
@@ -22,8 +24,6 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
 #define S2_BLEN 100
 
-#define SK_BLEN                   32
-#define P_BLEN                    57
 #define SERVER_SHARED_SECRET_BLEN 32
 #define SESSION_NONCE_BLEN        32
 #define SEEDS_BLEN                32
@@ -69,7 +69,7 @@ struct __packed e2_encr_msg {
 	uint8_t  product_data[PROD_DATA_MAX_LEN];
 	uint32_t fw_version;
 	uint8_t  e1[E1_BLEN];
-	uint8_t  seedk1[SK_BLEN];
+	uint8_t  seedk1[FMNA_SYMMETRIC_KEY_LEN];
 };
 
 struct __packed e4_encr_msg {
@@ -93,7 +93,7 @@ struct __packed s2_verif_msg {
 /* Crypto state variables. */
 static uint8_t session_nonce[SESSION_NONCE_BLEN];
 static uint8_t e1[E1_BLEN];
-static uint8_t seedk1[SK_BLEN];
+static uint8_t seedk1[FMNA_SYMMETRIC_KEY_LEN];
 static uint8_t server_shared_secret[SERVER_SHARED_SECRET_BLEN];
 static struct fm_crypto_ckg_context ckg_ctx;
 
@@ -480,25 +480,29 @@ static void pairing_complete_cmd_handle(struct bt_conn *conn,
 					struct fmna_pair_buf *buf)
 {
 	int err;
-	uint8_t pk[P_BLEN];
-	uint8_t current_primary_sk[SK_BLEN];
-	uint8_t current_secondary_sk[SK_BLEN];
+	struct fmna_keys_init init_keys = {0};
 
 	LOG_INF("FMNA: RX: Pairing complete command");
 
 	if (!IS_ENABLED(CONFIG_FMN_HARDCODED_PAIRING)) {
 		err = fm_crypto_ckg_finish(&ckg_ctx,
-					   pk,
-					   current_primary_sk,
-					   current_secondary_sk);
+					   init_keys.master_pk,
+					   init_keys.primary_sk,
+					   init_keys.secondary_sk);
 		if (err) {
 			LOG_ERR("fm_crypto_ckg_finish: %d", err);
 		}
 
 		fm_crypto_ckg_free(&ckg_ctx);
+
+		err = fmna_keys_reset(&init_keys);
+		if (err) {
+			LOG_ERR("fmna_keys_reset: %d", err);
+		}
 	}
 
-	/* TODO: Emit FMN pairing complete event. */
+	FMNA_EVENT_CREATE(event, FMNA_PAIRING_COMPLETED, conn);
+	EVENT_SUBMIT(event);
 }
 
 static void pairing_cmd_handle(struct fmna_pair_event *pair_event)
@@ -535,5 +539,5 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(fmna, event_handler);
-EVENT_SUBSCRIBE(fmna, fmna_pair_event);
+EVENT_LISTENER(fmna_pair, event_handler);
+EVENT_SUBSCRIBE(fmna_pair, fmna_pair_event);
