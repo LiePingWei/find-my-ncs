@@ -350,9 +350,6 @@ int fmna_adv_start_separated(const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN], uint8_t 
 
 int fmna_adv_init(uint8_t id)
 {
-	bt_addr_le_t addrs[CONFIG_BT_ID_MAX];
-	size_t count;
-
 	if (id == BT_ID_DEFAULT) {
 		LOG_ERR("The default identity cannot be used for FMN");
 		return -EINVAL;
@@ -360,10 +357,10 @@ int fmna_adv_init(uint8_t id)
 
 	bt_id = id;
 
-	bt_id_get(addrs, &count);
-	if (bt_id >= count) {
+	id = bt_id_reset(bt_id, NULL, NULL);
+	if (id != bt_id) {
 		LOG_ERR("FMN identity cannot be found: %d", bt_id);
-		return -EINVAL;
+		return id;
 	}
 
 	return 0;
