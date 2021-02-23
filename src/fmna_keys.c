@@ -2,6 +2,9 @@
 #include "events/fmna_event.h"
 #include "fmna_keys.h"
 
+/* BLE internal header, use with caution. */
+#include <bluetooth/host/keys.h>
+
 #include <logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
@@ -18,15 +21,48 @@ static uint8_t curr_secondary_sk[FMNA_SYMMETRIC_KEY_LEN];
 static uint8_t curr_primary_pk[FMNA_PUBLIC_KEY_LEN];
 static uint8_t curr_secondary_pk[FMNA_PUBLIC_KEY_LEN];
 
-static uint8_t ble_ltk[16];
-
 static uint32_t primary_pk_rotation_cnt = 0;
+
+static bool is_paired = false;
+
+/* Declaration of variables that are relevant to the BLE stack. */
+static uint8_t bt_id;
+static uint8_t bt_ltk[16];
+
 
 static void key_rotation_work_handle(struct k_work *item);
 static void key_rotation_timeout_handle(struct k_timer *timer_id);
 
 K_WORK_DEFINE(key_rotation_work, key_rotation_work_handle);
 K_TIMER_DEFINE(key_rotation_timer, key_rotation_timeout_handle, NULL);
+
+static void bt_ltk_set(const bt_addr_le_t *bt_owner_addr)
+{
+	struct bt_keys *curr_keys;
+	struct bt_ltk new_ltk;
+
+	curr_keys = bt_keys_get_addr(bt_id, bt_owner_addr);
+	if (!curr_keys) {
+		LOG_ERR("bt_ltk_set: Owner key set cannot be found");
+		return;
+	}
+
+	/* Set a proper key properties for the newly created keyset. */
+	curr_keys->keys = BT_KEYS_LTK_P256;
+	curr_keys->enc_size = sizeof(curr_keys->ltk.val);
+
+	/* Configure the new LTK. EDIV and Rand values are set to 0. */
+	memset(&new_ltk, 0, sizeof(new_ltk));
+	memcpy(new_ltk.val, bt_ltk, sizeof(new_ltk.val));
+
+	/*
+	 * Update the LTK value in the BLE stack.
+	 * TODO: Check if it makes sense to guard against data corruption with mutexes, etc.
+	 */
+	memcpy(&curr_keys->ltk, &new_ltk, sizeof(curr_keys->ltk));
+
+	LOG_HEXDUMP_DBG(new_ltk.val, sizeof(new_ltk.val), "Setting BLE LTK");
+}
 
 static int symmetric_key_roll(uint8_t sk[FMNA_SYMMETRIC_KEY_LEN])
 {
@@ -65,7 +101,7 @@ static int primary_key_roll(void)
 	primary_pk_rotation_cnt++;
 
 	/* SK(i+1) -> LTK(i+1) */
-	err = fm_crypto_derive_ltk(curr_primary_sk, ble_ltk);
+	err = fm_crypto_derive_ltk(curr_primary_sk, bt_ltk);
 	if (err) {
 		LOG_ERR("symmetric_key_roll returned error: %d for primary SK", err);
 		return err;
@@ -73,8 +109,6 @@ static int primary_key_roll(void)
 
 	LOG_DBG("Rolling Primary Public Key to: P[%d]", primary_pk_rotation_cnt);
 	LOG_HEXDUMP_DBG(curr_primary_pk, sizeof(curr_primary_pk), "Primary Public Key");
-
-	/* TODO: Set active LTK in the BLE stack. */
 
 	return 0;
 }
@@ -212,3 +246,87 @@ int fmna_keys_reset(const struct fmna_keys_init *init_keys)
 
 	return 0;
 }
+
+static void connected(struct bt_conn *conn, uint8_t err)
+{
+	char addr[BT_ADDR_LE_STR_LEN];
+
+	if (err) {
+		LOG_ERR("fmna_keys: connection failed (err %u)", err);
+		return;
+	}
+
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+
+	LOG_INF("fmna_keys: connected %s", addr);
+
+	if (is_paired) {
+		/* TODO: Filter out non-FMN peers. */
+		bt_ltk_set(bt_conn_get_dst(conn));
+	}
+}
+
+static void security_changed(struct bt_conn *conn, bt_security_t level,
+			     enum bt_security_err err)
+{
+	char addr[BT_ADDR_LE_STR_LEN];
+
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+
+	if (is_paired) {
+		/* TODO: Filter out non-FMN peers. */
+		struct bt_keys *curr_keys = bt_keys_get_addr(bt_id, bt_conn_get_dst(conn));
+		if (curr_keys) {
+			bt_keys_clear(curr_keys);
+			if (err) {
+				LOG_ERR("fmna_keys: security failed: %s level %u err %d\n",
+					addr, level, err);
+			} else {
+				LOG_INF("fmna_keys: security changed: %s level %u",
+					addr, level);
+
+				FMNA_EVENT_CREATE(event, FMNA_OWNER_CONNECTED, conn);
+				EVENT_SUBMIT(event);
+			}
+		} else {
+			LOG_WRN("fmna_keys: cannot clear FMN LTK from BLE stack key pool for %s",
+				addr);
+		}
+	}
+}
+
+int fmna_keys_init(uint8_t id)
+{
+	static struct bt_conn_cb conn_callbacks = {
+		.connected = connected,
+		.security_changed = security_changed,
+	};
+
+	bt_conn_cb_register(&conn_callbacks);
+
+	bt_id = id;
+
+	return 0;
+}
+
+static bool event_handler(const struct event_header *eh)
+{
+	if (is_fmna_event(eh)) {
+		struct fmna_event *event = cast_fmna_event(eh);
+
+		switch (event->id) {
+		case FMNA_PAIRING_COMPLETED:
+			is_paired = true;
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
+	return false;
+}
+
+EVENT_LISTENER(fmna_keys, event_handler);
+EVENT_SUBSCRIBE(fmna_keys, fmna_event);

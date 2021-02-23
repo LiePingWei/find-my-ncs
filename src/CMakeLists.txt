@@ -1,5 +1,9 @@
 zephyr_library()
+
 zephyr_library_include_directories(.)
+# Expose subsys directory from Zephyr to access internal headers
+zephyr_library_include_directories(${ZEPHYR_BASE}/subsys/.)
+
 zephyr_library_sources(fmna_adv.c)
 zephyr_library_sources(fmna_gatt_ais.c)
 zephyr_library_sources(fmna_gatt_fmns.c)

@@ -23,6 +23,8 @@ int fmna_keys_secondary_key_get(uint8_t secondary_pk[FMNA_PUBLIC_KEY_LEN]);
 
 int fmna_keys_reset(const struct fmna_keys_init *init_keys);
 
+int fmna_keys_init(uint8_t id);
+
 #ifdef __cplusplus
 }
 #endif

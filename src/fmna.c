@@ -1,4 +1,5 @@
 #include "fmna_adv.h"
+#include "fmna_keys.h"
 #include "fmna_pair.h"
 #include "fmna_storage.h"
 
@@ -57,6 +58,12 @@ int fmna_init(const struct fmna_init_params *init_params)
 	err = fmna_pair_init();
 	if (err) {
 		LOG_ERR("fmna_pair_init returned error: %d", err);
+		return err;
+	}
+
+	err = fmna_keys_init(init_params->bt_id);
+	if (err) {
+		LOG_ERR("fmna_keys_init returned error: %d", err);
 		return err;
 	}
 

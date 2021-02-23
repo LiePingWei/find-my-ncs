@@ -17,6 +17,7 @@ extern "C" {
 	_name->conn = _conn;
 
 enum fmna_event_id {
+	FMNA_OWNER_CONNECTED,
 	FMNA_PAIRING_COMPLETED,
 	FMNA_PUBLIC_KEYS_CHANGED,
 };
