@@ -187,7 +187,6 @@ int fmna_adv_start_unpaired(void)
 	};
 
 	int err;
-	bt_addr_le_t *addr = BT_ADDR_LE_ANY;
 
 	/* Stop any ongoing advertising. */
 	err = bt_ext_advertising_stop();
@@ -198,17 +197,6 @@ int fmna_adv_start_unpaired(void)
 
 	/* Encode the FMN Service payload for advertising data set. */
 	unpaired_adv_payload_encode(&adv_payload.unpaired);
-
-	/*
-	 * Reconfigure the BT address after coming back from the Separated
-	 * state. Each address reconfiguration changes the BLE identity and
-	 * removes BLE bonds.
-	 */
-	err = id_addr_reconfigure(addr);
-	if (err) {
-		LOG_ERR("id_addr_reconfigure returned error: %d", err);
-		return err;
-	}
 
 	err = bt_ext_advertising_start(unpaired_ad, ARRAY_SIZE(unpaired_ad));
 	if (err) {
