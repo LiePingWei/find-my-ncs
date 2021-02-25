@@ -1,10 +1,10 @@
 import base64
 import re
-import click
+import argparse
 import six
 
 from pynrfjprog import API
-import ncsfmntools.utils.settings_nvs_utils as nvs
+from . import settings_nvs_utils as nvs
 
 DEVICE_NRF52832 = 'NRF52832'
 DEVICE_NRF52840 = 'NRF52840'
@@ -37,20 +37,13 @@ FMN_MAX_RECORD_ID = 999
 FMN_MFI_AUTH_TOKEN_LEN = 1024
 FMN_MFI_AUTH_UUID_LEN = 16
 
-class SettingsBaseAddressType(click.ParamType):
-    """docstring for SettingsBaseAddressType"""
-    name = 'Settings base address'
-
-    def convert(self, value, param, ctx):
-        if value[:2].lower() == '0x':
-            value = value[2:]
-        pattern = re.compile('^[\\dA-Fa-f]*$')
-        if not pattern.match(value):
-            self.fail('%s is a malformed Settings base address' % value)
-        return value
-
-
-SETTINGS_BASE = SettingsBaseAddressType()
+def SETTINGS_BASE(value):
+    if value[:2].lower() == '0x':
+        value = value[2:]
+    pattern = re.compile('^[\\dA-Fa-f]*$')
+    if not pattern.match(value):
+        raise ValueError('%s is a malformed FDS base address' % value)
+    return value
 
 def open_nrf(snr=None):
     with API.API(API.DeviceFamily.UNKNOWN) as api:
@@ -114,18 +107,19 @@ def remove_zeros(items):
     while items[-1] == 0:
         items.pop()
 
-@click.command()
-@click.option('-e', '--device', help='Device of accessory to provision', type=click.Choice(settings_bases_without_bl.keys()),
-              required=True)
-@click.option('-f', '--settings-base', type=SETTINGS_BASE,
+def cli(cmd, argv):
+    parser = argparse.ArgumentParser(description='FMN Accessory MFi Token Extractor Tool', prog=cmd, add_help=False)
+    parser.add_argument('-e', '--device', help='Device of accessory to use',
+              metavar='['+'|'.join(settings_bases_without_bl.keys())+']',
+              choices=settings_bases_without_bl.keys(), required=True)
+    parser.add_argument('-f', '--settings-base', type=SETTINGS_BASE, metavar='ADDRESS',
               help='Settings base address given in hex format. This only needs to be specified if the default values in the '
                    'NCS has been changed.')
-def cli(device, settings_base):
-    """FMN Accessory MFi Token extractor
+    parser.add_argument('--help', action='help',
+                        help='Show this help message and exit')
+    args = parser.parse_args(argv)
 
-    This tool extracts MFi token information from the accessory.
-    """
-    extract(device, settings_base)
+    extract(args.device, args.settings_base)
 
 def extract(device, settings_base):
     if settings_base:

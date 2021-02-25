@@ -2,14 +2,14 @@ import base64
 import os
 import re
 import sys
+import argparse
 from shutil import copyfile
 from binascii import unhexlify, hexlify
 from hashlib import md5
 
-import click
 import six
 
-import ncsfmntools.utils.settings_nvs_utils as nvs
+from . import settings_nvs_utils as nvs
 
 DEVICE_NRF52832 = 'NRF52832'
 DEVICE_NRF52840 = 'NRF52840'
@@ -37,97 +37,82 @@ FMN_MAX_RECORD_ID = 999
 FMN_MFI_AUTH_TOKEN_LEN = 1024
 FMN_MFI_AUTH_UUID_LEN = 16
 
-class MfiUuidType(click.ParamType):
-    """docstring for MfiTokenType"""
-    name = 'MFi UUID'
-
-    def convert(self, value, param, ctx):
-        pattern = re.compile('[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}')
-        if not pattern.match(value):
-            self.fail('--mfi-uuid specified with malformed Software Token UUID.')
-        value = value.replace('-', '')
-        if len(value) != FMN_MFI_AUTH_UUID_LEN * 2:
-            self.fail('--mfi-uuid specified with invalid Software Token UUID length.')
-        return value
+def MFI_UUID(value):
+    pattern = re.compile('[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}')
+    if not pattern.match(value):
+        raise ValueError('--mfi-token specified with malformed Software Token UUID.')
+    return value.replace('-', '')
 
 
-class MfiTokenType(click.ParamType):
-    """docstring for MfiTokenType"""
-    name = 'MFi Token'
-
-    def convert(self, value, param, ctx):
-        try:
-            if six.PY3:
-                token = base64.decodebytes(value.encode('ascii'))
-            else:
-                token = base64.decodestring(value)
-            padding = FMN_MFI_AUTH_TOKEN_LEN - len(token)
-            if padding < 0:
-                raise Exception
-            token += bytes([0] * padding)
-        except Exception as e:
-            print(e)
-            self.fail('--mfi-token specified with malformed Software Token.')
-        return token
+def MFI_TOKEN(value):
+    try:
+        if six.PY3:
+            token = base64.decodebytes(value.encode('ascii'))
+        else:
+            token = base64.decodestring(value)
+    except Exception as e:
+        print(e)
+        raise ValueError('--mfi-token specified with malformed Software Token.')
+    return token
 
 
-class SerialNumberType(click.ParamType):
-    """docstring for SerialNumberType"""
-    name = 'Serial number'
+def SERIAL_NUMBER(value):
     CHARS_PER_BYTE = 2
     SERIAL_NUMBER_BLEN = 16
-
-    def convert(self, value, param, ctx):
-        expected_len = self.SERIAL_NUMBER_BLEN * self.CHARS_PER_BYTE
-        pattern = re.compile('^[\\dA-Fa-f]*$')
-        if not pattern.match(value) or len(value) != expected_len:
-            self.fail('%s is a malformed serial number' % value)
-        return value
+    expected_len = SERIAL_NUMBER_BLEN * CHARS_PER_BYTE
+    pattern = re.compile('^[\\dA-Fa-f]*$')
+    if not pattern.match(value) or len(value) != expected_len:
+        raise ValueError('%s is a malformed serial number' % value)
+    return value
 
 
-class SettingsBaseAddressType(click.ParamType):
-    """docstring for SettingsBaseAddressType"""
-    name = 'Settings base address'
-
-    def convert(self, value, param, ctx):
-        if value[:2].lower() == '0x':
-            value = value[2:]
-        pattern = re.compile('^[\\dA-Fa-f]*$')
-        if not pattern.match(value):
-            self.fail('%s is a malformed Settings base address' % value)
-        return value
+def SETTINGS_BASE(value):
+    if value[:2].lower() == '0x':
+        value = value[2:]
+    pattern = re.compile('^[\\dA-Fa-f]*$')
+    if not pattern.match(value):
+        raise ValueError('%s is a malformed FDS base address' % value)
+    return value
 
 
-SETTINGS_BASE = SettingsBaseAddressType()
-MFI_TOKEN = MfiTokenType()
-MFI_UUID = MfiUuidType()
-SERIAL_NUMBER = SerialNumberType()
+def EXISTING_FILE_PATH(value):
+    try:
+        value = os.path.realpath(value)
+    except:
+        raise ValueError('%s is invalid' % value)
+    if not os.path.exists(value):
+        raise ValueError('%s does not exists' % value)
+    if not os.path.isfile(value):
+        raise ValueError('%s is not a file' % value)
+    return value
 
 
-@click.command()
-@click.option('-u', '--mfi-uuid', help='MFI uuid of accessory: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', type=MFI_UUID)
-@click.option('-m', '--mfi-token', type=MFI_TOKEN,
+def cli(cmd, argv):
+    parser = argparse.ArgumentParser(description='FMN Accessory Setup Provisioning Tool', prog=cmd, add_help=False)
+    parser.add_argument('-u', '--mfi-uuid', required=True, type=MFI_UUID, metavar='UUID',
+              help='MFI uuid of accessory: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+    parser.add_argument('-m', '--mfi-token', type=MFI_TOKEN, metavar='TOKEN', required=True,
               help='MFI token of accessory formatted as a base64 encoded string.')
-@click.option('-s', '--serial-number', type=SERIAL_NUMBER,
+    parser.add_argument('-s', '--serial-number', type=SERIAL_NUMBER, metavar='SN',
               help='Serial number of accessory in a hex format.')
-@click.option('-o', '--output-path', default='provisioned.hex',
-              type=click.Path(resolve_path=True, dir_okay=True),
+    parser.add_argument('-o', '--output-path', default='provisioned.hex', metavar='PATH',
               help='Path to store the result of the provisioning. '
                    'Unique identifiers will be appended to any specified file name.')
-@click.option('-e', '--device', help='Device of accessory to provision', type=click.Choice(settings_bases_without_bl.keys()),
-              required=True)
-@click.option('-f', '--settings-base', type=SETTINGS_BASE,
+    parser.add_argument('-e', '--device', help='Device of accessory to provision',
+              metavar='['+'|'.join(settings_bases_without_bl.keys())+']',
+              choices=settings_bases_without_bl.keys(), required=True)
+    parser.add_argument('-f', '--settings-base', type=SETTINGS_BASE, metavar='ADDRESS',
               help='Settings base address given in hex format. This only needs to be specified if the default values in the '
                    'NCS has been changed.')
-@click.option('-x', '--input-hex-file', help='Hex file to be merged with provisioned Settings. If this option is set, the '
-                                             'output hex file will be [input-hex-file + provisioned Settings].',
-              type=click.Path(resolve_path=True, exists=True))
-def cli(mfi_uuid, mfi_token, serial_number, output_path, device, settings_base, input_hex_file):
-    """FMN Accessory Setup Provisioning Tool
+    parser.add_argument('-x', '--input-hex-file',
+              help='Hex file to be merged with provisioned Settings. If this option is set, the '
+                   'output hex file will be [input-hex-file + provisioned Settings].',
+              type=EXISTING_FILE_PATH)
+    parser.add_argument('--help', action='help',
+                        help='Show this help message and exit')
+    args = parser.parse_args(argv)
 
-    This tool generates and provisions accessory setup information for FMN.
-    """
-    provision(mfi_uuid, mfi_token, serial_number, output_path, device, settings_base, input_hex_file)
+    provision(args.mfi_uuid, args.mfi_token, args.serial_number, args.output_path, args.device, args.settings_base, args.input_hex_file)
 
 
 def provision(mfi_uuid, mfi_token, serial_number, output_path, device, settings_base, input_hex_file):
@@ -190,7 +175,3 @@ def create_and_insert_record_dict(nvs_dict, record_data, settings_key):
                                                                nvs_dict['record_id'],
                                                                record)
     nvs_dict['record_id'] += 1
-
-
-if __name__ == '__main__':
-    cli()

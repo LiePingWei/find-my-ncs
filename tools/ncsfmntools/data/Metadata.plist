@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>MetaData Format Version</key>
+		<integer>2</integer>
+		<key>MetaData Values</key>
+		<array>
+			<dict>
+				<key>Name</key>
+				<string>SHA-2</string>
+				<key>Value</key>
+				<integer>4107155198</integer>
+			</dict>
+			<dict>
+				<key>Name</key>
+				<string>Apply Flags</string>
+				<key>Value</key>
+				<integer>4107155195</integer>
+			</dict>
+		</array>
+	</dict>
+</plist>
