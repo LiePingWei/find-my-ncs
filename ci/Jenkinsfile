@@ -22,17 +22,20 @@ pipeline
 
         stage('Prepare Python and fmntools') {  steps { script {
             sh "python -m pip install --user jinja2"
+            sh "python -m pip install --user ssh"
             sh "python3 -m pip install --user markdown pygments"
             sh "python3 -m pip install --user tools/."
         } } }
 
-        stage('West init') { steps { script { sh "west init" } } }
+        stage('Create repo folder') { steps { script { sh "mkdir fmn && shopt -s extglob && shopt extglob" } } }
 
-        stage('West update') { steps { script { sh "west update" } } }
+        stage('Move repo') { steps { catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') { sh "mv -f * fmn" } } }
 
-        stage('Build FMN') { steps { script { sh "west build apps/fmn" } } }
+        stage('West init') { steps { script { sh "west init -l fmn && west update" } } }
 
-        stage('Build crypto') { steps { script { sh "west build tests/crypto" } } }
+        stage('Build FMN') { steps { script { sh "west build fmn/apps/fmn -b nrf52840dk_nrf52840" } } }
+
+        stage('Build crypto') { steps { script { sh "west build --build-dir=build/build-crypto fmn/tests/crypto -b nrf52840dk_nrf52840" } } }
 
 
 
@@ -42,7 +45,8 @@ pipeline
     post {
         always {
             script {
-//                    archiveArtifacts artifacts: 'exe/**/*', allowEmptyArchive: false
+                    echo "Skiped stage for test"
+                    archiveArtifacts artifacts: 'build/**/*', allowEmptyArchive: false
             }
         }
         cleanup { cleanWs disableDeferredWipeout: true, deleteDirs: true }
