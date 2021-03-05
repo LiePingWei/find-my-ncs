@@ -8,6 +8,7 @@
 #include "fmna_gatt_fmns.h"
 #include "fmna_gatt_pkt_manager.h"
 
+#include "events/fmna_owner_event.h"
 #include "events/fmna_pair_event.h"
 
 #include <bluetooth/bluetooth.h>
@@ -36,6 +37,8 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
 #define BT_ATT_HEADER_LEN 3
 
+#define FMNS_OWNER_MAX_RX_LEN 2
+
 enum pairing_cp_opcode {
 	PAIRING_CP_OPCODE_BASE                 = 0x0100,
 	PAIRING_CP_OPCODE_INITIATE_PAIRING     = 0x0100,
@@ -43,6 +46,16 @@ enum pairing_cp_opcode {
 	PAIRING_CP_OPCODE_FINALIZE_PAIRING     = 0x0102,
 	PAIRING_CP_OPCODE_SEND_PAIRING_STATUS  = 0x0103,
 	PAIRING_CP_OPCODE_PAIRING_COMPLETE     = 0x0104,
+};
+
+enum owner_cp_opcode {
+	OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY          = 0x0400,
+	OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER            = 0x0401,
+	OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY_RESPONSE = 0x0402,
+	OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER_RESPONSE   = 0x0403,
+	OWNER_CP_OPCODE_GET_SERIAL_NUMBER                = 0x0404,
+	OWNER_CP_OPCODE_GET_SERIAL_NUMBER_RESPONSE       = 0x0405,
+	OWNER_CP_OPCODE_COMMAND_RESPONSE                 = 0x0406,
 };
 
 NET_BUF_SIMPLE_DEFINE_STATIC(cp_ind_buf, FMNA_GATT_PKT_MAX_LEN);
@@ -162,7 +175,43 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 			      const void *buf, uint16_t len,
 			      uint16_t offset, uint8_t flags)
 {
+	bool pkt_complete;
+
+	NET_BUF_SIMPLE_DEFINE(owner_buf, FMNS_OWNER_MAX_RX_LEN);
+
 	LOG_INF("FMN Owner CP write, handle: %u, conn: %p", attr->handle, conn);
+
+	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&owner_buf, buf, len);
+	if (pkt_complete) {
+		uint16_t opcode;
+		enum fmna_owner_operation op;
+
+		LOG_HEXDUMP_INF(owner_buf.data, owner_buf.len, "Owner packet:");
+		LOG_INF("Total packet length: %d", owner_buf.len);
+
+		opcode = net_buf_simple_pull_le16(&owner_buf);
+		switch (opcode) {
+		case OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY:
+			op = FMNA_GET_CURRENT_PRIMARY_KEY;
+			break;
+		case OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER:
+			op = FMNA_GET_ICLOUD_IDENTIFIER;
+			break;
+		case OWNER_CP_OPCODE_GET_SERIAL_NUMBER:
+			op = FMNA_GET_SERIAL_NUMBER;
+			break;
+		default:
+			LOG_ERR("FMN Owner CP, unexpected opcode: 0x%02X", opcode);
+			return len;
+		}
+
+		struct fmna_owner_event *event = new_fmna_owner_event();
+
+		event->op = op;
+		event->conn = conn;
+
+		EVENT_SUBMIT(event);
+	}
 
 	return len;
 }
@@ -331,4 +380,31 @@ int fmna_gatt_pairing_cp_indicate(struct bt_conn *conn,
 	}
 
 	return cp_indicate(conn, &fmns_svc.attrs[2], pairing_opcode, buf);
+}
+
+int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
+				enum fmna_gatt_owner_ind ind_type,
+				struct net_buf_simple *buf)
+{
+	uint16_t owner_opcode;
+
+	switch (ind_type) {
+	case FMNA_GATT_OWNER_PRIMARY_KEY_IND:
+		owner_opcode = OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY_RESPONSE;
+		break;
+	case FMNA_GATT_OWNER_ICLOUD_ID_IND:
+		owner_opcode = OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER_RESPONSE;
+		break;
+	case FMNA_GATT_OWNER_SERIAL_NUMBER_IND:
+		owner_opcode = OWNER_CP_OPCODE_GET_SERIAL_NUMBER_RESPONSE;
+		break;
+	case FMNA_GATT_OWNER_COMMAND_RESPONSE_IND:
+		owner_opcode = OWNER_CP_OPCODE_COMMAND_RESPONSE;
+		break;
+	default:
+		LOG_ERR("Owner CP: invalid indication type: %d", ind_type);
+		return -EINVAL;
+	}
+
+	return cp_indicate(conn, &fmns_svc.attrs[11], owner_opcode, buf);
 }
