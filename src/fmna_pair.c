@@ -1,6 +1,7 @@
 #include "fmna_keys.h"
 #include "fmna_gatt_fmns.h"
 #include "fmna_product_plan.h"
+#include "fmna_serial_number.h"
 #include "fmna_storage.h"
 #include "crypto/fm_crypto.h"
 #include "events/fmna_pair_event.h"
@@ -28,8 +29,6 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 #define SESSION_NONCE_BLEN        32
 #define SEEDS_BLEN                32
 #define ICLOUD_IDENTIFIER_BLEN    60
-
-#define SERIAL_NUMBER_RAW_BLEN   16
 
 /* FMN pairing command and response descriptors. */
 struct __packed fmna_initiate_pairing {
@@ -60,7 +59,7 @@ struct __packed e2_encr_msg {
 	uint8_t  session_nonce[SESSION_NONCE_BLEN];
 	char     software_auth_token[FMNA_SW_AUTH_TOKEN_BLEN];
 	uint8_t  software_auth_uuid[FMNA_SW_AUTH_UUID_BLEN];
-	uint8_t  serial_number[SERIAL_NUMBER_RAW_BLEN];
+	uint8_t  serial_number[FMNA_SERIAL_NUMBER_BLEN];
 	uint8_t  product_data[FMNA_PP_PRODUCT_DATA_LEN];
 	uint32_t fw_version;
 	uint8_t  e1[E1_BLEN];
@@ -69,7 +68,7 @@ struct __packed e2_encr_msg {
 
 struct __packed e4_encr_msg {
 	uint8_t  software_auth_uuid[FMNA_SW_AUTH_UUID_BLEN];
-	uint8_t  serial_number[SERIAL_NUMBER_RAW_BLEN];
+	uint8_t  serial_number[FMNA_SERIAL_NUMBER_BLEN];
 	uint8_t  session_nonce[SESSION_NONCE_BLEN];
 	uint8_t  e1[E1_BLEN];
 	uint8_t  latest_sw_token[FMNA_SW_AUTH_TOKEN_BLEN];
@@ -92,43 +91,6 @@ static uint8_t seedk1[FMNA_SYMMETRIC_KEY_LEN];
 static uint8_t server_shared_secret[SERVER_SHARED_SECRET_BLEN];
 static struct fm_crypto_ckg_context ckg_ctx;
 
-/* Serial number. */
-static uint8_t serial_number[SERIAL_NUMBER_RAW_BLEN];
-
-static inline char num_to_char(uint8_t nibble) {
-	return (nibble < 10) ? ('0' + nibble) : ('a' + nibble - 10);
-}
-
-void fmna_serial_number_get(uint8_t *sn, uint8_t length) {
-	uint8_t temp[8];
-	uint16_t remaining = length;
-	int i=0;
-
-	/* XOR device ID and address to identify the device */
-	*((uint32_t *)temp) =  NRF_FICR->DEVICEID[0];
-	*((uint32_t *)temp) ^= NRF_FICR->DEVICEADDR[0];
-
-	*((uint32_t *)(temp + 4)) =  NRF_FICR->DEVICEID[1];
-	*((uint32_t *)(temp + 4)) ^= NRF_FICR->DEVICEADDR[1];
-
-	/* Convert to a character string */
-	for (; i < 8 && remaining; ++i) {
-		sn[2 * i] = num_to_char((temp[i] & 0x0f));
-		remaining--;
-		if (remaining) {
-			sn[2 * i + 1] = num_to_char(((temp[i] >> 4) & 0x0f));
-			remaining--;
-		}
-	}
-
-	/* Pad remaining with 'f' */
-	if (remaining) {
-		sn[i] = 'f';
-		remaining--;
-		i++;
-	}
-}
-
 int fmna_pair_init(void)
 {
 	int err;
@@ -137,10 +99,6 @@ int fmna_pair_init(void)
 	if (err) {
 		LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
 	}
-
-	fmna_serial_number_get(serial_number, sizeof(serial_number));
-	LOG_HEXDUMP_INF(serial_number, sizeof(serial_number),
-			"Serial Number:");
 
 	return err;
 }
@@ -164,9 +122,7 @@ static int e2_msg_populate(struct fmna_initiate_pairing *init_pairing,
 		return err;
 	}
 
-	memcpy(e2_encr_msg->serial_number,
-	       serial_number,
-	       sizeof(e2_encr_msg->serial_number));
+	fmna_serial_number_get(e2_encr_msg->serial_number);
 
 	memcpy(e2_encr_msg->e1, init_pairing->e1, sizeof(e2_encr_msg->e1));
 
@@ -193,9 +149,7 @@ static int e4_msg_populate(struct e4_encr_msg *e4_encr_msg)
 		return err;
 	}
 
-	memcpy(e4_encr_msg->serial_number,
-	       serial_number,
-	       sizeof(e4_encr_msg->serial_number));
+	fmna_serial_number_get(e4_encr_msg->serial_number);
 
 	memcpy(e4_encr_msg->e1, e1, sizeof(e4_encr_msg->e1));
 

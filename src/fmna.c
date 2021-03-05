@@ -1,6 +1,7 @@
 #include "fmna_conn.h"
 #include "fmna_keys.h"
 #include "fmna_pair.h"
+#include "fmna_serial_number.h"
 #include "fmna_storage.h"
 #include "fmna_state.h"
 
@@ -20,6 +21,7 @@ static void mfi_token_display_work_handler(struct k_work *work)
 	int err;
 	uint8_t uuid[FMNA_SW_AUTH_UUID_BLEN] = {0};
 	uint8_t auth_token[FMNA_SW_AUTH_TOKEN_BLEN] = {0};
+	uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN] = {0};
 
 	err = fmna_storage_uuid_load(uuid);
 	if (err == -ENOENT) {
@@ -42,6 +44,10 @@ static void mfi_token_display_work_handler(struct k_work *work)
 		LOG_HEXDUMP_INF(auth_token, 16, "SW Authentication Token:");
 		LOG_INF("(... %d more bytes ...)", FMNA_SW_AUTH_TOKEN_BLEN - 16);
 	}
+
+	fmna_serial_number_get(serial_number);
+	LOG_HEXDUMP_INF(serial_number, sizeof(serial_number),
+			"Serial Number:");
 }
 
 int fmna_init(const struct fmna_init_params *init_params)

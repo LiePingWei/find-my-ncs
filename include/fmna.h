@@ -11,6 +11,7 @@ struct fmna_init_params {
 
 int fmna_init(const struct fmna_init_params *init_params);
 
+int fmna_serial_number_lookup_enable(void);
 
 #ifdef __cplusplus
 }
