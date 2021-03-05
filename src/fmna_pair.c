@@ -435,7 +435,7 @@ static void initiate_pairing_cmd_handle(struct bt_conn *conn,
 		}
 	}
 
-	err = fmns_pairing_data_indicate(conn, &buf_desc);
+	err = fmna_gatt_pairing_cp_indicate(conn, FMNA_GATT_PAIRING_DATA_IND, &buf_desc);
 	if (err) {
 		LOG_ERR("fmns_pairing_data_indicate returned error: %d", err);
 	}
@@ -469,7 +469,7 @@ static void finalize_pairing_cmd_handle(struct bt_conn *conn,
 		}
 	}
 
-	err = fmns_pairing_status_indicate(conn, &buf_desc);
+	err = fmna_gatt_pairing_cp_indicate(conn, FMNA_GATT_PAIRING_STATUS_IND, &buf_desc);
 	if (err) {
 		LOG_ERR("fmns_pairing_status_indicate returned error: %d",
 			err);

@@ -45,8 +45,8 @@ enum pairing_cp_opcode {
 	PAIRING_CP_OPCODE_PAIRING_COMPLETE     = 0x0104,
 };
 
-NET_BUF_SIMPLE_DEFINE_STATIC(pairing_cp_ind_buf, FMNA_GATT_PKT_MAX_LEN);
-K_SEM_DEFINE(pairing_cp_tx_sem, 1, 1);
+NET_BUF_SIMPLE_DEFINE_STATIC(cp_ind_buf, FMNA_GATT_PKT_MAX_LEN);
+K_SEM_DEFINE(cp_tx_sem, 1, 1);
 
 static void pairing_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 				       uint16_t value)
@@ -234,24 +234,20 @@ static uint16_t pairing_ind_len_get(struct bt_conn *conn)
 	return ind_data_len;
 }
 
-static void pairing_cp_ind_cb(struct bt_conn *conn,
-			      struct bt_gatt_indicate_params *params,
-			      uint8_t err)
+static void cp_ind_cb(struct bt_conn *conn, struct bt_gatt_indicate_params *params, uint8_t err)
 {
 	uint8_t *ind_data;
 	uint16_t ind_data_len;
 
-	LOG_INF("Received FMN Pairing CP indication ACK with status: 0x%04X",
-		err);
+	LOG_INF("Received FMN CP indication ACK with status: 0x%04X", err);
 
 	ind_data_len = pairing_ind_len_get(conn);
-	ind_data = fmna_gatt_pkt_manager_chunk_prepare(&pairing_cp_ind_buf,
-						       &ind_data_len);
+	ind_data = fmna_gatt_pkt_manager_chunk_prepare(&cp_ind_buf, &ind_data_len);
 	if (!ind_data) {
 		/* Release the semaphore when there is not more data
 		 * to be sent for the whole packet transmission.
 		 */
-		k_sem_give(&pairing_cp_tx_sem);
+		k_sem_give(&cp_tx_sem);
 
 		return;
 	}
@@ -263,13 +259,14 @@ static void pairing_cp_ind_cb(struct bt_conn *conn,
 	if (err) {
 		LOG_ERR("bt_gatt_indicate returned error: %d", err);
 
-		k_sem_give(&pairing_cp_tx_sem);
+		k_sem_give(&cp_tx_sem);
 	}
 }
 
-static int fmns_pairing_cp_indicate(struct bt_conn *conn,
-				    enum pairing_cp_opcode opcode,
-				    struct net_buf_simple *buf)
+static int cp_indicate(struct bt_conn *conn,
+		       const struct bt_gatt_attr *attr,
+		       uint16_t opcode,
+		       struct net_buf_simple *buf)
 {
 	int err;
 	uint8_t *ind_data;
@@ -277,31 +274,31 @@ static int fmns_pairing_cp_indicate(struct bt_conn *conn,
 
 	static struct bt_gatt_indicate_params indicate_params;
 
-	err = k_sem_take(&pairing_cp_tx_sem, K_MSEC(50));
+	err = k_sem_take(&cp_tx_sem, K_MSEC(50));
 	if (err) {
-		LOG_ERR("FMN Pairing CP indication sending in progress");
+		LOG_ERR("FMN CP indication sending in progress");
 
 		return err;
 	}
 
 	/* Initialize buffer for sending. */
-	net_buf_simple_reset(&pairing_cp_ind_buf);
-	net_buf_simple_reserve(&pairing_cp_ind_buf, FMNA_GATT_PKT_HEADER_LEN);
-	net_buf_simple_add_le16(&pairing_cp_ind_buf, opcode);
-	net_buf_simple_add_mem(&pairing_cp_ind_buf, buf->data, buf->len);
+	net_buf_simple_reset(&cp_ind_buf);
+	net_buf_simple_reserve(&cp_ind_buf, FMNA_GATT_PKT_HEADER_LEN);
+	net_buf_simple_add_le16(&cp_ind_buf, opcode);
+	net_buf_simple_add_mem(&cp_ind_buf, buf->data, buf->len);
 
 	ind_data_len = pairing_ind_len_get(conn);
-	ind_data = fmna_gatt_pkt_manager_chunk_prepare(&pairing_cp_ind_buf,
+	ind_data = fmna_gatt_pkt_manager_chunk_prepare(&cp_ind_buf,
 						       &ind_data_len);
 	if (!ind_data) {
-		k_sem_give(&pairing_cp_tx_sem);
+		k_sem_give(&cp_tx_sem);
 
 		return -EINVAL;
 	}
 
 	memset(&indicate_params, 0, sizeof(indicate_params));
-	indicate_params.attr = &fmns_svc.attrs[2];
-	indicate_params.func = pairing_cp_ind_cb;
+	indicate_params.attr = attr;
+	indicate_params.func = cp_ind_cb;
 	indicate_params.data = ind_data;
 	indicate_params.len = ind_data_len;
 
@@ -309,24 +306,29 @@ static int fmns_pairing_cp_indicate(struct bt_conn *conn,
 	if (err) {
 		LOG_ERR("bt_gatt_indicate returned error: %d", err);
 
-		k_sem_give(&pairing_cp_tx_sem);
+		k_sem_give(&cp_tx_sem);
 	}
 
 	return err;
 }
 
-int fmns_pairing_data_indicate(struct bt_conn *conn,
-			       struct net_buf_simple *buf)
+int fmna_gatt_pairing_cp_indicate(struct bt_conn *conn,
+				  enum fmna_gatt_pairing_ind ind_type,
+				  struct net_buf_simple *buf)
 {
-	return fmns_pairing_cp_indicate(conn,
-					PAIRING_CP_OPCODE_SEND_PAIRING_DATA,
-					buf);
-}
+	uint16_t pairing_opcode;
 
-int fmns_pairing_status_indicate(struct bt_conn *conn,
-				 struct net_buf_simple *buf)
-{
-	return fmns_pairing_cp_indicate(conn,
-					PAIRING_CP_OPCODE_SEND_PAIRING_STATUS,
-					buf);
+	switch (ind_type) {
+	case FMNA_GATT_PAIRING_DATA_IND:
+		pairing_opcode = PAIRING_CP_OPCODE_SEND_PAIRING_DATA;
+		break;
+	case FMNA_GATT_PAIRING_STATUS_IND:
+		pairing_opcode = PAIRING_CP_OPCODE_SEND_PAIRING_STATUS;
+		break;
+	default:
+		LOG_ERR("Pairing CP: invalid indication type: %d", ind_type);
+		return -EINVAL;
+	}
+
+	return cp_indicate(conn, &fmns_svc.attrs[2], pairing_opcode, buf);
 }

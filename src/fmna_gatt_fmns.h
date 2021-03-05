@@ -9,11 +9,14 @@ extern "C" {
 #include <bluetooth/conn.h>
 #include <net/buf.h>
 
-int fmns_pairing_data_indicate(struct bt_conn *conn,
-			       struct net_buf_simple *buf);
+enum fmna_gatt_pairing_ind {
+	FMNA_GATT_PAIRING_DATA_IND,
+	FMNA_GATT_PAIRING_STATUS_IND
+};
 
-int fmns_pairing_status_indicate(struct bt_conn *conn,
-				 struct net_buf_simple *buf);
+int fmna_gatt_pairing_cp_indicate(struct bt_conn *conn,
+				  enum fmna_gatt_pairing_ind ind_type,
+				  struct net_buf_simple *buf);
 
 #ifdef __cplusplus
 }
