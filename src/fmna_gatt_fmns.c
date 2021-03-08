@@ -8,7 +8,6 @@
 #include "fmna_gatt_fmns.h"
 #include "fmna_gatt_pkt_manager.h"
 
-#include "events/fmna_owner_event.h"
 #include "events/fmna_pair_event.h"
 
 #include <bluetooth/bluetooth.h>
@@ -407,4 +406,20 @@ int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 	}
 
 	return cp_indicate(conn, &fmns_svc.attrs[11], owner_opcode, buf);
+}
+
+uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_operation owner_op)
+{
+	switch (owner_op) {
+	case FMNA_GET_CURRENT_PRIMARY_KEY:
+		return OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY;
+	case FMNA_GET_ICLOUD_IDENTIFIER:
+		return OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER;
+	case FMNA_GET_SERIAL_NUMBER:
+		return OWNER_CP_OPCODE_GET_SERIAL_NUMBER;
+	default:
+		__ASSERT(0, "Owner event type outside the mapping scope: %d",
+			owner_op);
+		return 0;
+	}
 }
