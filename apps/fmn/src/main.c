@@ -18,7 +18,10 @@
 
 #include <settings/settings.h>
 
+#include <dk_buttons_and_leds.h>
+
 #define BT_ID_FMN 1
+#define FMN_SN_LOOKUP_BUTTON DK_BTN1_MSK
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -122,6 +125,33 @@ static int fmna_initialize(void)
 	return err;
 }
 
+static void button_changed(uint32_t button_state, uint32_t has_changed)
+{
+	int err;
+	uint32_t buttons = button_state & has_changed;
+
+	if (buttons & FMN_SN_LOOKUP_BUTTON) {
+		err = fmna_serial_number_lookup_enable();
+		if (err) {
+			printk("Cannot enable FMN Serial Number lookup (err: %d)\n", err);
+		} else {
+			printk("FMN Serial Number lookup enabled\n");
+		}
+	}
+}
+
+static int dk_library_initialize(void)
+{
+	int err;
+
+	err = dk_buttons_init(button_changed);
+	if (err) {
+		printk("Cannot init buttons (err: %d)\n", err);
+	}
+
+	return err;
+}
+
 void main(void)
 {
 	int err;
@@ -130,6 +160,12 @@ void main(void)
 
 	bt_conn_cb_register(&conn_callbacks);
 	bt_conn_auth_cb_register(&conn_auth_callbacks);
+
+	err = dk_library_initialize();
+	if (err) {
+		printk("DK library init failed (err %d)\n", err);
+		return;
+	}
 
 	err = bt_enable(NULL);
 	if (err) {
