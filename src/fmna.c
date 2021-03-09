@@ -10,8 +10,6 @@
 
 LOG_MODULE_REGISTER(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
-BUILD_ASSERT(CONFIG_FMN_PRODUCT_DATA != 0,
-	"The FMN Product Data configuration must be set");
 BUILD_ASSERT(CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE >= 4096,
 	"The workqueue stack size is too small for the FMN");
 

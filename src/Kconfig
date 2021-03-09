@@ -24,12 +24,17 @@ config FMN_HARDCODED_PAIRING
 config FMN_DEBUG
 	bool "Enable FMN with Debug capabilities"
 
-# AIS configuration
-menu "Accessory Information Service (AIS)"
+# Product Plan configuration
+config FMN_NORDIC_PRODUCT_PLAN
+	bool "Use Nordic Product Plan"
 
 config FMN_PRODUCT_DATA
 	hex "FMN Product Data"
+	default f86ae43a63829ed8 if FMN_NORDIC_PRODUCT_PLAN
 	default 0
+
+# AIS configuration
+menu "Accessory Information Service (AIS)"
 
 config FMN_MANUFACTURER_NAME
 	string "FMN Manufacturer Name"

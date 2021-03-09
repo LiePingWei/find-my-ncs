@@ -11,7 +11,7 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 
-#include <sys/byteorder.h>
+#include "fmna_product_plan.h"
 
 #include <logging/log.h>
 
@@ -64,15 +64,11 @@ static ssize_t product_data_read(struct bt_conn *conn,
 				 const struct bt_gatt_attr *attr,
 				 void *buf, uint16_t len, uint16_t offset)
 {
-	uint64_t product_data = CONFIG_FMN_PRODUCT_DATA;
-
 	LOG_INF("AIS Product Data read, handle: %u, conn: %p",
 		attr->handle, conn);
 
-	sys_mem_swap(&product_data, sizeof(product_data));
-
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
-				 &product_data, sizeof(product_data));
+				 &fmna_pp_product_data, sizeof(fmna_pp_product_data));
 }
 
 static ssize_t manufacturer_name_read(struct bt_conn *conn,

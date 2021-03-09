@@ -1,11 +1,11 @@
 #include "fmna_keys.h"
 #include "fmna_gatt_fmns.h"
+#include "fmna_product_plan.h"
 #include "fmna_storage.h"
 #include "crypto/fm_crypto.h"
 #include "events/fmna_pair_event.h"
 #include "events/fmna_event.h"
 
-#include <sys/byteorder.h>
 #include <logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
@@ -30,11 +30,6 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 #define ICLOUD_IDENTIFIER_BLEN    60
 
 #define SERIAL_NUMBER_RAW_BLEN   16
-
-#define APPLE_SERVER_ENCRYPTION_KEY_BLEN       65
-#define APPLE_SERVER_SIG_VERIFICATION_KEY_BLEN 65
-
-#define PROD_DATA_MAX_LEN 8
 
 /* FMN pairing command and response descriptors. */
 struct __packed fmna_initiate_pairing {
@@ -66,7 +61,7 @@ struct __packed e2_encr_msg {
 	char     software_auth_token[FMNA_SW_AUTH_TOKEN_BLEN];
 	uint8_t  software_auth_uuid[FMNA_SW_AUTH_UUID_BLEN];
 	uint8_t  serial_number[SERIAL_NUMBER_RAW_BLEN];
-	uint8_t  product_data[PROD_DATA_MAX_LEN];
+	uint8_t  product_data[FMNA_PP_PRODUCT_DATA_LEN];
 	uint32_t fw_version;
 	uint8_t  e1[E1_BLEN];
 	uint8_t  seedk1[FMNA_SYMMETRIC_KEY_LEN];
@@ -99,21 +94,6 @@ static struct fm_crypto_ckg_context ckg_ctx;
 
 /* Serial number. */
 static uint8_t serial_number[SERIAL_NUMBER_RAW_BLEN];
-
-/* Server encryption and signature verification keys. */
-static uint8_t q_e[APPLE_SERVER_ENCRYPTION_KEY_BLEN] = {0x04, 0x9c, 0xc5, 0xad, 0xdd, 0xd0, 0x29, 0xb7, 0x53, 0x5d, 0x30, 0xe6, 0xe5, 0xd1, 0x6d, 0xb7, 0xa8, 0xd2, 0x1b, 0x1b, 0x48, 0xb5, 0x5b, 0x19, 0xd5, 0xb1, 0x10, 0xe9, 0x5b, 0xf3, 0x15, 0x45, 0xe7, 0x74, 0xcf, 0x51, 0x8d, 0xeb, 0xbe, 0x3c, 0x71, 0x68, 0x33, 0xe4, 0x43, 0xf1, 0x14, 0x47, 0x6e, 0x5a, 0x4b, 0x05, 0x4e, 0x36, 0x75, 0x07, 0x05, 0x6e, 0x39, 0x95, 0xcc, 0x6b, 0x96, 0x90, 0x96};
-static uint8_t q_a[APPLE_SERVER_SIG_VERIFICATION_KEY_BLEN] = {0x04, 0x33, 0x4c, 0x5a, 0x73, 0xfd, 0x61, 0xdf, 0x36, 0x43, 0x3f, 0xbc, 0x69, 0x92, 0x36, 0xe3, 0x98, 0xe4, 0x94, 0x12, 0xf3, 0xc0, 0xfd, 0xc4, 0xe5, 0xda, 0x0b, 0x41, 0x18, 0x77, 0x95, 0x17, 0x08, 0x71, 0x20, 0x88, 0x8e, 0x97, 0x92, 0x37, 0x76, 0xba, 0x48, 0xdc, 0x51, 0x7c, 0x0f, 0xa8, 0x7b, 0x9c, 0x62, 0xa9, 0xfe, 0xe9, 0x6b, 0x0f, 0x38, 0x40, 0x3f, 0x66, 0x9e, 0x1e, 0x67, 0x55, 0x60};
-
-void fmna_product_data_get(uint64_t *product_data)
-{
-	BUILD_ASSERT(PROD_DATA_MAX_LEN == sizeof(*product_data));
-
-	/* Swap due to the endianess */
-	uint64_t product_data_temp = CONFIG_FMN_PRODUCT_DATA;
-	sys_mem_swap(&product_data_temp, sizeof(product_data_temp));
-
-	memcpy(product_data, &product_data_temp, sizeof(*product_data));
-}
 
 static inline char num_to_char(uint8_t nibble) {
 	return (nibble < 10) ? ('0' + nibble) : ('a' + nibble - 10);
@@ -195,7 +175,7 @@ static int e2_msg_populate(struct fmna_initiate_pairing *init_pairing,
 	/* TODO: Get the real version number */
 	e2_encr_msg->fw_version = (1 << 16) | (0 << 8) | 16;
 
-	fmna_product_data_get((uint64_t *) e2_encr_msg->product_data);
+	memcpy(e2_encr_msg->product_data, fmna_pp_product_data, sizeof(e2_encr_msg->product_data));
 
 	return err;
 }
@@ -297,7 +277,7 @@ static int pairing_data_generate(struct net_buf_simple *buf)
 	net_buf_simple_add_mem(buf, c1, sizeof(c1));
 	e2 = net_buf_simple_add(buf, e2_blen);
 
-	err = fm_crypto_encrypt_to_server((const uint8_t *) q_e,
+	err = fm_crypto_encrypt_to_server(fmna_pp_server_encryption_key,
 					  sizeof(e2_encr_msg),
 					  (const uint8_t *) &e2_encr_msg,
 					  &e2_blen,
@@ -340,7 +320,7 @@ static int pairing_status_generate(struct net_buf_simple *buf)
 		return err;
 	}
 
-	err = fm_crypto_verify_s2(q_a,
+	err = fm_crypto_verify_s2(fmna_pp_server_sig_verification_key,
 				  sizeof(finalize_cmd->s2),
 				  finalize_cmd->s2,
 				  sizeof(msg.s2_verif),
@@ -394,7 +374,7 @@ static int pairing_status_generate(struct net_buf_simple *buf)
 
 	e4_blen = E4_BLEN;
 	status_data = net_buf_simple_add(buf, e4_blen);
-	err = fm_crypto_encrypt_to_server((const uint8_t *) q_e,
+	err = fm_crypto_encrypt_to_server(fmna_pp_server_encryption_key,
 					  sizeof(msg.e4_encr),
 					  (const uint8_t *) &msg.e4_encr,
 					  &e4_blen,

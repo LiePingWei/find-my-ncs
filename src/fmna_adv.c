@@ -1,4 +1,5 @@
 #include "fmna_adv.h"
+#include "fmna_product_plan.h"
 
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/conn.h>
@@ -23,7 +24,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
 struct __packed unpaired_adv_payload {
 	uint16_t uuid;
-	uint64_t product_data;
+	uint8_t product_data[FMNA_PP_PRODUCT_DATA_LEN];
 	uint8_t acc_category[FMN_SVC_PAYLOAD_ACC_CATEGORY_LEN];
 	uint8_t reserved[FMN_SVC_PAYLOAD_RESERVED_LEN];
 	uint8_t battery_state;
@@ -169,9 +170,7 @@ static void unpaired_adv_payload_encode(struct unpaired_adv_payload *svc_payload
 
 	sys_put_le16(FMN_SVC_PAYLOAD_UUID, (uint8_t *) &svc_payload->uuid);
 
-	svc_payload->product_data = CONFIG_FMN_PRODUCT_DATA;
-	sys_mem_swap(&svc_payload->product_data,
-		     sizeof(svc_payload->product_data));
+	memcpy(svc_payload->product_data, fmna_pp_product_data, sizeof(svc_payload->product_data));
 
 	svc_payload->acc_category[0] = CONFIG_FMN_ACC_CATEGORY;
 
