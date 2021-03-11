@@ -7,8 +7,8 @@ extern "C" {
 
 #include <zephyr.h>
 
-#define FMNA_MASTER_PUBLIC_KEY_LEN 57
-#define FMNA_SYMMETRIC_KEY_LEN     32
+#include "fmna_storage.h"
+
 #define FMNA_PUBLIC_KEY_LEN        28
 
 struct fmna_keys_init {

@@ -20,6 +20,8 @@ enum fmna_state {
 	CONNECTED,
 	NEARBY,
 	SEPARATED,
+
+	UNDEFINED,
 };
 
 struct disconnected_work {
@@ -28,8 +30,9 @@ struct disconnected_work {
 	uint8_t reason;
 } disconnected_work;
 
-static enum fmna_state state;
+static enum fmna_state state = UNDEFINED;
 static struct bt_conn *fmn_paired_conn;
+static bool is_bonded = false;
 static bool unpair_pending = false;
 
 static uint16_t nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
@@ -40,7 +43,7 @@ static void nearby_separated_timeout_handle(struct k_timer *timer_id);
 static K_WORK_DEFINE(nearby_separated_work, nearby_separated_work_handle);
 static K_TIMER_DEFINE(nearby_separated_timer, nearby_separated_timeout_handle, NULL);
 
-static void nearby_adv_start(void)
+static int nearby_adv_start(void)
 {
 	int err;
 	uint8_t primary_pk[FMNA_PUBLIC_KEY_LEN];
@@ -50,13 +53,15 @@ static void nearby_adv_start(void)
 	err = fmna_adv_start_nearby(primary_pk);
 	if (err) {
 		LOG_ERR("fmna_adv_start_nearby returned error: %d", err);
-		return;
+		return err;
 	}
 
 	LOG_DBG("Nearby advertising started");
+
+	return err;
 }
 
-static void separated_adv_start(void)
+static int separated_adv_start(void)
 {
 	int err;
 	uint8_t primary_pk[FMNA_PUBLIC_KEY_LEN];
@@ -65,81 +70,105 @@ static void separated_adv_start(void)
 	err = fmna_keys_primary_key_get(primary_pk);
 	if (err) {
 		LOG_ERR("fmna_keys_primary_key_get returned error: %d", err);
-		return;
+		return err;
 	}
 
 	err = fmna_keys_separated_key_get(separated_pk);
 	if (err) {
 		LOG_ERR("fmna_keys_separated_key_get returned error: %d", err);
-		return;
+		return err;
 	}
 
 	err = fmna_adv_start_separated(separated_pk, primary_pk[FMNA_ADV_SEPARATED_HINT_INDEX]);
 	if (err) {
 		LOG_ERR("fmna_adv_start_separated returned error: %d", err);
-		return;
+		return err;
 	}
 
 	LOG_DBG("Separated advertising started");
+
+	return err;
 }
 
-static void state_set(struct bt_conn *conn, enum fmna_state new_state)
+static char *state_name_get(enum fmna_state state)
 {
-	int err;
+	switch (state) {
+	case UNPAIRED:
+		return "Unpaired";
+	case CONNECTED:
+		return "Connected";
+	case NEARBY:
+		return "Nearby";
+	case SEPARATED:
+		return "Separated";
+	case UNDEFINED:
+		return "Undefined";
+	default:
+		return "Unknown";
+	}
+}
+
+static int state_set(struct bt_conn *conn, enum fmna_state new_state)
+{
+	int err = 0;
+	char *state_str;
 	enum fmna_state prev_state = state;
 
 	if (prev_state == new_state) {
 		LOG_DBG("FMN state: Unchanged");
-		return;
+		return 0;
 	}
 
 	state = new_state;
+	state_str = state_name_get(new_state);
 
 	/* Handle Unpaired state transition. */
 	if (new_state == UNPAIRED) {
-		if (prev_state != CONNECTED) {
+		if (prev_state != CONNECTED && prev_state != UNDEFINED) {
 			LOG_ERR("FMN State: Forbidden transition");
-			return;
+			return -EINVAL;
 		}
 
-		err = fmna_keys_service_stop();
-		if (err) {
-			LOG_ERR("fmna_keys_service_stop returned error: %d", err);
-			return;
+		if (prev_state == CONNECTED) {
+			err = fmna_keys_service_stop();
+			if (err) {
+				LOG_ERR("fmna_keys_service_stop returned error: %d", err);
+				return err;
+			}
+
+			err = fmna_storage_pairing_data_delete();
+			if (err) {
+				LOG_ERR("fmna_storage_pairing_data_delete returned error: %d",
+					err);
+				return err;
+			}
+
+			unpair_pending = false;
 		}
 
 		err = fmna_adv_start_unpaired(true);
 		if (err) {
 			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
-			return;
+			return err;
 		}
 
 		fmn_paired_conn = NULL;
-		unpair_pending = false;
+	} else if (new_state == CONNECTED) {
+		/* Handle Connected state transition. */
 
-		LOG_DBG("FMN State: Unpaired");
-		return;
-	}
-
-	/* Handle Connected state transition. */
-	if (new_state == CONNECTED) {
 		if (prev_state == NEARBY) {
 			k_timer_stop(&nearby_separated_timer);
 		}
 
 		fmn_paired_conn = conn;
+	} else if (new_state == NEARBY) {
+		/* Handle Nearby state transition. */
 
-		LOG_DBG("FMN State: Connected");
-		return;
-	}
-
-	/* Handle Nearby state transition. */
-	if (new_state == NEARBY) {
 		if (prev_state == CONNECTED) {
 			fmn_paired_conn = NULL;
 		} else {
 			LOG_ERR("FMN State: Forbidden transition");
-			return;
+			return -EINVAL;
 		}
 
 		fmna_keys_nearby_state_notify();
@@ -149,29 +178,43 @@ static void state_set(struct bt_conn *conn, enum fmna_state new_state)
 				K_SECONDS(nearby_separated_timeout),
 				K_NO_WAIT);
 
-			nearby_adv_start();
+			err = nearby_adv_start();
+			if (err) {
+				LOG_ERR("nearby_adv_start returned error: %d", err);
+				return err;
+			}
 
 			LOG_DBG("FMN State: Nearby");
 		} else {
-			state_set(NULL, SEPARATED);
+			err = state_set(NULL, SEPARATED);
+			if (err) {
+				LOG_ERR("state_set returned error: %d", err);
+				return err;
+			}
 		}
+	} else if (new_state == SEPARATED) {
+		/* Handle Separated state transition. */
 
-		return;
-	}
-
-	/* Handle Separated state transition. */
-	if (new_state == SEPARATED) {
-		if (prev_state != NEARBY) {
+		if (prev_state != NEARBY && prev_state != UNDEFINED) {
 			LOG_ERR("FMN State: Forbidden transition");
-			return;
+			return -EINVAL;
 		}
 
 		/* Use the primary public key from the Nearby advertising payload. */
-		separated_adv_start();
-
-		LOG_DBG("FMN State: Separated");
-		return;
+		err = separated_adv_start();
+		if (err) {
+			LOG_ERR("separated_adv_start returned error: %d", err);
+			return err;
+		}
 	}
+
+	if (prev_state == UNDEFINED) {
+		LOG_DBG("Initializing FMN State to: %s", state_str);
+	} else {
+		LOG_DBG("Changing FMN State to: %s", state_str);
+	}
+
+	return 0;
 }
 
 static void nearby_separated_work_handle(struct k_work *item)
@@ -224,6 +267,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 int fmna_state_init(uint8_t bt_id)
 {
 	int err;
+	enum fmna_state state;
 	static struct bt_conn_cb conn_callbacks = {
 		.disconnected     = disconnected,
 	};
@@ -239,12 +283,10 @@ int fmna_state_init(uint8_t bt_id)
 	}
 
 	/* Initialize state. */
-	state = UNPAIRED;
-	fmn_paired_conn = NULL;
-
-	err = fmna_adv_start_unpaired(true);
+	state = is_bonded ? SEPARATED : UNPAIRED;
+	err   = state_set(NULL, state);
 	if (err) {
-		LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
+		LOG_ERR("state_set returned error: %d", err);
 		return err;
 	}
 
@@ -338,6 +380,9 @@ static bool event_handler(const struct event_header *eh)
 		struct fmna_event *event = cast_fmna_event(eh);
 
 		switch (event->id) {
+		case FMNA_BONDED:
+			is_bonded = true;
+			break;
 		case FMNA_PAIRING_COMPLETED:
 		case FMNA_OWNER_CONNECTED:
 			state_set(event->conn, CONNECTED);

@@ -4,6 +4,7 @@
 #include "fmna_conn.h"
 #include "fmna_gatt_fmns.h"
 #include "fmna_keys.h"
+#include "fmna_storage.h"
 
 /* BLE internal header, use with caution. */
 #include <bluetooth/host/keys.h>
@@ -14,6 +15,16 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
 #define PRIMARY_KEYS_PER_SECONDARY_KEY       96
 #define SECONDARY_KEY_EVAL_INDEX_LOWER_BOUND 4
+#define SECONDARY_KEY_INDEX_FROM_PRIMARY(_index) \
+	((_index / PRIMARY_KEYS_PER_SECONDARY_KEY) + 1)
+
+/*
+ * Index period after which keys are updated in the storage.
+ * Increasing this value would cause the storage to be updated
+ * less frequently at the cost of application bootup time.
+ * 1 index unit corresponds to roughly 15 minutes.
+ */
+#define STORAGE_UPDATE_PERIOD 16
 
 #define KEY_ROTATION_TIMER_PERIOD K_MINUTES(15)
 
@@ -147,6 +158,70 @@ static int secondary_key_roll(void)
 	return 0;
 }
 
+static int rotating_key_storage_update()
+{
+	int err;
+	uint16_t current_keys_index_diff = 0;
+
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_PRIMARY_SK_ID,
+					      curr_primary_sk,
+					      sizeof(curr_primary_sk));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot store Primary SK");
+		return err;
+	}
+
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_SECONDARY_SK_ID,
+					      curr_secondary_sk,
+					      sizeof(curr_secondary_sk));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot store Secondary SK");
+		return err;
+	}
+
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_PRIMARY_KEY_INDEX_ID,
+					      (uint8_t *) &primary_pk_rotation_cnt,
+					      sizeof(primary_pk_rotation_cnt));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot store the Primary Key index");
+		return err;
+	}
+
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_CURRENT_KEYS_INDEX_DIFF_ID,
+					      (uint8_t *) &current_keys_index_diff,
+					      sizeof(current_keys_index_diff));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot store the diff between current and storage key");
+		return err;
+	}
+
+	LOG_DBG("Updating FMN keys storage at Primary Key index i=%d",
+		primary_pk_rotation_cnt);
+
+	return err;
+}
+
+static int key_storage_init(void)
+{
+	int err;
+
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_MASTER_PUBLIC_KEY_ID,
+					      master_pk,
+					      sizeof(master_pk));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot store Master Public Key");
+		return err;
+	}
+
+	err = rotating_key_storage_update();
+	if (err) {
+		LOG_ERR("rotating_key_storage_update returned error: %d", err);
+		return err;
+	}
+
+	return err;
+}
+
 static void primary_key_rotation_indicate(void)
 {
 	int err;
@@ -181,6 +256,7 @@ static void key_rotation_work_handle(struct k_work *item)
 {
 	int err;
 	bool separated_key_changed = true;
+	uint16_t storage_key_index_diff;
 
 	LOG_INF("Rotating FMNA keys");
 
@@ -208,6 +284,26 @@ static void key_rotation_work_handle(struct k_work *item)
 			if (use_secondary_pk) {
 				separated_key_changed = false;
 			}
+		}
+	}
+
+	/* Update storage information after each rotation. */
+	storage_key_index_diff = (primary_pk_rotation_cnt % STORAGE_UPDATE_PERIOD);
+	if (storage_key_index_diff) {
+		err = fmna_storage_pairing_item_store(
+			FMNA_STORAGE_CURRENT_KEYS_INDEX_DIFF_ID,
+			(uint8_t *) &storage_key_index_diff,
+			sizeof(storage_key_index_diff));
+		if (err) {
+			LOG_ERR("fmna_keys: cannot store the diff between "
+				"current and storage key");
+			return;
+		}
+	} else {
+		err = rotating_key_storage_update();
+		if (err) {
+			LOG_ERR("rotating_key_storage_update returned error: %d", err);
+			return;
 		}
 	}
 
@@ -283,6 +379,14 @@ int fmna_keys_service_stop(void)
 	return 0;
 }
 
+static void keys_service_timer_start(void)
+{
+	/* Start key rotation timeout. */
+	k_timer_start(&key_rotation_timer, KEY_ROTATION_TIMER_PERIOD, KEY_ROTATION_TIMER_PERIOD);
+
+	LOG_INF("FMNA Keys rotation service started");
+}
+
 int fmna_keys_service_start(const struct fmna_keys_init *init_keys)
 {
 	int err;
@@ -307,6 +411,13 @@ int fmna_keys_service_start(const struct fmna_keys_init *init_keys)
 		return err;
 	}
 
+	/* Update storage with the FMN keys at index 0. */
+	err = key_storage_init();
+	if (err) {
+		LOG_ERR("key_storage_init returned error: %d", err);
+		return err;
+	}
+
 	/* Roll to the Primary Public Key 1 */
 	err = primary_key_roll();
 	if (err) {
@@ -321,10 +432,8 @@ int fmna_keys_service_start(const struct fmna_keys_init *init_keys)
 		return err;
 	}
 
-	/* Start key rotation timeout. */
-	k_timer_start(&key_rotation_timer, KEY_ROTATION_TIMER_PERIOD, KEY_ROTATION_TIMER_PERIOD);
-
-	LOG_INF("FMNA Keys rotation service started");
+	/* Start key rotation service timer. */
+	keys_service_timer_start();
 
 	return 0;
 }
@@ -394,6 +503,132 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	}
 }
 
+static int paired_state_restore()
+{
+	int err;
+	int64_t start_time;
+	int64_t duration;
+	char hexdump_header[50];
+	uint16_t current_keys_index_diff = 0;
+
+	/* Load storage information relevant to the keys module. */
+	err = fmna_storage_pairing_item_load(FMNA_STORAGE_MASTER_PUBLIC_KEY_ID,
+					     master_pk,
+					     sizeof(master_pk));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot load Master Public Key");
+		return err;
+	}
+
+	err = fmna_storage_pairing_item_load(FMNA_STORAGE_PRIMARY_SK_ID,
+					     curr_primary_sk,
+					     sizeof(curr_primary_sk));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot load Primary SK");
+		return err;
+	}
+
+	err = fmna_storage_pairing_item_load(FMNA_STORAGE_SECONDARY_SK_ID,
+					     curr_secondary_sk,
+					     sizeof(curr_secondary_sk));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot load Secondary SK");
+		return err;
+	}
+
+	err = fmna_storage_pairing_item_load(FMNA_STORAGE_PRIMARY_KEY_INDEX_ID,
+					     (uint8_t *) &primary_pk_rotation_cnt,
+					     sizeof(primary_pk_rotation_cnt));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot load the Primary Key index");
+		return err;
+	}
+
+	err = fmna_storage_pairing_item_load(FMNA_STORAGE_CURRENT_KEYS_INDEX_DIFF_ID,
+					     (uint8_t *) &current_keys_index_diff,
+					     sizeof(current_keys_index_diff));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot load the diff between current and storage key");
+		return err;
+	}
+
+	/* Roll keys to the current index. */
+	LOG_DBG("Restoring FMN keys state. Rolling index: %d -> %d",
+		primary_pk_rotation_cnt,
+		primary_pk_rotation_cnt + current_keys_index_diff);
+
+	start_time = k_uptime_get();
+
+	/* Roll symmetric keys. */
+	for (uint32_t rolls = 0; rolls < current_keys_index_diff; rolls++) {
+		/* Primary SK i -> Primary SK i + 1 */
+		err = symmetric_key_roll(curr_primary_sk);
+		if (err) {
+			LOG_ERR("symmetric_key_roll returned error: %d for primary SK",
+				err);
+			return err;
+		}
+
+		primary_pk_rotation_cnt++;
+		if ((primary_pk_rotation_cnt % PRIMARY_KEYS_PER_SECONDARY_KEY) != 0) {
+			continue;
+		}
+
+		/* Secondary SK j -> Secondary SK j + 1 */
+		err = symmetric_key_roll(curr_secondary_sk);
+		if (err) {
+			LOG_ERR("symmetric_key_roll returned error: %d for secondary SK", err);
+			return err;
+		}
+	}
+
+	/* Derive public keys and LTK. */
+	/* SK(i+1) -> Primary_Key(i+1) */
+	err = fm_crypto_derive_primary_or_secondary_x(curr_primary_sk, master_pk, curr_primary_pk);
+	if (err) {
+		LOG_ERR("symmetric_key_roll returned error: %d for primary SK", err);
+		return err;
+	}
+
+	/* SK(i+1) -> LTK(i+1) */
+	err = fm_crypto_derive_ltk(curr_primary_sk, bt_ltk);
+	if (err) {
+		LOG_ERR("symmetric_key_roll returned error: %d for primary SK", err);
+		return err;
+	}
+
+	/* SK(i+1) -> Secondary_Key(i+1) */
+	err = fm_crypto_derive_primary_or_secondary_x(curr_secondary_sk, master_pk,
+						      curr_secondary_pk);
+	if (err) {
+		LOG_ERR("symmetric_key_roll returned error: %d for secondary SK", err);
+		return err;
+	}
+
+	/* Log the results and statistics */
+	duration = k_uptime_delta(&start_time);
+
+	LOG_DBG("Restored FMN keys state in: %lld.%lld [s]",
+		(duration / 1000), (duration % 1000));
+
+	snprintk(hexdump_header,
+		 sizeof(hexdump_header), 
+		 "Restored Primary Public Key to: P[%d]:",
+		 primary_pk_rotation_cnt);
+	LOG_HEXDUMP_DBG(curr_primary_pk, sizeof(curr_primary_pk), hexdump_header);
+
+	snprintk(hexdump_header,
+		 sizeof(hexdump_header), 
+		 "Restored Secondary Public Key: PW[%d]",
+		 SECONDARY_KEY_INDEX_FROM_PRIMARY(primary_pk_rotation_cnt));
+	LOG_HEXDUMP_DBG(curr_secondary_pk, sizeof(curr_secondary_pk), hexdump_header);
+
+	/* Start key rotation service timer. */
+	keys_service_timer_start();
+
+	return 0;
+}
+
 int fmna_keys_init(uint8_t id)
 {
 	static struct bt_conn_cb conn_callbacks = {
@@ -405,6 +640,14 @@ int fmna_keys_init(uint8_t id)
 	bt_conn_cb_register(&conn_callbacks);
 
 	bt_id = id;
+
+	if (is_paired) {
+		int err = paired_state_restore();
+		if (err) {
+			LOG_ERR("paired_state_restore returned error: %d", err);
+			return err;
+		}
+	}
 
 	return 0;
 }
@@ -508,6 +751,7 @@ static bool event_handler(const struct event_header *eh)
 		struct fmna_event *event = cast_fmna_event(eh);
 
 		switch (event->id) {
+		case FMNA_BONDED:
 		case FMNA_PAIRING_COMPLETED:
 			is_paired = true;
 			break;

@@ -25,10 +25,8 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
 #define S2_BLEN 100
 
-#define SERVER_SHARED_SECRET_BLEN 32
 #define SESSION_NONCE_BLEN        32
 #define SEEDS_BLEN                32
-#define ICLOUD_IDENTIFIER_BLEN    60
 
 /* FMN pairing command and response descriptors. */
 struct __packed fmna_initiate_pairing {
@@ -45,7 +43,7 @@ struct __packed fmna_finalize_pairing {
 	uint8_t c2[C2_BLEN];
 	uint8_t e3[E3_BLEN];
 	uint8_t seeds[SEEDS_BLEN];
-	uint8_t icloud_id[ICLOUD_IDENTIFIER_BLEN];
+	uint8_t icloud_id[FMNA_ICLOUD_ID_LEN];
 	uint8_t s2[S2_BLEN];
 };
 
@@ -88,7 +86,6 @@ struct __packed s2_verif_msg {
 static uint8_t session_nonce[SESSION_NONCE_BLEN];
 static uint8_t e1[E1_BLEN];
 static uint8_t seedk1[FMNA_SYMMETRIC_KEY_LEN];
-static uint8_t server_shared_secret[SERVER_SHARED_SECRET_BLEN];
 static struct fm_crypto_ckg_context ckg_ctx;
 
 int fmna_pair_init(void)
@@ -251,6 +248,8 @@ static int pairing_status_generate(struct net_buf_simple *buf)
 	uint32_t e3_decrypt_plaintext_blen;
 	uint32_t e4_blen;
 	uint8_t c2[C2_BLEN];
+	uint8_t server_shared_secret[FMNA_SERVER_SHARED_SECRET_LEN];
+	uint64_t sn_query_count = 0;
 	union {
 		struct e4_encr_msg  e4_encr;
 		struct s2_verif_msg s2_verif;
@@ -307,9 +306,37 @@ static int pairing_status_generate(struct net_buf_simple *buf)
 		return err;
 	}
 
-	memcpy(c2, finalize_cmd->c2, sizeof(c2));
+	/* Store pairing items that are available at this point. The second and final
+	 * set of pairing information is stored at the very end of the FMN pairing
+	 * process by the keys module.
+	 */
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_SERVER_SHARED_SECRET_ID,
+					      server_shared_secret,
+					      sizeof(server_shared_secret));
+	if (err) {
+		LOG_ERR("fmna_pair: cannot store Server Shared Secret");
+		return err;
+	}
+
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
+					      (uint8_t *) &sn_query_count,
+					      sizeof(sn_query_count));
+	if (err) {
+		LOG_ERR("fmna_pair: cannot store Serial Nubmer query counter");
+		return err;
+	}
+
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_ICLOUD_ID_ID,
+					      finalize_cmd->icloud_id,
+					      sizeof(finalize_cmd->icloud_id));
+	if (err) {
+		LOG_ERR("fmna_pair: cannot store iCloud ID");
+		return err;
+	}
 
 	/* Prepare Send Pairing Status response: C3, status and E4 */
+	memcpy(c2, finalize_cmd->c2, sizeof(c2));
+
 	status_data = net_buf_simple_add(buf, C3_BLEN);
 	err = fm_crypto_ckg_gen_c3(&ckg_ctx, c2, status_data);
 	if (err) {
