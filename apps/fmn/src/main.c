@@ -21,7 +21,9 @@
 #include <dk_buttons_and_leds.h>
 
 #define BT_ID_FMN 1
-#define FMN_SN_LOOKUP_BUTTON DK_BTN1_MSK
+
+#define FMN_SN_LOOKUP_BUTTON              DK_BTN1_MSK
+#define FMN_FACTORY_SETTINGS_RESET_BUTTON DK_BTN4_MSK
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -103,6 +105,15 @@ static int fmna_id_create(uint8_t id)
 	return 0;
 }
 
+static bool factory_settings_restore_check(void)
+{
+	uint32_t button_state;
+
+	dk_read_buttons(&button_state, NULL);
+
+	return (button_state & FMN_FACTORY_SETTINGS_RESET_BUTTON);
+}
+
 static int fmna_initialize(void)
 {
 	int err;
@@ -115,6 +126,7 @@ static int fmna_initialize(void)
 	}
 
 	init_params.bt_id = BT_ID_FMN;
+	init_params.use_default_factory_settings = factory_settings_restore_check();
 
 	err = fmna_init(&init_params);
 	if (err) {
@@ -147,9 +159,10 @@ static int dk_library_initialize(void)
 	err = dk_buttons_init(button_changed);
 	if (err) {
 		printk("Cannot init buttons (err: %d)\n", err);
+		return err;
 	}
 
-	return err;
+	return 0;
 }
 
 void main(void)
