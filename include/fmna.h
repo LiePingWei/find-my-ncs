@@ -7,6 +7,7 @@ extern "C" {
 
 struct fmna_init_params {
 	uint8_t bt_id;
+	bool use_default_factory_settings;
 };
 
 int fmna_init(const struct fmna_init_params *init_params);

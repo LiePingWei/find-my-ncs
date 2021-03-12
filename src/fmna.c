@@ -60,7 +60,7 @@ int fmna_init(const struct fmna_init_params *init_params)
 		return err;
 	}
 
-	err = fmna_storage_init();
+	err = fmna_storage_init(init_params->use_default_factory_settings);
 	if (err) {
 		LOG_ERR("fmna_storage_init returned error: %d", err);
 		return err;

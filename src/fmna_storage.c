@@ -340,7 +340,7 @@ static int fmna_storage_pairing_data_check(void)
 	return err;
 }
 
-int fmna_storage_init(void)
+int fmna_storage_init(bool delete_pairing_data)
 {
 	int err;
 
@@ -350,5 +350,10 @@ int fmna_storage_init(void)
 		return err;
 	}
 
-	return fmna_storage_pairing_data_check();
+	if (delete_pairing_data) {
+		LOG_INF("FMN: Performing reset to default factory settings");
+		return fmna_storage_pairing_data_delete();
+	} else {
+		return fmna_storage_pairing_data_check();
+	}
 }
