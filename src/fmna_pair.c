@@ -316,6 +316,7 @@ static int pairing_status_generate(struct net_buf_simple *buf)
 	uint8_t *status_data;
 	uint32_t e3_decrypt_plaintext_blen;
 	uint32_t e4_blen;
+	uint8_t c2[C2_BLEN];
 	union {
 		struct e4_encr_msg  e4_encr;
 		struct s2_verif_msg s2_verif;
@@ -372,9 +373,11 @@ static int pairing_status_generate(struct net_buf_simple *buf)
 		return err;
 	}
 
+	memcpy(c2, finalize_cmd->c2, sizeof(c2));
+
 	/* Prepare Send Pairing Status response: C3, status and E4 */
 	status_data = net_buf_simple_add(buf, C3_BLEN);
-	err = fm_crypto_ckg_gen_c3(&ckg_ctx, finalize_cmd->c2, status_data);
+	err = fm_crypto_ckg_gen_c3(&ckg_ctx, c2, status_data);
 	if (err) {
 		LOG_ERR("fm_crypto_ckg_gen_c3 err %d", err);
 		return err;
