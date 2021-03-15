@@ -1,3 +1,4 @@
+#include "fmna_conn.h"
 #include "fmna_keys.h"
 #include "fmna_pair.h"
 #include "fmna_storage.h"
@@ -48,6 +49,12 @@ static void mfi_token_display_work_handler(struct k_work *work)
 int fmna_init(const struct fmna_init_params *init_params)
 {
 	int err;
+
+	err = fmna_conn_init();
+	if (err) {
+		LOG_ERR("fmna_conn_init returned error: %d", err);
+		return err;
+	}
 
 	err = fmna_storage_init();
 	if (err) {

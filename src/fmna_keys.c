@@ -1,5 +1,6 @@
 #include "crypto/fm_crypto.h"
 #include "events/fmna_event.h"
+#include "fmna_conn.h"
 #include "fmna_keys.h"
 
 /* BLE internal header, use with caution. */
@@ -284,6 +285,9 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 			} else {
 				LOG_INF("fmna_keys: security changed: %s level %u",
 					addr, level);
+
+				fmna_conn_multi_status_bit_set(
+					conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
 
 				FMNA_EVENT_CREATE(event, FMNA_OWNER_CONNECTED, conn);
 				EVENT_SUBMIT(event);
