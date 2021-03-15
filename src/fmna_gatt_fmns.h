@@ -10,6 +10,7 @@ extern "C" {
 #include <net/buf.h>
 
 #include "events/fmna_owner_event.h"
+#include "events/fmna_config_event.h"
 
 #define FMNA_GATT_COMMAND_OPCODE_LEN 2
 #define FMNA_GATT_COMMAND_STATUS_LEN 2
@@ -25,6 +26,14 @@ extern "C" {
 enum fmna_gatt_pairing_ind {
 	FMNA_GATT_PAIRING_DATA_IND,
 	FMNA_GATT_PAIRING_STATUS_IND
+};
+
+enum fmna_gatt_config_ind {
+	FMNA_GATT_CONFIG_KEYROLL_IND,
+	FMNA_GATT_CONFIG_MULTI_STATUS_IND,
+	FMNA_GATT_CONFIG_SOUND_COMPLETED_IND,
+	FMNA_GATT_CONFIG_SEPARATED_KEY_LATCHED_IND,
+	FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND,
 };
 
 enum fmna_gatt_owner_ind {
@@ -48,9 +57,15 @@ int fmna_gatt_pairing_cp_indicate(struct bt_conn *conn,
 				  enum fmna_gatt_pairing_ind ind_type,
 				  struct net_buf_simple *buf);
 
+int fmna_gatt_config_cp_indicate(struct bt_conn *conn,
+				 enum fmna_gatt_config_ind ind_type,
+				 struct net_buf_simple *buf);
+
 int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 				enum fmna_gatt_owner_ind ind_type,
 				struct net_buf_simple *buf);
+
+uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_operation config_op);
 
 uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_operation owner_op);
 

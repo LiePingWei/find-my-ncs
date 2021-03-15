@@ -36,6 +36,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
 #define BT_ATT_HEADER_LEN 3
 
+#define FMNS_CONFIG_MAX_RX_LEN 10
 #define FMNS_OWNER_MAX_RX_LEN 2
 
 enum pairing_cp_opcode {
@@ -45,6 +46,24 @@ enum pairing_cp_opcode {
 	PAIRING_CP_OPCODE_FINALIZE_PAIRING     = 0x0102,
 	PAIRING_CP_OPCODE_SEND_PAIRING_STATUS  = 0x0103,
 	PAIRING_CP_OPCODE_PAIRING_COMPLETE     = 0x0104,
+};
+
+enum config_cp_opcode {
+	CONFIG_CP_OPCODE_START_SOUND                  = 0x0200,
+	CONFIG_CP_OPCODE_STOP_SOUND                   = 0x0201,
+	CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS = 0x0202,
+	CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT           = 0x0203,
+	CONFIG_CP_OPCODE_UNPAIR                       = 0x0204,
+	CONFIG_CP_OPCODE_CONFIGURE_SEPARATED_STATE    = 0x0205,
+	CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY          = 0x0206,
+	CONFIG_CP_OPCODE_SET_MAX_CONNECTIONS          = 0x0207,
+	CONFIG_CP_OPCODE_SET_UTC                      = 0x0208,
+	CONFIG_CP_OPCODE_GET_MULTI_STATUS             = 0x0209,
+	CONFIG_CP_OPCODE_KEYROLL_INDICATION           = 0x020A,
+	CONFIG_CP_OPCODE_COMMAND_RESPONSE             = 0x020B,
+	CONFIG_CP_OPCODE_GET_MULTI_STATUS_RESPONSE    = 0x020C,
+	CONFIG_CP_OPCODE_SOUND_COMPLETED              = 0x020D,
+	CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY_RESPONSE = 0x020E,
 };
 
 enum owner_cp_opcode {
@@ -148,15 +167,135 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 	return len;
 }
 
+static bool config_cp_length_verify(uint16_t opcode, uint32_t len)
+{
+	uint16_t expected_pkt_len = 0;
+	const struct fmna_config_event * const event = NULL;
+
+	switch (opcode) {
+	case CONFIG_CP_OPCODE_START_SOUND:
+	case CONFIG_CP_OPCODE_STOP_SOUND:
+	case CONFIG_CP_OPCODE_UNPAIR:
+	case CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY:
+	case CONFIG_CP_OPCODE_GET_MULTI_STATUS:
+		break;
+	case CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS:
+		expected_pkt_len += sizeof(event->persistant_conn_status);
+		break;
+	case CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT:
+		expected_pkt_len += sizeof(event->nearby_timeout);
+		break;
+	case CONFIG_CP_OPCODE_CONFIGURE_SEPARATED_STATE:
+		expected_pkt_len += sizeof(event->separated_state);
+		break;
+	case CONFIG_CP_OPCODE_SET_MAX_CONNECTIONS:
+		expected_pkt_len += sizeof(event->max_connections);
+		break;
+	case CONFIG_CP_OPCODE_SET_UTC:
+		expected_pkt_len += sizeof(event->utc);
+		break;
+	default:
+		return true;
+	}
+
+	if (len != expected_pkt_len) {
+		LOG_ERR("FMN Configuration CP: wrong packet length: %d != %d for "
+			"0x%04X opcode", len, expected_pkt_len, opcode);
+		return false;
+	}
+
+	return true;
+}
+
 static ssize_t config_cp_write(struct bt_conn *conn,
 			       const struct bt_gatt_attr *attr,
 			       const void *buf, uint16_t len,
 			       uint16_t offset, uint8_t flags)
 {
+	bool pkt_complete;
+
 	LOG_INF("FMN Configuration CP write, handle: %u, conn: %p",
 		attr->handle, conn);
 
-	return len;
+	NET_BUF_SIMPLE_DEFINE(config_buf, FMNS_CONFIG_MAX_RX_LEN);
+
+	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&config_buf, buf, len);
+	if (pkt_complete) {
+		struct fmna_config_event event;
+		uint16_t opcode;
+
+		LOG_HEXDUMP_INF(config_buf.data, config_buf.len, "Config packet:");
+		LOG_INF("Total packet length: %d", config_buf.len);
+
+		if ((config_buf.len < sizeof(opcode)) ||
+		    (config_buf.len > FMNS_CONFIG_MAX_RX_LEN)) {
+			LOG_ERR("FMN Configuration CP: packet length too large");
+			return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
+		}
+
+		opcode = net_buf_simple_pull_le16(&config_buf);
+		if (!config_cp_length_verify(opcode, config_buf.len)) {
+			LOG_ERR("FMN Configuration CP: returning GATT error");
+			return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
+		}
+
+		switch (opcode) {
+		case CONFIG_CP_OPCODE_START_SOUND:
+			event.op = FMNA_START_SOUND;
+			break;
+		case CONFIG_CP_OPCODE_STOP_SOUND:
+			event.op = FMNA_STOP_SOUND;
+			break;
+		case CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS:
+			event.op = FMNA_SET_PERSISTANT_CONN_STATUS;
+			event.persistant_conn_status = net_buf_simple_pull_u8(&config_buf);
+			break;
+		case CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT:
+			event.op = FMNA_SET_NEARBY_TIMEOUT;
+			event.nearby_timeout = net_buf_simple_pull_le16(&config_buf);
+			break;
+		case CONFIG_CP_OPCODE_UNPAIR:
+			event.op = FMNA_UNPAIR;
+			break;
+		case CONFIG_CP_OPCODE_CONFIGURE_SEPARATED_STATE:
+			event.op = FMNA_CONFIGURE_SEPARATED_STATE;
+			event.separated_state.next_primary_key_roll =
+				net_buf_simple_pull_le32(&config_buf);
+			event.separated_state.seconday_key_evaluation_index =
+				net_buf_simple_pull_le32(&config_buf);
+			break;
+		case CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY:
+			event.op = FMNA_LATCH_SEPARATED_KEY;
+			break;
+		case CONFIG_CP_OPCODE_SET_MAX_CONNECTIONS:
+			event.op = FMNA_SET_MAX_CONNECTIONS;
+			event.max_connections = net_buf_simple_pull_u8(&config_buf);
+			break;
+		case CONFIG_CP_OPCODE_SET_UTC:
+			event.op = FMNA_SET_UTC;
+			event.utc.current_time = net_buf_simple_pull_le64(&config_buf);
+			break;
+		case CONFIG_CP_OPCODE_GET_MULTI_STATUS:
+			event.op = FMNA_GET_MULTI_STATUS;
+			break;
+		default:
+			LOG_ERR("FMN Configuration CP, unexpected opcode: 0x%02X", opcode);
+			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+		}
+		event.conn = conn;
+
+		struct fmna_config_event *event_heap = new_fmna_config_event();
+
+		memcpy(&event.header, &event_heap->header, sizeof(event.header));
+		memcpy(event_heap, &event, sizeof(*event_heap));
+
+		EVENT_SUBMIT(event_heap);
+
+		return len;
+	} else {
+		LOG_ERR("FMN Configuration CP: no support for chunked packets");
+		return BT_GATT_ERR(BT_ATT_ERR_INSUFFICIENT_RESOURCES);
+	}
 }
 
 static ssize_t nonowner_cp_write(struct bt_conn *conn,
@@ -381,6 +520,36 @@ int fmna_gatt_pairing_cp_indicate(struct bt_conn *conn,
 	return cp_indicate(conn, &fmns_svc.attrs[2], pairing_opcode, buf);
 }
 
+int fmna_gatt_config_cp_indicate(struct bt_conn *conn,
+				 enum fmna_gatt_config_ind ind_type,
+				 struct net_buf_simple *buf)
+{
+	uint16_t config_opcode;
+
+	switch (ind_type) {
+	case FMNA_GATT_CONFIG_KEYROLL_IND:
+		config_opcode = CONFIG_CP_OPCODE_KEYROLL_INDICATION;
+		break;
+	case FMNA_GATT_CONFIG_MULTI_STATUS_IND:
+		config_opcode = CONFIG_CP_OPCODE_GET_MULTI_STATUS_RESPONSE;
+		break;
+	case FMNA_GATT_CONFIG_SOUND_COMPLETED_IND:
+		config_opcode = CONFIG_CP_OPCODE_SOUND_COMPLETED;
+		break;
+	case FMNA_GATT_CONFIG_SEPARATED_KEY_LATCHED_IND:
+		config_opcode = CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY_RESPONSE;
+		break;
+	case FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND:
+		config_opcode = CONFIG_CP_OPCODE_COMMAND_RESPONSE;
+		break;
+	default:
+		LOG_ERR("Config CP: invalid indication type: %d", ind_type);
+		return -EINVAL;
+	}
+
+	return cp_indicate(conn, &fmns_svc.attrs[5], config_opcode, buf);
+}
+
 int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 				enum fmna_gatt_owner_ind ind_type,
 				struct net_buf_simple *buf)
@@ -406,6 +575,34 @@ int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 	}
 
 	return cp_indicate(conn, &fmns_svc.attrs[11], owner_opcode, buf);
+}
+
+uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_operation config_op)
+{
+	switch (config_op) {
+	case FMNA_START_SOUND:
+		return CONFIG_CP_OPCODE_START_SOUND;
+	case FMNA_STOP_SOUND:
+		return CONFIG_CP_OPCODE_STOP_SOUND;
+	case FMNA_SET_PERSISTANT_CONN_STATUS:
+		return CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS;
+	case FMNA_SET_NEARBY_TIMEOUT:
+		return CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT;
+	case FMNA_UNPAIR:
+		return CONFIG_CP_OPCODE_UNPAIR;
+	case FMNA_CONFIGURE_SEPARATED_STATE:
+		return CONFIG_CP_OPCODE_CONFIGURE_SEPARATED_STATE;
+	case FMNA_SET_MAX_CONNECTIONS:
+		return CONFIG_CP_OPCODE_SET_MAX_CONNECTIONS;
+	case FMNA_SET_UTC:
+		return CONFIG_CP_OPCODE_SET_UTC;
+	case FMNA_GET_MULTI_STATUS:
+		return CONFIG_CP_OPCODE_GET_MULTI_STATUS;
+	default:
+		__ASSERT(0, "Config event type outside the mapping scope: %d",
+			config_op);
+		return 0;
+	}
 }
 
 uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_operation owner_op)
