@@ -1,6 +1,8 @@
 #include "crypto/fm_crypto.h"
 #include "events/fmna_event.h"
+#include "events/fmna_config_event.h"
 #include "fmna_conn.h"
+#include "fmna_gatt_fmns.h"
 #include "fmna_keys.h"
 
 /* BLE internal header, use with caution. */
@@ -20,6 +22,9 @@ static uint8_t curr_secondary_sk[FMNA_SYMMETRIC_KEY_LEN];
 
 static uint8_t curr_primary_pk[FMNA_PUBLIC_KEY_LEN];
 static uint8_t curr_secondary_pk[FMNA_PUBLIC_KEY_LEN];
+
+static uint8_t latched_primary_pk[FMNA_PUBLIC_KEY_LEN];
+bool is_primary_pk_latched = false;
 
 static uint32_t primary_pk_rotation_cnt = 0;
 
@@ -154,6 +159,9 @@ static void key_rotation_work_handle(struct k_work *item)
 	}
 
 	if ((primary_pk_rotation_cnt % PRIMARY_KEYS_PER_SECONDARY_KEY) == 0) {
+		/* Reset the latched primary key. */
+		is_primary_pk_latched = false;
+
 		err = secondary_key_roll();
 		if (err) {
 			LOG_ERR("secondary_key_roll returned error: %d", err);
@@ -163,8 +171,10 @@ static void key_rotation_work_handle(struct k_work *item)
 		use_secondary_pk = true;
 	} else {
 		/* The secondary Public Key update is omitted. */
-		if (use_secondary_pk) {
-			separated_key_changed = false;
+		if (!is_primary_pk_latched) {
+			if (use_secondary_pk) {
+				separated_key_changed = false;
+			}
 		}
 	}
 
@@ -194,6 +204,12 @@ int fmna_keys_separated_key_get(uint8_t separated_key[FMNA_PUBLIC_KEY_LEN])
 	/* TODO: Use synchronisation primitive to prevent memory corruption
 	 *	 during the copy operation.
 	 */
+	if (is_primary_pk_latched) {
+		memcpy(separated_key, latched_primary_pk, FMNA_PUBLIC_KEY_LEN);
+
+		return 0;
+	}
+
 	if (use_secondary_pk) {
 		memcpy(separated_key, curr_secondary_pk, FMNA_PUBLIC_KEY_LEN);
 	} else {
@@ -317,6 +333,28 @@ int fmna_keys_init(uint8_t id)
 	return 0;
 }
 
+static void separated_key_latch_request_handle(struct bt_conn *conn)
+{
+	int err;
+	NET_BUF_SIMPLE_DEFINE(resp_buf, sizeof(primary_pk_rotation_cnt));
+
+	LOG_INF("FMN Config CP: responding to separated key latch request");
+
+	/* No need for synchronization since event processing context uses
+	 * system workqueue.
+	 */
+	memcpy(latched_primary_pk, curr_primary_pk, sizeof(latched_primary_pk));
+	is_primary_pk_latched = true;
+
+	net_buf_simple_add_le32(&resp_buf, primary_pk_rotation_cnt);
+	err = fmna_gatt_config_cp_indicate(conn,
+					   FMNA_GATT_CONFIG_SEPARATED_KEY_LATCHED_IND,
+					   &resp_buf);
+	if (err) {
+		LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
+	}
+}
+
 static bool event_handler(const struct event_header *eh)
 {
 	if (is_fmna_event(eh)) {
@@ -333,8 +371,23 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
+	if (is_fmna_config_event(eh)) {
+		struct fmna_config_event *event = cast_fmna_config_event(eh);
+
+		switch (event->op) {
+		case FMNA_LATCH_SEPARATED_KEY:
+			separated_key_latch_request_handle(event->conn);
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
 	return false;
 }
 
 EVENT_LISTENER(fmna_keys, event_handler);
 EVENT_SUBSCRIBE(fmna_keys, fmna_event);
+EVENT_SUBSCRIBE(fmna_keys, fmna_config_event);
