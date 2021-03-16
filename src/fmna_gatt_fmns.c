@@ -107,12 +107,14 @@ static void owner_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 		attr->handle, value);
 }
 
+#if CONFIG_FMN_DEBUG
 static void debug_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 				     uint16_t value)
 {
 	LOG_INF("FMN Debug CP CCCD write, handle: %u, value: 0x%04X",
 		attr->handle, value);
 }
+#endif
 
 static ssize_t pairing_cp_write(struct bt_conn *conn,
 				const struct bt_gatt_attr *attr,
@@ -354,6 +356,7 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 	return len;
 }
 
+#if CONFIG_FMN_DEBUG
 static ssize_t debug_cp_write(struct bt_conn *conn,
 			      const struct bt_gatt_attr *attr,
 			      const void *buf, uint16_t len,
@@ -363,6 +366,7 @@ static ssize_t debug_cp_write(struct bt_conn *conn,
 
 	return len;
 }
+#endif
 
 /* Find My Network Service Declaration */
 BT_GATT_SERVICE_DEFINE(fmns_svc,
@@ -395,6 +399,7 @@ BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),
 			       NULL, owner_cp_write, NULL),
 	BT_GATT_CCC(owner_cp_ccc_cfg_changed,
 		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+#if CONFIG_FMN_DEBUG
 	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_DEBUG_CP,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
 			       BT_GATT_CHRC_INDICATE,
@@ -402,6 +407,7 @@ BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),
 			       NULL, debug_cp_write, NULL),
 	BT_GATT_CCC(debug_cp_ccc_cfg_changed,
 		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+#endif
 );
 
 static uint16_t pairing_ind_len_get(struct bt_conn *conn)

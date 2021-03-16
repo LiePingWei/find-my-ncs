@@ -21,6 +21,9 @@ config FMN_CRYPTO
 config FMN_HARDCODED_PAIRING
 	bool "FMN hardcoded pairing variant"
 
+config FMN_DEBUG
+	bool "Enable FMN with Debug capabilities"
+
 # AIS configuration
 menu "Accessory Information Service (AIS)"
 
