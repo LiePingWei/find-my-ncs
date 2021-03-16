@@ -17,9 +17,11 @@ struct fmna_keys_init {
 	uint8_t secondary_sk[FMNA_SYMMETRIC_KEY_LEN];
 };
 
-int fmna_keys_primary_key_get(uint8_t primary_pk[FMNA_PUBLIC_KEY_LEN]);
+int fmna_keys_primary_key_get(uint8_t primary_key[FMNA_PUBLIC_KEY_LEN]);
 
-int fmna_keys_secondary_key_get(uint8_t secondary_pk[FMNA_PUBLIC_KEY_LEN]);
+int fmna_keys_separated_key_get(uint8_t separated_key[FMNA_PUBLIC_KEY_LEN]);
+
+void fmna_keys_nearby_state_notify(void);
 
 int fmna_keys_reset(const struct fmna_keys_init *init_keys);
 

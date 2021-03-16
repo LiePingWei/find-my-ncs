@@ -23,7 +23,7 @@ enum fmna_event_id {
 };
 
 struct fmna_public_keys_changed {
-	bool secondary_key_changed;
+	bool separated_key_changed;
 };
 
 struct fmna_event {

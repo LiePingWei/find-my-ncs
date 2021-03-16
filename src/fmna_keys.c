@@ -10,8 +10,7 @@
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
-#define PRIMARY_TO_SECONDARY_KEY_PERIOD_INDEX(_primary_pk_index) \
-	(((_primary_pk_index) / 96) + 1)
+#define PRIMARY_KEYS_PER_SECONDARY_KEY 96
 
 #define KEY_ROTATION_TIMER_PERIOD K_MINUTES(15)
 
@@ -23,6 +22,8 @@ static uint8_t curr_primary_pk[FMNA_PUBLIC_KEY_LEN];
 static uint8_t curr_secondary_pk[FMNA_PUBLIC_KEY_LEN];
 
 static uint32_t primary_pk_rotation_cnt = 0;
+
+bool use_secondary_pk = false;
 
 static bool is_paired = false;
 
@@ -133,8 +134,7 @@ static int secondary_key_roll(void)
 		return err;
 	}
 
-	LOG_DBG("Rolling Secondary Public Key to: PW[%d]",
-		PRIMARY_TO_SECONDARY_KEY_PERIOD_INDEX(primary_pk_rotation_cnt));
+	LOG_DBG("Rolling Secondary Public Key: PW");
 	LOG_HEXDUMP_DBG(curr_secondary_pk, sizeof(curr_secondary_pk), "Secondary Public Key");
 
 	return 0;
@@ -143,10 +143,7 @@ static int secondary_key_roll(void)
 static void key_rotation_work_handle(struct k_work *item)
 {
 	int err;
-	bool secondary_key_changed;
-	uint32_t new_secondary_pk_rotation_cnt;
-	uint32_t last_secondary_pk_rotation_cnt =
-		PRIMARY_TO_SECONDARY_KEY_PERIOD_INDEX(primary_pk_rotation_cnt);
+	bool separated_key_changed = true;
 
 	LOG_INF("Rotating FMNA keys");
 
@@ -156,26 +153,24 @@ static void key_rotation_work_handle(struct k_work *item)
 		return;
 	}
 
-	secondary_key_changed = false;
-	new_secondary_pk_rotation_cnt =
-		PRIMARY_TO_SECONDARY_KEY_PERIOD_INDEX(primary_pk_rotation_cnt);
-	if (last_secondary_pk_rotation_cnt < new_secondary_pk_rotation_cnt) {
+	if ((primary_pk_rotation_cnt % PRIMARY_KEYS_PER_SECONDARY_KEY) == 0) {
 		err = secondary_key_roll();
 		if (err) {
 			LOG_ERR("secondary_key_roll returned error: %d", err);
 			return;
 		}
 
-		secondary_key_changed = true;
-	} else if (last_secondary_pk_rotation_cnt > new_secondary_pk_rotation_cnt) {
-		LOG_ERR("key_rotation_handler: secondary Public Key index is too great");
+		use_secondary_pk = true;
 	} else {
 		/* The secondary Public Key update is omitted. */
+		if (use_secondary_pk) {
+			separated_key_changed = false;
+		}
 	}
 
 	/* Emit event notifying that the Public Keys have changed. */
 	FMNA_EVENT_CREATE(event, FMNA_PUBLIC_KEYS_CHANGED, NULL);
-	event->public_keys_changed.secondary_key_changed = secondary_key_changed;
+	event->public_keys_changed.separated_key_changed = separated_key_changed;
 	EVENT_SUBMIT(event);
 }
 
@@ -184,24 +179,33 @@ static void key_rotation_timeout_handle(struct k_timer *timer_id)
 	k_work_submit(&key_rotation_work);
 }
 
-int fmna_keys_primary_key_get(uint8_t primary_pk[FMNA_PUBLIC_KEY_LEN])
+int fmna_keys_primary_key_get(uint8_t primary_key[FMNA_PUBLIC_KEY_LEN])
 {
 	/* TODO: Use synchronisation primitive to prevent memory corruption
-	 *	 during the copy operation.
+	*        during the copy operation.
 	*/
-	memcpy(primary_pk, curr_primary_pk, FMNA_PUBLIC_KEY_LEN);
+	memcpy(primary_key, curr_primary_pk, FMNA_PUBLIC_KEY_LEN);
 
 	return 0;
 }
 
-int fmna_keys_secondary_key_get(uint8_t secondary_pk[FMNA_PUBLIC_KEY_LEN])
+int fmna_keys_separated_key_get(uint8_t separated_key[FMNA_PUBLIC_KEY_LEN])
 {
 	/* TODO: Use synchronisation primitive to prevent memory corruption
 	 *	 during the copy operation.
-	*/
-	memcpy(secondary_pk, curr_secondary_pk, FMNA_PUBLIC_KEY_LEN);
+	 */
+	if (use_secondary_pk) {
+		memcpy(separated_key, curr_secondary_pk, FMNA_PUBLIC_KEY_LEN);
+	} else {
+		memcpy(separated_key, curr_primary_pk, FMNA_PUBLIC_KEY_LEN);
+	}
 
 	return 0;
+}
+
+void fmna_keys_nearby_state_notify(void)
+{
+	use_secondary_pk = false;
 }
 
 int fmna_keys_reset(const struct fmna_keys_init *init_keys)

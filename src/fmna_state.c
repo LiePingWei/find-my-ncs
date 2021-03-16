@@ -27,7 +27,6 @@ struct disconnected_work {
 
 static enum fmna_state state;
 static struct bt_conn *fmn_paired_conn;
-static bool use_secondary_key;
 
 static void nearby_separated_work_handle(struct k_work *item);
 static void nearby_separated_timeout_handle(struct k_timer *timer_id);
@@ -51,22 +50,25 @@ static void nearby_adv_start(void)
 	LOG_DBG("Nearby advertising started");
 }
 
-static void separated_adv_start(bool use_secondary)
+static void separated_adv_start(void)
 {
 	int err;
 	uint8_t primary_pk[FMNA_PUBLIC_KEY_LEN];
-	uint8_t secondary_pk[FMNA_PUBLIC_KEY_LEN];
-	uint8_t *public_key = primary_pk;
+	uint8_t separated_pk[FMNA_PUBLIC_KEY_LEN];
 
-	fmna_keys_primary_key_get(primary_pk);
-
-	if (use_secondary) {
-		fmna_keys_primary_key_get(secondary_pk);
-
-		public_key = secondary_pk;
+	err = fmna_keys_primary_key_get(primary_pk);
+	if (err) {
+		LOG_ERR("fmna_keys_primary_key_get returned error: %d", err);
+		return;
 	}
 
-	err = fmna_adv_start_separated(public_key, primary_pk[FMNA_ADV_SEPARATED_HINT_INDEX]);
+	err = fmna_keys_separated_key_get(separated_pk);
+	if (err) {
+		LOG_ERR("fmna_keys_separated_key_get returned error: %d", err);
+		return;
+	}
+
+	err = fmna_adv_start_separated(separated_pk, primary_pk[FMNA_ADV_SEPARATED_HINT_INDEX]);
 	if (err) {
 		LOG_ERR("fmna_adv_start_separated returned error: %d", err);
 		return;
@@ -107,6 +109,8 @@ static void state_set(struct bt_conn *conn, enum fmna_state new_state)
 			return;
 		}
 
+		fmna_keys_nearby_state_notify();
+
 		k_timer_start(&nearby_separated_timer, NEARBY_SEPARATED_TIMER_PERIOD, K_NO_WAIT);
 
 		nearby_adv_start();
@@ -123,8 +127,7 @@ static void state_set(struct bt_conn *conn, enum fmna_state new_state)
 		}
 
 		/* Use the primary public key from the Nearby advertising payload. */
-		use_secondary_key = false;
-		separated_adv_start(use_secondary_key);
+		separated_adv_start();
 
 		LOG_DBG("FMN State: Separated");
 		return;
@@ -213,11 +216,9 @@ static void fmna_public_keys_changed(struct fmna_public_keys_changed *keys_chang
 	if (state == NEARBY) {
 		nearby_adv_start();
 	} else if (state == SEPARATED) {
-		if (keys_changed->secondary_key_changed) {
-			use_secondary_key = true;
+		if (keys_changed->separated_key_changed) {
+			separated_adv_start();
 		}
-
-		separated_adv_start(use_secondary_key);
 	}
 }
 
