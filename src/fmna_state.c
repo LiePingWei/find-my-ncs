@@ -1,5 +1,7 @@
 #include "events/fmna_event.h"
+#include "events/fmna_config_event.h"
 #include "fmna_adv.h"
+#include "fmna_gatt_fmns.h"
 #include "fmna_keys.h"
 
 #include <bluetooth/conn.h>
@@ -219,6 +221,21 @@ static void fmna_public_keys_changed(struct fmna_public_keys_changed *keys_chang
 	}
 }
 
+static void utc_request_handle(struct bt_conn *conn, uint64_t utc)
+{
+	int err;
+	uint16_t opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_SET_UTC);
+
+	/* TODO: Set UTC. */
+	LOG_INF("FMN Config CP: responding to UTC settings request");
+
+	FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, opcode, FMNA_GATT_RESPONSE_STATUS_SUCCESS);
+	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &cmd_buf);
+	if (err) {
+		LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
+	}
+}
+
 static bool event_handler(const struct event_header *eh)
 {
 	if (is_fmna_event(eh)) {
@@ -239,8 +256,23 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
+	if (is_fmna_config_event(eh)) {
+		struct fmna_config_event *event = cast_fmna_config_event(eh);
+
+		switch (event->op) {
+		case FMNA_SET_UTC:
+			utc_request_handle(event->conn, event->utc.current_time);
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
 	return false;
 }
 
 EVENT_LISTENER(fmna_state, event_handler);
 EVENT_SUBSCRIBE(fmna_state, fmna_event);
+EVENT_SUBSCRIBE(fmna_state, fmna_config_event);
