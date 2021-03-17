@@ -35,6 +35,7 @@ static bool is_paired = false;
 /* Declaration of variables that are relevant to the BLE stack. */
 static uint8_t bt_id;
 static uint8_t bt_ltk[16];
+struct bt_keys *bt_keys = NULL;
 
 
 static void key_rotation_work_handle(struct k_work *item);
@@ -45,18 +46,17 @@ K_TIMER_DEFINE(key_rotation_timer, key_rotation_timeout_handle, NULL);
 
 static void bt_ltk_set(const bt_addr_le_t *bt_owner_addr)
 {
-	struct bt_keys *curr_keys;
 	struct bt_ltk new_ltk;
 
-	curr_keys = bt_keys_get_addr(bt_id, bt_owner_addr);
-	if (!curr_keys) {
+	bt_keys = bt_keys_get_addr(bt_id, bt_owner_addr);
+	if (!bt_keys) {
 		LOG_ERR("bt_ltk_set: Owner key set cannot be found");
 		return;
 	}
 
 	/* Set a proper key properties for the newly created keyset. */
-	curr_keys->keys = BT_KEYS_LTK_P256;
-	curr_keys->enc_size = sizeof(curr_keys->ltk.val);
+	bt_keys->keys = BT_KEYS_LTK_P256;
+	bt_keys->enc_size = sizeof(bt_keys->ltk.val);
 
 	/* Configure the new LTK. EDIV and Rand values are set to 0. */
 	memset(&new_ltk, 0, sizeof(new_ltk));
@@ -66,7 +66,7 @@ static void bt_ltk_set(const bt_addr_le_t *bt_owner_addr)
 	 * Update the LTK value in the BLE stack.
 	 * TODO: Check if it makes sense to guard against data corruption with mutexes, etc.
 	 */
-	memcpy(&curr_keys->ltk, &new_ltk, sizeof(curr_keys->ltk));
+	memcpy(&bt_keys->ltk, &new_ltk, sizeof(bt_keys->ltk));
 
 	LOG_HEXDUMP_DBG(new_ltk.val, sizeof(new_ltk.val), "Setting BLE LTK");
 }
@@ -296,9 +296,12 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 
 	if (is_paired) {
 		/* TODO: Filter out non-FMN peers. */
-		struct bt_keys *curr_keys = bt_keys_get_addr(bt_id, bt_conn_get_dst(conn));
-		if (curr_keys) {
-			bt_keys_clear(curr_keys);
+		if (bt_keys && (bt_addr_le_cmp(&bt_keys->addr, bt_conn_get_dst(conn)) == 0)) {
+
+			/* Reset BLE LTK key. */
+			bt_keys_clear(bt_keys);
+			bt_keys = NULL;
+
 			if (err) {
 				LOG_ERR("fmna_keys: security failed: %s level %u err %d\n",
 					addr, level, err);
@@ -319,10 +322,22 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 	}
 }
 
+static void disconnected(struct bt_conn *conn, uint8_t reason)
+{
+	if (is_paired) {
+		if (bt_keys && (bt_addr_le_cmp(&bt_keys->addr, bt_conn_get_dst(conn)) == 0)) {
+			/* Reset BLE LTK key. */
+			bt_keys_clear(bt_keys);
+			bt_keys = NULL;
+		}
+	}
+}
+
 int fmna_keys_init(uint8_t id)
 {
 	static struct bt_conn_cb conn_callbacks = {
 		.connected = connected,
+		.disconnected = disconnected,
 		.security_changed = security_changed,
 	};
 
