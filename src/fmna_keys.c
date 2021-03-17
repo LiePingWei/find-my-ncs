@@ -12,7 +12,8 @@
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
-#define PRIMARY_KEYS_PER_SECONDARY_KEY 96
+#define PRIMARY_KEYS_PER_SECONDARY_KEY       96
+#define SECONDARY_KEY_EVAL_INDEX_LOWER_BOUND 4
 
 #define KEY_ROTATION_TIMER_PERIOD K_MINUTES(15)
 
@@ -27,6 +28,7 @@ static uint8_t latched_primary_pk[FMNA_PUBLIC_KEY_LEN];
 bool is_primary_pk_latched = false;
 
 static uint32_t primary_pk_rotation_cnt = 0;
+static uint32_t secondary_pk_rotation_delta = 0;
 
 bool use_secondary_pk = false;
 
@@ -158,7 +160,8 @@ static void key_rotation_work_handle(struct k_work *item)
 		return;
 	}
 
-	if ((primary_pk_rotation_cnt % PRIMARY_KEYS_PER_SECONDARY_KEY) == 0) {
+	if ((primary_pk_rotation_cnt % PRIMARY_KEYS_PER_SECONDARY_KEY) ==
+	    secondary_pk_rotation_delta) {
 		/* Reset the latched primary key. */
 		is_primary_pk_latched = false;
 
@@ -348,6 +351,14 @@ int fmna_keys_init(uint8_t id)
 	return 0;
 }
 
+static void inline primary_pk_latch(void)
+{
+	memcpy(latched_primary_pk, curr_primary_pk, sizeof(latched_primary_pk));
+	is_primary_pk_latched = true;
+
+	LOG_DBG("Current Primary Key: P[%d] is latched", primary_pk_rotation_cnt);
+}
+
 static void separated_key_latch_request_handle(struct bt_conn *conn)
 {
 	int err;
@@ -358,13 +369,76 @@ static void separated_key_latch_request_handle(struct bt_conn *conn)
 	/* No need for synchronization since event processing context uses
 	 * system workqueue.
 	 */
-	memcpy(latched_primary_pk, curr_primary_pk, sizeof(latched_primary_pk));
-	is_primary_pk_latched = true;
+	primary_pk_latch();
 
 	net_buf_simple_add_le32(&resp_buf, primary_pk_rotation_cnt);
 	err = fmna_gatt_config_cp_indicate(conn,
 					   FMNA_GATT_CONFIG_SEPARATED_KEY_LATCHED_IND,
 					   &resp_buf);
+	if (err) {
+		LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
+	}
+}
+
+static void secondary_key_eval_index_reconfigure(uint32_t secondary_key_eval_index)
+{
+	if (secondary_key_eval_index <= primary_pk_rotation_cnt) {
+		/* Latch the current primary key til the next secondary key rotation. */
+		primary_pk_latch();
+
+		secondary_key_eval_index += PRIMARY_KEYS_PER_SECONDARY_KEY;
+	}
+
+	secondary_pk_rotation_delta =
+		(secondary_key_eval_index % PRIMARY_KEYS_PER_SECONDARY_KEY);
+
+	LOG_DBG("Next secondary key rotation index reconfigured to: %d",
+		secondary_key_eval_index);
+}
+
+static void primary_key_roll_reconfigure(uint32_t primary_key_roll)
+{
+	const k_timeout_t one_time_duration = K_MSEC(primary_key_roll);
+
+	LOG_DBG("Next rotation timer timeout reconfigured to: %d [ms]", primary_key_roll);
+
+	k_timer_start(&key_rotation_timer, one_time_duration, KEY_ROTATION_TIMER_PERIOD);
+}
+
+static void separated_state_configure_request_handle(struct bt_conn *conn,
+						     uint32_t secondary_key_eval_index,
+						     uint32_t primary_key_roll)
+{
+	int err;
+	uint16_t resp_opcode;
+	uint16_t resp_status = FMNA_GATT_RESPONSE_STATUS_SUCCESS;
+
+	LOG_INF("FMN Config CP: responding to separated state configure request");
+
+	const uint32_t sk_eval_index_lower_bound =
+		(primary_pk_rotation_cnt > SECONDARY_KEY_EVAL_INDEX_LOWER_BOUND) ?
+		(primary_pk_rotation_cnt - SECONDARY_KEY_EVAL_INDEX_LOWER_BOUND) : 0;
+	const uint32_t sk_eval_index_upper_bound =
+		(primary_pk_rotation_cnt + PRIMARY_KEYS_PER_SECONDARY_KEY);
+	if ((secondary_key_eval_index < sk_eval_index_lower_bound) ||
+	    (secondary_key_eval_index > sk_eval_index_upper_bound)) {
+		LOG_WRN("Invalid secondary key evaluation index: %d", secondary_key_eval_index);
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_PARAM;
+	}
+
+	if (K_MSEC(primary_key_roll).ticks > KEY_ROTATION_TIMER_PERIOD.ticks) {
+		LOG_WRN("Invalid primary key roll period: %d", primary_key_roll);
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_PARAM;
+	}
+
+	if (resp_status == FMNA_GATT_RESPONSE_STATUS_SUCCESS) {
+		secondary_key_eval_index_reconfigure(secondary_key_eval_index);
+		primary_key_roll_reconfigure(primary_key_roll);
+	}
+
+	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_CONFIGURE_SEPARATED_STATE);
+	FMNA_GATT_COMMAND_RESPONSE_BUILD(resp_buf, resp_opcode, resp_status);
+	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &resp_buf);
 	if (err) {
 		LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
 	}
@@ -392,6 +466,12 @@ static bool event_handler(const struct event_header *eh)
 		switch (event->op) {
 		case FMNA_LATCH_SEPARATED_KEY:
 			separated_key_latch_request_handle(event->conn);
+			break;
+		case FMNA_CONFIGURE_SEPARATED_STATE:
+			separated_state_configure_request_handle(
+				event->conn,
+				event->separated_state.seconday_key_evaluation_index,
+				event->separated_state.next_primary_key_roll);
 			break;
 		default:
 			break;
