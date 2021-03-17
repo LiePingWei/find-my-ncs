@@ -10,7 +10,9 @@
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 
-#define NEARBY_SEPARATED_TIMER_PERIOD K_SECONDS(30)
+/* Timeout values in seconds */
+#define NEARBY_SEPARATED_TIMEOUT_DEFAULT 30
+#define NEARBY_SEPARATED_TIMEOUT_MAX     3600
 
 enum fmna_state {
 	UNPAIRED,
@@ -27,6 +29,7 @@ struct disconnected_work {
 
 static enum fmna_state state;
 static struct bt_conn *fmn_paired_conn;
+static uint16_t nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
 
 static void nearby_separated_work_handle(struct k_work *item);
 static void nearby_separated_timeout_handle(struct k_timer *timer_id);
@@ -111,11 +114,18 @@ static void state_set(struct bt_conn *conn, enum fmna_state new_state)
 
 		fmna_keys_nearby_state_notify();
 
-		k_timer_start(&nearby_separated_timer, NEARBY_SEPARATED_TIMER_PERIOD, K_NO_WAIT);
+		if (nearby_separated_timeout != 0) {
+			k_timer_start(&nearby_separated_timer,
+				K_SECONDS(nearby_separated_timeout),
+				K_NO_WAIT);
 
-		nearby_adv_start();
+			nearby_adv_start();
 
-		LOG_DBG("FMN State: Nearby");
+			LOG_DBG("FMN State: Nearby");
+		} else {
+			state_set(NULL, SEPARATED);
+		}
+
 		return;
 	}
 
@@ -222,6 +232,34 @@ static void fmna_public_keys_changed(struct fmna_public_keys_changed *keys_chang
 	}
 }
 
+static void nearby_timeout_set_request_handle(struct bt_conn *conn, uint16_t nearby_timeout)
+{
+	int err;
+	uint16_t resp_opcode;
+	uint16_t resp_status = FMNA_GATT_RESPONSE_STATUS_SUCCESS;
+
+	LOG_INF("FMN Config CP: responding to nearby timeout set request");
+
+	if (nearby_timeout > NEARBY_SEPARATED_TIMEOUT_MAX) {
+		LOG_WRN("Invalid nearby timeout value: %d [s]", nearby_timeout);
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_PARAM;
+	}
+
+	if (resp_status == FMNA_GATT_RESPONSE_STATUS_SUCCESS) {
+		nearby_separated_timeout = nearby_timeout;
+
+		LOG_INF("Nearby Separated timeout reconfigured to: %d [s]",
+			nearby_separated_timeout);
+	}
+
+	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_SET_NEARBY_TIMEOUT);
+	FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, resp_opcode, resp_status);
+	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &cmd_buf);
+	if (err) {
+		LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
+	}
+}
+
 static void utc_request_handle(struct bt_conn *conn, uint64_t utc)
 {
 	int err;
@@ -261,6 +299,9 @@ static bool event_handler(const struct event_header *eh)
 		struct fmna_config_event *event = cast_fmna_config_event(eh);
 
 		switch (event->op) {
+		case FMNA_SET_NEARBY_TIMEOUT:
+			nearby_timeout_set_request_handle(event->conn, event->nearby_timeout);
+			break;
 		case FMNA_SET_UTC:
 			utc_request_handle(event->conn, event->utc.current_time);
 			break;
