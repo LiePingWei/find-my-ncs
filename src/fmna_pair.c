@@ -495,6 +495,12 @@ static void pairing_complete_cmd_handle(struct bt_conn *conn,
 
 		fm_crypto_ckg_free(&ckg_ctx);
 
+		/* Reinitialize context for future pairing attempts. */
+		err = fm_crypto_ckg_init(&ckg_ctx);
+		if (err) {
+			LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
+		}
+
 		err = fmna_keys_reset(&init_keys);
 		if (err) {
 			LOG_ERR("fmna_keys_reset: %d", err);
