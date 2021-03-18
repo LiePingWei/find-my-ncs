@@ -147,6 +147,36 @@ static int secondary_key_roll(void)
 	return 0;
 }
 
+static void primary_key_rotation_indicate(void)
+{
+	int err;
+	struct bt_conn *owners[CONFIG_BT_MAX_CONN];
+	uint8_t owners_num = ARRAY_SIZE(owners);
+
+	/* Find connected owners payload. */
+	err = fmna_conn_owner_find(owners, &owners_num);
+	if (err) {
+		LOG_ERR("fmna_conn_owner_find returned error: %d", err);
+	}
+
+	/* Encode the indication payload. */
+	NET_BUF_SIMPLE_DEFINE(resp_buf, sizeof(primary_pk_rotation_cnt));
+	net_buf_simple_add_le32(&resp_buf, primary_pk_rotation_cnt);
+
+	/* Dispatch the indication to the connected owners. */
+	for (uint8_t i = 0; i < owners_num; i++) {
+		struct bt_conn *conn = owners[i];
+
+		LOG_INF("FMN Keys: sending Primary Key roll indication: %p", conn);
+
+		err = fmna_gatt_config_cp_indicate(
+			conn, FMNA_GATT_CONFIG_KEYROLL_IND, &resp_buf);
+		if (err) {
+			LOG_ERR("fmna_gatt_config_cp_indicate returned error:%d", err);
+		}
+	}
+}
+
 static void key_rotation_work_handle(struct k_work *item)
 {
 	int err;
@@ -185,6 +215,9 @@ static void key_rotation_work_handle(struct k_work *item)
 	FMNA_EVENT_CREATE(event, FMNA_PUBLIC_KEYS_CHANGED, NULL);
 	event->public_keys_changed.separated_key_changed = separated_key_changed;
 	EVENT_SUBMIT(event);
+
+	/* Indicate to all connected owners that the Primary Key roll has occurred. */
+	primary_key_rotation_indicate();
 }
 
 static void key_rotation_timeout_handle(struct k_timer *timer_id)
