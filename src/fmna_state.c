@@ -1,6 +1,7 @@
 #include "events/fmna_event.h"
 #include "events/fmna_config_event.h"
 #include "fmna_adv.h"
+#include "fmna_conn.h"
 #include "fmna_gatt_fmns.h"
 #include "fmna_keys.h"
 
@@ -29,6 +30,8 @@ struct disconnected_work {
 
 static enum fmna_state state;
 static struct bt_conn *fmn_paired_conn;
+static bool unpair_pending = false;
+
 static uint16_t nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
 
 static void nearby_separated_work_handle(struct k_work *item);
@@ -82,6 +85,7 @@ static void separated_adv_start(void)
 
 static void state_set(struct bt_conn *conn, enum fmna_state new_state)
 {
+	int err;
 	enum fmna_state prev_state = state;
 
 	if (prev_state == new_state) {
@@ -90,6 +94,32 @@ static void state_set(struct bt_conn *conn, enum fmna_state new_state)
 	}
 
 	state = new_state;
+
+	/* Handle Unpaired state transition. */
+	if (new_state == UNPAIRED) {
+		if (prev_state != CONNECTED) {
+			LOG_ERR("FMN State: Forbidden transition");
+			return;
+		}
+
+		err = fmna_keys_service_stop();
+		if (err) {
+			LOG_ERR("fmna_keys_service_stop returned error: %d", err);
+			return;
+		}
+
+		err = fmna_adv_start_unpaired(true);
+		if (err) {
+			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
+			return;
+		}
+
+		fmn_paired_conn = NULL;
+		unpair_pending = false;
+
+		LOG_DBG("FMN State: Unpaired");
+		return;
+	}
 
 	/* Handle Connected state transition. */
 	if (new_state == CONNECTED) {
@@ -165,12 +195,12 @@ static void disconnected_work_handle(struct k_work *item)
 	if ((state == CONNECTED) && (fmn_paired_conn == conn)) {
 		LOG_DBG("Disconnected from the Owner (reason %u)", reason);
 
-		state_set(conn, NEARBY);
+		state_set(conn, (unpair_pending ? UNPAIRED : NEARBY));
 	} else {
 		LOG_DBG("Disconnected (reason %u)", reason);
 
 		if (state == UNPAIRED) {
-			err = fmna_adv_start_unpaired();
+			err = fmna_adv_start_unpaired(false);
 			if (err) {
 				LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
 				return;
@@ -212,7 +242,7 @@ int fmna_state_init(uint8_t bt_id)
 	state = UNPAIRED;
 	fmn_paired_conn = NULL;
 
-	err = fmna_adv_start_unpaired();
+	err = fmna_adv_start_unpaired(true);
 	if (err) {
 		LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
 		return err;
@@ -260,6 +290,33 @@ static void nearby_timeout_set_request_handle(struct bt_conn *conn, uint16_t nea
 	}
 }
 
+static void unpair_request_handle(struct bt_conn *conn)
+{
+	int err;
+	uint16_t resp_opcode;
+	uint16_t resp_status = FMNA_GATT_RESPONSE_STATUS_SUCCESS;
+
+	if (fmna_conn_connection_num_get() > 1) {
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_STATE;
+	}
+
+	if (resp_status == FMNA_GATT_RESPONSE_STATUS_SUCCESS) {
+		unpair_pending = true;
+
+		LOG_INF("Accepting the unpairing request");
+	} else {
+		LOG_WRN("Rejecting the unpairing request");
+	}
+
+	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_UNPAIR);
+	FMNA_GATT_COMMAND_RESPONSE_BUILD(resp_buf, resp_opcode, resp_status);
+	err = fmna_gatt_config_cp_indicate(
+		conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &resp_buf);
+	if (err) {
+		LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
+	}
+}
+
 static void utc_request_handle(struct bt_conn *conn, uint64_t utc)
 {
 	int err;
@@ -301,6 +358,9 @@ static bool event_handler(const struct event_header *eh)
 		switch (event->op) {
 		case FMNA_SET_NEARBY_TIMEOUT:
 			nearby_timeout_set_request_handle(event->conn, event->nearby_timeout);
+			break;
+		case FMNA_UNPAIR:
+			unpair_request_handle(event->conn);
 			break;
 		case FMNA_SET_UTC:
 			utc_request_handle(event->conn, event->utc.current_time);

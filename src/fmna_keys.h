@@ -23,7 +23,9 @@ int fmna_keys_separated_key_get(uint8_t separated_key[FMNA_PUBLIC_KEY_LEN]);
 
 void fmna_keys_nearby_state_notify(void);
 
-int fmna_keys_reset(const struct fmna_keys_init *init_keys);
+int fmna_keys_service_stop(void);
+
+int fmna_keys_service_start(const struct fmna_keys_init *init_keys);
 
 int fmna_keys_init(uint8_t id);
 

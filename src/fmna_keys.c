@@ -260,7 +260,30 @@ void fmna_keys_nearby_state_notify(void)
 	use_secondary_pk = false;
 }
 
-int fmna_keys_reset(const struct fmna_keys_init *init_keys)
+static void fmna_keys_state_cleanup(void)
+{
+	primary_pk_rotation_cnt = 0;
+	secondary_pk_rotation_delta = 0;
+
+	is_primary_pk_latched = false;
+	use_secondary_pk = false;
+
+	is_paired = false;
+}
+
+int fmna_keys_service_stop(void)
+{
+	/* Stop the key rotation timeout. */
+	k_timer_stop(&key_rotation_timer);
+
+	fmna_keys_state_cleanup();
+
+	LOG_INF("FMNA Keys rotation service stopped");
+
+	return 0;
+}
+
+int fmna_keys_service_start(const struct fmna_keys_init *init_keys)
 {
 	int err;
 
@@ -300,6 +323,8 @@ int fmna_keys_reset(const struct fmna_keys_init *init_keys)
 
 	/* Start key rotation timeout. */
 	k_timer_start(&key_rotation_timer, KEY_ROTATION_TIMER_PERIOD, KEY_ROTATION_TIMER_PERIOD);
+
+	LOG_INF("FMNA Keys rotation service started");
 
 	return 0;
 }

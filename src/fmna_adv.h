@@ -11,7 +11,7 @@ extern "C" {
 
 #define FMNA_ADV_SEPARATED_HINT_INDEX 5
 
-int fmna_adv_start_unpaired(void);
+int fmna_adv_start_unpaired(bool change_address);
 
 int fmna_adv_start_nearby(const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN]);
 

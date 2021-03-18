@@ -179,7 +179,7 @@ static void unpaired_adv_payload_encode(struct unpaired_adv_payload *svc_payload
 	svc_payload->battery_state = 0;
 }
 
-int fmna_adv_start_unpaired(void)
+int fmna_adv_start_unpaired(bool change_address)
 {
 	static const struct bt_data unpaired_ad[] = {
 		BT_DATA(BT_DATA_SVC_DATA16, (uint8_t *) &adv_payload,
@@ -193,6 +193,19 @@ int fmna_adv_start_unpaired(void)
 	if (err) {
 		LOG_ERR("bt_ext_advertising_stop returned error: %d", err);
 		return err;
+	}
+
+	/* Change the identity address if requested. */
+	if (change_address) {
+		bt_addr_le_t addr;
+
+		bt_addr_le_copy(&addr, BT_ADDR_LE_ANY);
+
+		err = id_addr_reconfigure(&addr);
+		if (err) {
+			LOG_ERR("id_addr_reconfigure returned error: %d", err);
+			return err;
+		}
 	}
 
 	/* Encode the FMN Service payload for advertising data set. */
