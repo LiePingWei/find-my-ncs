@@ -28,15 +28,16 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 #define BT_UUID_FMNS_CHRC_BASE(_chrc_id) \
 	BT_UUID_128_ENCODE((0x4F860000 + _chrc_id), 0x943B, 0x49EF, 0xBED4, 0x2F730304427A)
 
-#define BT_UUID_FMNS_PAIRING  BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0001))
-#define BT_UUID_FMNS_CONFIG   BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0002))
-#define BT_UUID_FMNS_NONOWNER BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0003))
-#define BT_UUID_FMNS_OWNER    BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0004))
-#define BT_UUID_FMNS_DEBUG_CP BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0005))
+#define BT_UUID_FMNS_PAIRING   BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0001))
+#define BT_UUID_FMNS_CONFIG    BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0002))
+#define BT_UUID_FMNS_NON_OWNER BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0003))
+#define BT_UUID_FMNS_OWNER     BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0004))
+#define BT_UUID_FMNS_DEBUG_CP  BT_UUID_DECLARE_128(BT_UUID_FMNS_CHRC_BASE(0x0005))
 
 #define BT_ATT_HEADER_LEN 3
 
 #define FMNS_CONFIG_MAX_RX_LEN 10
+#define FMNS_NON_OWNER_MAX_RX_LEN 2
 #define FMNS_OWNER_MAX_RX_LEN 2
 
 enum pairing_cp_opcode {
@@ -66,6 +67,13 @@ enum config_cp_opcode {
 	CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY_RESPONSE = 0x020E,
 };
 
+enum non_owner_cp_opcode {
+	NON_OWNER_CP_OPCODE_START_SOUND      = 0x0300,
+	NON_OWNER_CP_OPCODE_STOP_SOUND       = 0x0301,
+	NON_OWNER_CP_OPCODE_COMMAND_RESPONSE = 0x0302,
+	NON_OWNER_CP_OPCODE_SOUND_COMPLETED  = 0x0303,
+};
+
 enum owner_cp_opcode {
 	OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY          = 0x0400,
 	OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER            = 0x0401,
@@ -93,8 +101,8 @@ static void config_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 		attr->handle, value);
 }
 
-static void nonowner_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
-					uint16_t value)
+static void non_owner_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+					 uint16_t value)
 {
 	LOG_INF("FMN Non Owner CP CCCD write, handle: %u, value: 0x%04X",
 		attr->handle, value);
@@ -300,12 +308,46 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 	}
 }
 
-static ssize_t nonowner_cp_write(struct bt_conn *conn,
-				 const struct bt_gatt_attr *attr,
-				 const void *buf, uint16_t len,
-				 uint16_t offset, uint8_t flags)
+static ssize_t non_owner_cp_write(struct bt_conn *conn,
+				  const struct bt_gatt_attr *attr,
+				  const void *buf, uint16_t len,
+				  uint16_t offset, uint8_t flags)
 {
-	LOG_INF("FMN Non Owner CP write, handle: %u, conn: %p", attr->handle, conn);
+	bool pkt_complete;
+
+	NET_BUF_SIMPLE_DEFINE(non_owner_buf, FMNS_NON_OWNER_MAX_RX_LEN);
+
+	LOG_INF("FMN Non-owner CP write, handle: %u, conn: %p", attr->handle, conn);
+
+	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&non_owner_buf, buf, len);
+	if (pkt_complete) {
+		uint16_t opcode;
+		enum fmna_non_owner_operation op;
+
+		LOG_HEXDUMP_INF(non_owner_buf.data, non_owner_buf.len,
+				"Non-owner packet:");
+		LOG_INF("Total packet length: %d", non_owner_buf.len);
+
+		opcode = net_buf_simple_pull_le16(&non_owner_buf);
+		switch (opcode) {
+		case NON_OWNER_CP_OPCODE_START_SOUND:
+			op = FMNA_NON_OWNER_START_SOUND;
+			break;
+		case NON_OWNER_CP_OPCODE_STOP_SOUND:
+			op = FMNA_NON_OWNER_STOP_SOUND;
+			break;
+		default:
+			LOG_ERR("FMN Non-owner CP, unexpected opcode: 0x%02X", opcode);
+			return len;
+		}
+
+		struct fmna_non_owner_event *event = new_fmna_non_owner_event();
+
+		event->op = op;
+		event->conn = conn;
+
+		EVENT_SUBMIT(event);
+	}
 
 	return len;
 }
@@ -385,12 +427,12 @@ BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),
 			       NULL, config_cp_write, NULL),
 	BT_GATT_CCC(config_cp_ccc_cfg_changed,
 		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
-	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_NONOWNER,
+	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_NON_OWNER,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
 			       BT_GATT_CHRC_INDICATE,
 			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
-			       NULL, nonowner_cp_write, NULL),
-	BT_GATT_CCC(nonowner_cp_ccc_cfg_changed,
+			       NULL, non_owner_cp_write, NULL),
+	BT_GATT_CCC(non_owner_cp_ccc_cfg_changed,
 		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_OWNER,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
@@ -556,6 +598,27 @@ int fmna_gatt_config_cp_indicate(struct bt_conn *conn,
 	return cp_indicate(conn, &fmns_svc.attrs[5], config_opcode, buf);
 }
 
+int fmna_gatt_non_owner_cp_indicate(struct bt_conn *conn,
+				    enum fmna_gatt_non_owner_ind ind_type,
+				    struct net_buf_simple *buf)
+{
+	uint16_t non_owner_opcode;
+
+	switch (ind_type) {
+	case FMNA_GATT_NON_OWNER_SOUND_COMPLETED_IND:
+		non_owner_opcode = NON_OWNER_CP_OPCODE_SOUND_COMPLETED;
+		break;
+	case FMNA_GATT_NON_OWNER_COMMAND_RESPONSE_IND:
+		non_owner_opcode = NON_OWNER_CP_OPCODE_COMMAND_RESPONSE;
+		break;
+	default:
+		LOG_ERR("Non-owner CP: invalid indication type: %d", ind_type);
+		return -EINVAL;
+	}
+
+	return cp_indicate(conn, &fmns_svc.attrs[8], non_owner_opcode, buf);
+}
+
 int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 				enum fmna_gatt_owner_ind ind_type,
 				struct net_buf_simple *buf)
@@ -607,6 +670,20 @@ uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_operation config_
 	default:
 		__ASSERT(0, "Config event type outside the mapping scope: %d",
 			config_op);
+		return 0;
+	}
+}
+
+uint16_t fmna_non_owner_event_to_gatt_cmd_opcode(enum fmna_non_owner_operation non_owner_op)
+{
+	switch (non_owner_op) {
+	case FMNA_NON_OWNER_START_SOUND:
+		return NON_OWNER_CP_OPCODE_START_SOUND;
+	case FMNA_NON_OWNER_STOP_SOUND:
+		return NON_OWNER_CP_OPCODE_STOP_SOUND;
+	default:
+		__ASSERT(0, "Owner event type outside the mapping scope: %d",
+			non_owner_op);
 		return 0;
 	}
 }

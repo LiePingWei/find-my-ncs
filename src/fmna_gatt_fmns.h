@@ -9,6 +9,7 @@ extern "C" {
 #include <bluetooth/conn.h>
 #include <net/buf.h>
 
+#include "events/fmna_non_owner_event.h"
 #include "events/fmna_owner_event.h"
 #include "events/fmna_config_event.h"
 
@@ -36,6 +37,11 @@ enum fmna_gatt_config_ind {
 	FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND,
 };
 
+enum fmna_gatt_non_owner_ind {
+	FMNA_GATT_NON_OWNER_SOUND_COMPLETED_IND,
+	FMNA_GATT_NON_OWNER_COMMAND_RESPONSE_IND,
+};
+
 enum fmna_gatt_owner_ind {
 	FMNA_GATT_OWNER_PRIMARY_KEY_IND,
 	FMNA_GATT_OWNER_ICLOUD_ID_IND,
@@ -61,11 +67,17 @@ int fmna_gatt_config_cp_indicate(struct bt_conn *conn,
 				 enum fmna_gatt_config_ind ind_type,
 				 struct net_buf_simple *buf);
 
+int fmna_gatt_non_owner_cp_indicate(struct bt_conn *conn,
+				    enum fmna_gatt_non_owner_ind ind_type,
+				    struct net_buf_simple *buf);
+
 int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 				enum fmna_gatt_owner_ind ind_type,
 				struct net_buf_simple *buf);
 
 uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_operation config_op);
+
+uint16_t fmna_non_owner_event_to_gatt_cmd_opcode(enum fmna_non_owner_operation non_owner_op);
 
 uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_operation owner_op);
 

@@ -1,4 +1,5 @@
 zephyr_library_sources(fmna_event.c)
 zephyr_library_sources(fmna_config_event.c)
+zephyr_library_sources(fmna_non_owner_event.c)
 zephyr_library_sources(fmna_owner_event.c)
 zephyr_library_sources(fmna_pair_event.c)
