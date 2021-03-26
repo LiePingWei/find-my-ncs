@@ -239,15 +239,29 @@ static void disconnected_work_handle(struct k_work *item)
 		LOG_DBG("Disconnected from the Owner (reason %u)", reason);
 
 		state_set(conn, (unpair_pending ? UNPAIRED : NEARBY));
-	} else {
-		LOG_DBG("Disconnected (reason %u)", reason);
 
-		if (state == UNPAIRED) {
-			err = fmna_adv_start_unpaired(false);
-			if (err) {
-				LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
-				return;
-			}
+		return;
+	}
+
+	LOG_DBG("Disconnected (reason %u)", reason);
+
+	if (state == UNPAIRED) {
+		err = fmna_adv_start_unpaired(false);
+		if (err) {
+			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
+			return;
+		}
+	} else if (state == NEARBY) {
+		err = nearby_adv_start();
+		if (err) {
+			LOG_ERR("nearby_adv_start returned error: %d", err);
+			return;
+		}
+	} else if (state == SEPARATED) {
+		err = separated_adv_start();
+		if (err) {
+			LOG_ERR("separated_adv_start returned error: %d", err);
+			return;
 		}
 	}
 }
