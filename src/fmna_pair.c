@@ -9,7 +9,7 @@
 
 #include <logging/log.h>
 
-LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
+LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 /* Parameter length definitions. */
 #define C1_BLEN 32
@@ -380,20 +380,13 @@ static void initiate_pairing_cmd_handle(struct bt_conn *conn,
 	net_buf_simple_init_with_data(&buf_desc, buf->data, sizeof(buf->data));
 	net_buf_simple_reset(&buf_desc);
 
-	if (IS_ENABLED(CONFIG_FMN_HARDCODED_PAIRING)) {
-		/* Use command buffer memory to store response data. */
-		net_buf_simple_add(&buf_desc,
-				   sizeof(struct fmna_send_pairing_data));
-		memset(buf_desc.data, 0xFF, buf_desc.len);
-	} else {
-		err = pairing_data_generate(&buf_desc);
-		if (err) {
-			LOG_ERR("pairing_data_generate returned error: %d",
-				err);
+	err = pairing_data_generate(&buf_desc);
+	if (err) {
+		LOG_ERR("pairing_data_generate returned error: %d",
+			err);
 
-			/* TODO: Emit pairing failure event. */
-			return;
-		}
+		/* TODO: Emit pairing failure event. */
+		return;
 	}
 
 	err = fmna_gatt_pairing_cp_indicate(conn, FMNA_GATT_PAIRING_DATA_IND, &buf_desc);
@@ -414,20 +407,13 @@ static void finalize_pairing_cmd_handle(struct bt_conn *conn,
 	net_buf_simple_init_with_data(&buf_desc, buf->data, sizeof(buf->data));
 	net_buf_simple_reset(&buf_desc);
 
-	if (IS_ENABLED(CONFIG_FMN_HARDCODED_PAIRING)) {
-		/* Use command buffer memory to store response data. */
-		net_buf_simple_add(&buf_desc,
-				   sizeof(struct fmna_send_pairing_status));
-		memset(buf_desc.data, 0xFF, buf_desc.len);
-	} else {
-		err = pairing_status_generate(&buf_desc);
-		if (err) {
-			LOG_ERR("pairing_status_generate returned error: %d",
-				err);
+	err = pairing_status_generate(&buf_desc);
+	if (err) {
+		LOG_ERR("pairing_status_generate returned error: %d",
+			err);
 
-			/* TODO: Emit pairing failure event. */
-			return;
-		}
+		/* TODO: Emit pairing failure event. */
+		return;
 	}
 
 	err = fmna_gatt_pairing_cp_indicate(conn, FMNA_GATT_PAIRING_STATUS_IND, &buf_desc);
@@ -445,27 +431,25 @@ static void pairing_complete_cmd_handle(struct bt_conn *conn,
 
 	LOG_INF("FMNA: RX: Pairing complete command");
 
-	if (!IS_ENABLED(CONFIG_FMN_HARDCODED_PAIRING)) {
-		err = fm_crypto_ckg_finish(&ckg_ctx,
-					   init_keys.master_pk,
-					   init_keys.primary_sk,
-					   init_keys.secondary_sk);
-		if (err) {
-			LOG_ERR("fm_crypto_ckg_finish: %d", err);
-		}
+	err = fm_crypto_ckg_finish(&ckg_ctx,
+					init_keys.master_pk,
+					init_keys.primary_sk,
+					init_keys.secondary_sk);
+	if (err) {
+		LOG_ERR("fm_crypto_ckg_finish: %d", err);
+	}
 
-		fm_crypto_ckg_free(&ckg_ctx);
+	fm_crypto_ckg_free(&ckg_ctx);
 
-		/* Reinitialize context for future pairing attempts. */
-		err = fm_crypto_ckg_init(&ckg_ctx);
-		if (err) {
-			LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
-		}
+	/* Reinitialize context for future pairing attempts. */
+	err = fm_crypto_ckg_init(&ckg_ctx);
+	if (err) {
+		LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
+	}
 
-		err = fmna_keys_service_start(&init_keys);
-		if (err) {
-			LOG_ERR("fmna_keys_service_start: %d", err);
-		}
+	err = fmna_keys_service_start(&init_keys);
+	if (err) {
+		LOG_ERR("fmna_keys_service_start: %d", err);
 	}
 
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_PAIRING_COMPLETED, conn);

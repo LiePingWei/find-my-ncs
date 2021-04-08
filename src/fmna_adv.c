@@ -6,7 +6,7 @@
 #include <sys/byteorder.h>
 #include <logging/log.h>
 
-LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
+LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 #define BT_ADDR_LEN sizeof(((bt_addr_t *) NULL)->val)
 
@@ -172,7 +172,7 @@ static void unpaired_adv_payload_encode(struct unpaired_adv_payload *svc_payload
 
 	memcpy(svc_payload->product_data, fmna_pp_product_data, sizeof(svc_payload->product_data));
 
-	svc_payload->acc_category[0] = CONFIG_FMN_ACC_CATEGORY;
+	svc_payload->acc_category[0] = CONFIG_FMNA_CATEGORY;
 
 	/* TODO: Make battery level configurable. */
 	svc_payload->battery_state = 0;

@@ -8,7 +8,7 @@
 #include <settings/settings.h>
 #include <sys/byteorder.h>
 
-LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
+LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 #define FMNA_STORAGE_TREE "fmna"
 

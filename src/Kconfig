@@ -1,96 +1,86 @@
-config FMN_ADK
-	bool "Enable FMN ADK"
+config FMNA
+	bool "Enable FMN Accessory Development Kit"
+	select BT
+	select BT_PERIPHERAL
+	select BT_SMP
+	select BT_EXT_ADV
 
-if FMN_ADK
-
-config FMN_STORAGE
-	bool
-	default y if !FMN_HARDCODED_PAIRING
+	select BT_SETTINGS
 	select FLASH
 	select FLASH_MAP
 	select NVS
 	select SETTINGS
 
-config FMN_CRYPTO
-	bool
-	default y if !FMN_HARDCODED_PAIRING
 	select OBERON_BACKEND
 	select NORDIC_SECURITY_BACKEND
 	select MBEDTLS_ENABLE_HEAP
 
-config FMN_HARDCODED_PAIRING
-	bool "FMN hardcoded pairing variant"
+	select EVENT_MANAGER
+	# select LINKER_ORPHAN_SECTION_PLACE
+
+if FMNA
 
 config FMN_DEBUG
-	bool "Enable FMN with Debug capabilities"
+	bool "Enable FMN Accessory with Debug capabilities"
 
 # Product Plan configuration
-config FMN_NORDIC_PRODUCT_PLAN
+config FMNA_NORDIC_PRODUCT_PLAN
 	bool "Use Nordic Product Plan"
 
-config FMN_PRODUCT_DATA
-	hex "FMN Product Data"
-	default f86ae43a63829ed8 if FMN_NORDIC_PRODUCT_PLAN
+config FMNA_PRODUCT_DATA
+	hex "FMN Accessory Product Data"
+	default f86ae43a63829ed8 if FMNA_NORDIC_PRODUCT_PLAN
 	default 0
 
 # AIS configuration
 menu "Accessory Information Service (AIS)"
 
-config FMN_MANUFACTURER_NAME
-	string "FMN Manufacturer Name"
+config FMNA_MANUFACTURER_NAME
+	string "FMN Accessory Manufacturer Name"
 	default "Manufacturer"
 
-config FMN_MODEL_NAME
-	string "FMN Model Name"
+config FMNA_MODEL_NAME
+	string "FMN Accessory Model Name"
 	default "Model"
 
-config FMN_ACC_CATEGORY
+config FMNA_CATEGORY
 	int "FMN Accessory Category"
 	range 1 167
 	default 128
 
-config FMN_ACC_CAPABILITY_PLAY_SOUND_ENABLED
+config FMNA_CAPABILITY_PLAY_SOUND_ENABLED
 	bool "FMN Accessory Capability: declare sound playing capability"
 
-config FMN_ACC_CAPABILITY_DETECT_MOTION_ENABLED
+config FMNA_CAPABILITY_DETECT_MOTION_ENABLED
 	bool "FMN Accessory Capability: declare motion detecting capability"
 
-config FMN_ACC_CAPABILITY_NFC_SN_LOOKUP_ENABLED
+config FMNA_CAPABILITY_NFC_SN_LOOKUP_ENABLED
 	bool "FMN Accessory Capability: declare Serial Number NFC lookup capability"
 
-config FMN_ACC_CAPABILITY_BLE_SN_LOOKUP_ENABLED
+config FMNA_CAPABILITY_BLE_SN_LOOKUP_ENABLED
 	bool "FMN Accessory Capability: declare Serial Number BLE lookup capability"
 
-config FMN_ACC_CAPABILITY_FW_UPDATE_SVC_ENABLED
+config FMNA_CAPABILITY_FW_UPDATE_SVC_ENABLED
 	bool "FMN Accessory Capability: declare Firmware Update Service capability"
 
-choice
-	prompt "FMN battery type"
-	default FMN_BATTERY_TYPE_POWERED
+choice FMNA_BATTERY_TYPE
+	prompt "FMN Accessory battery type"
+	default FMNA_BATTERY_TYPE_POWERED
 
-config FMN_BATTERY_TYPE_POWERED
+config FMNA_BATTERY_TYPE_POWERED
 	bool "Powered"
 
-config FMN_BATTERY_TYPE_NON_RECHARGEABLE
+config FMNA_BATTERY_TYPE_NON_RECHARGEABLE
 	bool "Non-rechargeable battery"
 
-config FMN_BATTERY_TYPE_RECHARGEABLE
+config FMNA_BATTERY_TYPE_RECHARGEABLE
 	bool "Rechargeable battery"
 
 endchoice
 
 endmenu
 
-# BLE related configuration
-
-config BT
-	default y
-
-config BT_PERIPHERAL
-	default y
-
-config BT_SMP
-	default y
+# Override default BLE configuration
 
 config BT_DEVICE_NAME
 	default "Nordic_FMN"
@@ -107,16 +97,21 @@ config BT_CTLR_TX_BUFFER_SIZE
 config BT_CTLR_DATA_LENGTH_MAX
 	default 251
 
-config BT_EXT_ADV
-	default y
+config BT_ID_MAX
+	default 2
 
-config BT_CTLR_ADV_EXT
-	default y
+# Override default kernel configuration
+
+config HEAP_MEM_POOL_SIZE
+	default 2048
+
+config MAIN_STACK_SIZE
+	default 2048
 
 # Logger configuration
 
-module = FMN_ADK
-module-str = FMN_ADK
+module = FMNA
+module-str = FMNA
 source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
 
-endif # FMN_ADK
+endif # FMNA

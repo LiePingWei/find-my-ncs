@@ -5,7 +5,7 @@
 #include <sys/util.h>
 
 #include <logging/log.h>
-LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
+LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 struct conn_owner_finder {
 	struct bt_conn ** const owners;

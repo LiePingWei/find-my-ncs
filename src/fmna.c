@@ -9,7 +9,7 @@
 
 #include <logging/log.h>
 
-LOG_MODULE_REGISTER(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
+LOG_MODULE_REGISTER(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 BUILD_ASSERT(CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE >= 4096,
 	"The workqueue stack size is too small for the FMN");

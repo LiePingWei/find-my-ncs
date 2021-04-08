@@ -5,18 +5,18 @@
 
 #include "fmna_product_plan.h"
 
-BUILD_ASSERT(CONFIG_FMN_PRODUCT_DATA != 0,
+BUILD_ASSERT(CONFIG_FMNA_PRODUCT_DATA != 0,
 	"The FMN Product Data configuration must be set");
-BUILD_ASSERT(CONFIG_FMN_PRODUCT_DATA < UINT64_MAX,
+BUILD_ASSERT(CONFIG_FMNA_PRODUCT_DATA < UINT64_MAX,
 	"The FMN Product Data value is too large");
 
-/* Product Data (PD) configuration derived from CONFIG_FMN_PRODUCT_DATA */
+/* Product Data (PD) configuration derived from CONFIG_FMNA_PRODUCT_DATA */
 uint8_t fmna_pp_product_data[FMNA_PP_PRODUCT_DATA_LEN];
 
 /* Server Keys for the Nordic Product Plan.
  * Please define these keys in your application when using your product plan.
  */
-#if CONFIG_FMN_NORDIC_PRODUCT_PLAN
+#if CONFIG_FMNA_NORDIC_PRODUCT_PLAN
 
 /* Server encryption key: Q_E */
 const uint8_t fmna_pp_server_encryption_key[] = {
@@ -34,7 +34,7 @@ static int product_plan_init(const struct device *unused)
 {
 	ARG_UNUSED(unused);
 
-	sys_put_be64(CONFIG_FMN_PRODUCT_DATA, fmna_pp_product_data);
+	sys_put_be64(CONFIG_FMNA_PRODUCT_DATA, fmna_pp_product_data);
 
 	return 0;
 }

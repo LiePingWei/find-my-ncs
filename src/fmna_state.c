@@ -9,7 +9,7 @@
 
 #include <logging/log.h>
 
-LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
+LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 /* Timeout values in seconds */
 #define NEARBY_SEPARATED_TIMEOUT_DEFAULT 30

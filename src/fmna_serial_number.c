@@ -7,7 +7,7 @@
 
 #include <logging/log.h>
 
-LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
+LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 #define SN_LOOKUP_INTERVAL        K_MINUTES(5)
 
