@@ -75,11 +75,11 @@ int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 				enum fmna_gatt_owner_ind ind_type,
 				struct net_buf_simple *buf);
 
-uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_operation config_op);
+uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_event_id config_event);
 
-uint16_t fmna_non_owner_event_to_gatt_cmd_opcode(enum fmna_non_owner_operation non_owner_op);
+uint16_t fmna_non_owner_event_to_gatt_cmd_opcode(enum fmna_non_owner_event_id non_owner_event);
 
-uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_operation owner_op);
+uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_event_id owner_event);
 
 #ifdef __cplusplus
 }

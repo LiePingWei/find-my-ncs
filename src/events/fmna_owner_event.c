@@ -7,7 +7,7 @@ static int log_fmna_owner_event(const struct event_header *eh, char *buf,
 {
 	struct fmna_owner_event *event = cast_fmna_owner_event(eh);
 
-	return snprintf(buf, buf_len, "Opcode: 0x%02X", event->op);
+	return snprintf(buf, buf_len, "Event ID: 0x%02X", event->id);
 }
 
 EVENT_TYPE_DEFINE(fmna_owner_event, true, log_fmna_owner_event, NULL);

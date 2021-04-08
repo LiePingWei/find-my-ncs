@@ -7,15 +7,15 @@ extern "C" {
 
 #include "event_manager.h"
 
-enum fmna_non_owner_operation {
-	FMNA_NON_OWNER_START_SOUND,
-	FMNA_NON_OWNER_STOP_SOUND,
+enum fmna_non_owner_event_id {
+	FMNA_NON_OWNER_EVENT_START_SOUND,
+	FMNA_NON_OWNER_EVENT_STOP_SOUND,
 };
 
 struct fmna_non_owner_event {
 	struct event_header header;
 
-	enum fmna_non_owner_operation op;
+	enum fmna_non_owner_event_id id;
 	struct bt_conn *conn;
 };
 

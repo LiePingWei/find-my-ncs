@@ -468,29 +468,8 @@ static void pairing_complete_cmd_handle(struct bt_conn *conn,
 		}
 	}
 
-	FMNA_EVENT_CREATE(event, FMNA_PAIRING_COMPLETED, conn);
+	FMNA_EVENT_CREATE(event, FMNA_EVENT_PAIRING_COMPLETED, conn);
 	EVENT_SUBMIT(event);
-}
-
-static void pairing_cmd_handle(struct fmna_pair_event *pair_event)
-{
-	switch (pair_event->op) {
-	case FMNA_INITIATE_PAIRING:
-		initiate_pairing_cmd_handle(pair_event->conn,
-					    &pair_event->buf);
-		break;
-	case FMNA_FINALIZE_PAIRING:
-		finalize_pairing_cmd_handle(pair_event->conn,
-					    &pair_event->buf);
-		break;
-	case FMNA_PAIRING_COMPLETE:
-		pairing_complete_cmd_handle(pair_event->conn,
-					    &pair_event->buf);
-		break;
-	default:
-		LOG_ERR("FMNA: unexpected pairing command opcode: 0x%02X",
-			pair_event->op);
-	}
 }
 
 static bool event_handler(const struct event_header *eh)
@@ -498,7 +477,20 @@ static bool event_handler(const struct event_header *eh)
 	if (is_fmna_pair_event(eh)) {
 		struct fmna_pair_event *event = cast_fmna_pair_event(eh);
 
-		pairing_cmd_handle(event);
+		switch (event->id) {
+		case FMNA_PAIR_EVENT_INITIATE_PAIRING:
+			initiate_pairing_cmd_handle(event->conn, &event->buf);
+			break;
+		case FMNA_PAIR_EVENT_FINALIZE_PAIRING:
+			finalize_pairing_cmd_handle(event->conn, &event->buf);
+			break;
+		case FMNA_PAIR_EVENT_PAIRING_COMPLETE:
+			pairing_complete_cmd_handle(event->conn,&event->buf);
+			break;
+		default:
+			LOG_ERR("FMNA: unexpected pairing command opcode: 0x%02X",
+				event->id);
+		}
 
 		return false;
 	}

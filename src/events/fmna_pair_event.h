@@ -8,10 +8,10 @@ extern "C" {
 #include "event_manager.h"
 #include "fmna_gatt_pkt_manager.h"
 
-enum fmna_pair_operation {
-	FMNA_INITIATE_PAIRING,
-	FMNA_FINALIZE_PAIRING,
-	FMNA_PAIRING_COMPLETE,
+enum fmna_pair_event_id {
+	FMNA_PAIR_EVENT_INITIATE_PAIRING,
+	FMNA_PAIR_EVENT_FINALIZE_PAIRING,
+	FMNA_PAIR_EVENT_PAIRING_COMPLETE,
 };
 
 struct fmna_pair_buf {
@@ -22,7 +22,7 @@ struct fmna_pair_buf {
 struct fmna_pair_event {
 	struct event_header header;
 
-	enum fmna_pair_operation op;
+	enum fmna_pair_event_id id;
 	struct bt_conn *conn;
 	struct fmna_pair_buf buf;
 };

@@ -7,16 +7,16 @@ extern "C" {
 
 #include "event_manager.h"
 
-enum fmna_owner_operation {
-	FMNA_GET_CURRENT_PRIMARY_KEY,
-	FMNA_GET_ICLOUD_IDENTIFIER,
-	FMNA_GET_SERIAL_NUMBER,
+enum fmna_owner_event_id {
+	FMNA_OWNER_EVENT_GET_CURRENT_PRIMARY_KEY,
+	FMNA_OWNER_EVENT_GET_ICLOUD_IDENTIFIER,
+	FMNA_OWNER_EVENT_GET_SERIAL_NUMBER,
 };
 
 struct fmna_owner_event {
 	struct event_header header;
 
-	enum fmna_owner_operation op;
+	enum fmna_owner_event_id id;
 	struct bt_conn *conn;
 };
 

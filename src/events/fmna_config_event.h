@@ -7,17 +7,17 @@ extern "C" {
 
 #include "event_manager.h"
 
-enum fmna_config_operation {
-	FMNA_START_SOUND,
-	FMNA_STOP_SOUND,
-	FMNA_SET_PERSISTANT_CONN_STATUS,
-	FMNA_SET_NEARBY_TIMEOUT,
-	FMNA_UNPAIR,
-	FMNA_CONFIGURE_SEPARATED_STATE,
-	FMNA_LATCH_SEPARATED_KEY,
-	FMNA_SET_MAX_CONNECTIONS,
-	FMNA_SET_UTC,
-	FMNA_GET_MULTI_STATUS,
+enum fmna_config_event_id {
+	FMNA_CONFIG_EVENT_START_SOUND,
+	FMNA_CONFIG_EVENT_STOP_SOUND,
+	FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS,
+	FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT,
+	FMNA_CONFIG_EVENT_UNPAIR,
+	FMNA_CONFIG_EVENT_CONFIGURE_SEPARATED_STATE,
+	FMNA_CONFIG_EVENT_LATCH_SEPARATED_KEY,
+	FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS,
+	FMNA_CONFIG_EVENT_SET_UTC,
+	FMNA_CONFIG_EVENT_GET_MULTI_STATUS,
 };
 
 struct fmna_separated_state {
@@ -32,7 +32,7 @@ struct fmna_utc {
 struct fmna_config_event {
 	struct event_header header;
 
-	enum fmna_config_operation op;
+	enum fmna_config_event_id id;
 	struct bt_conn *conn;
 
 	union {

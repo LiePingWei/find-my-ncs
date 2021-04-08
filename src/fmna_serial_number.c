@@ -199,7 +199,8 @@ static bool event_handler(const struct event_header *eh)
 		struct fmna_event *event = cast_fmna_event(eh);
 
 		switch (event->id) {
-		case FMNA_PAIRING_COMPLETED:
+		case FMNA_EVENT_BONDED:
+		case FMNA_EVENT_PAIRING_COMPLETED:
 			pairing_completed_handle(event->conn);
 			break;
 		default:
@@ -212,8 +213,8 @@ static bool event_handler(const struct event_header *eh)
 	if (is_fmna_owner_event(eh)) {
 		struct fmna_owner_event *event = cast_fmna_owner_event(eh);
 
-		switch (event->op) {
-		case FMNA_GET_SERIAL_NUMBER:
+		switch (event->id) {
+		case FMNA_OWNER_EVENT_GET_SERIAL_NUMBER:
 			serial_number_request_handle(event->conn);
 			break;
 		default:

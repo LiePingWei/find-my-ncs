@@ -308,7 +308,7 @@ static void key_rotation_work_handle(struct k_work *item)
 	}
 
 	/* Emit event notifying that the Public Keys have changed. */
-	FMNA_EVENT_CREATE(event, FMNA_PUBLIC_KEYS_CHANGED, NULL);
+	FMNA_EVENT_CREATE(event, FMNA_EVENT_PUBLIC_KEYS_CHANGED, NULL);
 	event->public_keys_changed.separated_key_changed = separated_key_changed;
 	EVENT_SUBMIT(event);
 
@@ -482,7 +482,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 				fmna_conn_multi_status_bit_set(
 					conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
 
-				FMNA_EVENT_CREATE(event, FMNA_OWNER_CONNECTED, conn);
+				FMNA_EVENT_CREATE(event, FMNA_EVENT_OWNER_CONNECTED, conn);
 				EVENT_SUBMIT(event);
 			}
 		} else {
@@ -737,7 +737,8 @@ static void separated_state_configure_request_handle(struct bt_conn *conn,
 		primary_key_roll_reconfigure(primary_key_roll);
 	}
 
-	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_CONFIGURE_SEPARATED_STATE);
+	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(
+		FMNA_CONFIG_EVENT_CONFIGURE_SEPARATED_STATE);
 	FMNA_GATT_COMMAND_RESPONSE_BUILD(resp_buf, resp_opcode, resp_status);
 	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &resp_buf);
 	if (err) {
@@ -751,8 +752,8 @@ static bool event_handler(const struct event_header *eh)
 		struct fmna_event *event = cast_fmna_event(eh);
 
 		switch (event->id) {
-		case FMNA_BONDED:
-		case FMNA_PAIRING_COMPLETED:
+		case FMNA_EVENT_BONDED:
+		case FMNA_EVENT_PAIRING_COMPLETED:
 			is_paired = true;
 			break;
 		default:
@@ -765,11 +766,11 @@ static bool event_handler(const struct event_header *eh)
 	if (is_fmna_config_event(eh)) {
 		struct fmna_config_event *event = cast_fmna_config_event(eh);
 
-		switch (event->op) {
-		case FMNA_LATCH_SEPARATED_KEY:
+		switch (event->id) {
+		case FMNA_CONFIG_EVENT_LATCH_SEPARATED_KEY:
 			separated_key_latch_request_handle(event->conn);
 			break;
-		case FMNA_CONFIGURE_SEPARATED_STATE:
+		case FMNA_CONFIG_EVENT_CONFIGURE_SEPARATED_STATE:
 			separated_state_configure_request_handle(
 				event->conn,
 				event->separated_state.seconday_key_evaluation_index,

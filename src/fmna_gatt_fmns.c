@@ -139,7 +139,7 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&pairing_buf, buf, len);
 	if (pkt_complete) {
 		uint16_t opcode;
-		enum fmna_pair_operation op;
+		enum fmna_pair_event_id id;
 
 		LOG_HEXDUMP_INF(pairing_buf.data, pairing_buf.len, "Pairing packet:");
 		LOG_INF("Total packet length: %d", pairing_buf.len);
@@ -147,13 +147,13 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 		opcode = net_buf_simple_pull_le16(&pairing_buf);
 		switch (opcode) {
 		case PAIRING_CP_OPCODE_INITIATE_PAIRING:
-			op = FMNA_INITIATE_PAIRING;
+			id = FMNA_PAIR_EVENT_INITIATE_PAIRING;
 			break;
 		case PAIRING_CP_OPCODE_FINALIZE_PAIRING:
-			op = FMNA_FINALIZE_PAIRING;
+			id = FMNA_PAIR_EVENT_FINALIZE_PAIRING;
 			break;
 		case PAIRING_CP_OPCODE_PAIRING_COMPLETE:
-			op = FMNA_PAIRING_COMPLETE;
+			id = FMNA_PAIR_EVENT_PAIRING_COMPLETE;
 			break;
 		default:
 			LOG_ERR("FMN Pairing CP, unexpected opcode: 0x%02X",
@@ -164,7 +164,7 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 
 		struct fmna_pair_event *event = new_fmna_pair_event();
 
-		event->op = op;
+		event->id = id;
 		event->conn = conn;
 		event->buf.len = pairing_buf.len;
 		memcpy(event->buf.data, pairing_buf.data, pairing_buf.len);
@@ -251,42 +251,42 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 
 		switch (opcode) {
 		case CONFIG_CP_OPCODE_START_SOUND:
-			event.op = FMNA_START_SOUND;
+			event.id = FMNA_CONFIG_EVENT_START_SOUND;
 			break;
 		case CONFIG_CP_OPCODE_STOP_SOUND:
-			event.op = FMNA_STOP_SOUND;
+			event.id = FMNA_CONFIG_EVENT_STOP_SOUND;
 			break;
 		case CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS:
-			event.op = FMNA_SET_PERSISTANT_CONN_STATUS;
+			event.id = FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS;
 			event.persistant_conn_status = net_buf_simple_pull_u8(&config_buf);
 			break;
 		case CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT:
-			event.op = FMNA_SET_NEARBY_TIMEOUT;
+			event.id = FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT;
 			event.nearby_timeout = net_buf_simple_pull_le16(&config_buf);
 			break;
 		case CONFIG_CP_OPCODE_UNPAIR:
-			event.op = FMNA_UNPAIR;
+			event.id = FMNA_CONFIG_EVENT_UNPAIR;
 			break;
 		case CONFIG_CP_OPCODE_CONFIGURE_SEPARATED_STATE:
-			event.op = FMNA_CONFIGURE_SEPARATED_STATE;
+			event.id = FMNA_CONFIG_EVENT_CONFIGURE_SEPARATED_STATE;
 			event.separated_state.next_primary_key_roll =
 				net_buf_simple_pull_le32(&config_buf);
 			event.separated_state.seconday_key_evaluation_index =
 				net_buf_simple_pull_le32(&config_buf);
 			break;
 		case CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY:
-			event.op = FMNA_LATCH_SEPARATED_KEY;
+			event.id = FMNA_CONFIG_EVENT_LATCH_SEPARATED_KEY;
 			break;
 		case CONFIG_CP_OPCODE_SET_MAX_CONNECTIONS:
-			event.op = FMNA_SET_MAX_CONNECTIONS;
+			event.id = FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS;
 			event.max_connections = net_buf_simple_pull_u8(&config_buf);
 			break;
 		case CONFIG_CP_OPCODE_SET_UTC:
-			event.op = FMNA_SET_UTC;
+			event.id = FMNA_CONFIG_EVENT_SET_UTC;
 			event.utc.current_time = net_buf_simple_pull_le64(&config_buf);
 			break;
 		case CONFIG_CP_OPCODE_GET_MULTI_STATUS:
-			event.op = FMNA_GET_MULTI_STATUS;
+			event.id = FMNA_CONFIG_EVENT_GET_MULTI_STATUS;
 			break;
 		default:
 			LOG_ERR("FMN Configuration CP, unexpected opcode: 0x%02X", opcode);
@@ -322,7 +322,7 @@ static ssize_t non_owner_cp_write(struct bt_conn *conn,
 	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&non_owner_buf, buf, len);
 	if (pkt_complete) {
 		uint16_t opcode;
-		enum fmna_non_owner_operation op;
+		enum fmna_non_owner_event_id id;
 
 		LOG_HEXDUMP_INF(non_owner_buf.data, non_owner_buf.len,
 				"Non-owner packet:");
@@ -331,10 +331,10 @@ static ssize_t non_owner_cp_write(struct bt_conn *conn,
 		opcode = net_buf_simple_pull_le16(&non_owner_buf);
 		switch (opcode) {
 		case NON_OWNER_CP_OPCODE_START_SOUND:
-			op = FMNA_NON_OWNER_START_SOUND;
+			id = FMNA_NON_OWNER_EVENT_START_SOUND;
 			break;
 		case NON_OWNER_CP_OPCODE_STOP_SOUND:
-			op = FMNA_NON_OWNER_STOP_SOUND;
+			id = FMNA_NON_OWNER_EVENT_STOP_SOUND;
 			break;
 		default:
 			LOG_ERR("FMN Non-owner CP, unexpected opcode: 0x%02X", opcode);
@@ -343,7 +343,7 @@ static ssize_t non_owner_cp_write(struct bt_conn *conn,
 
 		struct fmna_non_owner_event *event = new_fmna_non_owner_event();
 
-		event->op = op;
+		event->id = id;
 		event->conn = conn;
 
 		EVENT_SUBMIT(event);
@@ -366,7 +366,7 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&owner_buf, buf, len);
 	if (pkt_complete) {
 		uint16_t opcode;
-		enum fmna_owner_operation op;
+		enum fmna_owner_event_id id;
 
 		LOG_HEXDUMP_INF(owner_buf.data, owner_buf.len, "Owner packet:");
 		LOG_INF("Total packet length: %d", owner_buf.len);
@@ -374,13 +374,13 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 		opcode = net_buf_simple_pull_le16(&owner_buf);
 		switch (opcode) {
 		case OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY:
-			op = FMNA_GET_CURRENT_PRIMARY_KEY;
+			id = FMNA_OWNER_EVENT_GET_CURRENT_PRIMARY_KEY;
 			break;
 		case OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER:
-			op = FMNA_GET_ICLOUD_IDENTIFIER;
+			id = FMNA_OWNER_EVENT_GET_ICLOUD_IDENTIFIER;
 			break;
 		case OWNER_CP_OPCODE_GET_SERIAL_NUMBER:
-			op = FMNA_GET_SERIAL_NUMBER;
+			id = FMNA_OWNER_EVENT_GET_SERIAL_NUMBER;
 			break;
 		default:
 			LOG_ERR("FMN Owner CP, unexpected opcode: 0x%02X", opcode);
@@ -389,7 +389,7 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 
 		struct fmna_owner_event *event = new_fmna_owner_event();
 
-		event->op = op;
+		event->id = id;
 		event->conn = conn;
 
 		EVENT_SUBMIT(event);
@@ -646,60 +646,60 @@ int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 	return cp_indicate(conn, &fmns_svc.attrs[11], owner_opcode, buf);
 }
 
-uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_operation config_op)
+uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_event_id config_event)
 {
-	switch (config_op) {
-	case FMNA_START_SOUND:
+	switch (config_event) {
+	case FMNA_CONFIG_EVENT_START_SOUND:
 		return CONFIG_CP_OPCODE_START_SOUND;
-	case FMNA_STOP_SOUND:
+	case FMNA_CONFIG_EVENT_STOP_SOUND:
 		return CONFIG_CP_OPCODE_STOP_SOUND;
-	case FMNA_SET_PERSISTANT_CONN_STATUS:
+	case FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS:
 		return CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS;
-	case FMNA_SET_NEARBY_TIMEOUT:
+	case FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT:
 		return CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT;
-	case FMNA_UNPAIR:
+	case FMNA_CONFIG_EVENT_UNPAIR:
 		return CONFIG_CP_OPCODE_UNPAIR;
-	case FMNA_CONFIGURE_SEPARATED_STATE:
+	case FMNA_CONFIG_EVENT_CONFIGURE_SEPARATED_STATE:
 		return CONFIG_CP_OPCODE_CONFIGURE_SEPARATED_STATE;
-	case FMNA_SET_MAX_CONNECTIONS:
+	case FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS:
 		return CONFIG_CP_OPCODE_SET_MAX_CONNECTIONS;
-	case FMNA_SET_UTC:
+	case FMNA_CONFIG_EVENT_SET_UTC:
 		return CONFIG_CP_OPCODE_SET_UTC;
-	case FMNA_GET_MULTI_STATUS:
+	case FMNA_CONFIG_EVENT_GET_MULTI_STATUS:
 		return CONFIG_CP_OPCODE_GET_MULTI_STATUS;
 	default:
 		__ASSERT(0, "Config event type outside the mapping scope: %d",
-			config_op);
+			config_event);
 		return 0;
 	}
 }
 
-uint16_t fmna_non_owner_event_to_gatt_cmd_opcode(enum fmna_non_owner_operation non_owner_op)
+uint16_t fmna_non_owner_event_to_gatt_cmd_opcode(enum fmna_non_owner_event_id non_owner_event)
 {
-	switch (non_owner_op) {
-	case FMNA_NON_OWNER_START_SOUND:
+	switch (non_owner_event) {
+	case FMNA_NON_OWNER_EVENT_START_SOUND:
 		return NON_OWNER_CP_OPCODE_START_SOUND;
-	case FMNA_NON_OWNER_STOP_SOUND:
+	case FMNA_NON_OWNER_EVENT_STOP_SOUND:
 		return NON_OWNER_CP_OPCODE_STOP_SOUND;
 	default:
 		__ASSERT(0, "Owner event type outside the mapping scope: %d",
-			non_owner_op);
+			non_owner_event);
 		return 0;
 	}
 }
 
-uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_operation owner_op)
+uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_event_id owner_event)
 {
-	switch (owner_op) {
-	case FMNA_GET_CURRENT_PRIMARY_KEY:
+	switch (owner_event) {
+	case FMNA_OWNER_EVENT_GET_CURRENT_PRIMARY_KEY:
 		return OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY;
-	case FMNA_GET_ICLOUD_IDENTIFIER:
+	case FMNA_OWNER_EVENT_GET_ICLOUD_IDENTIFIER:
 		return OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER;
-	case FMNA_GET_SERIAL_NUMBER:
+	case FMNA_OWNER_EVENT_GET_SERIAL_NUMBER:
 		return OWNER_CP_OPCODE_GET_SERIAL_NUMBER;
 	default:
 		__ASSERT(0, "Owner event type outside the mapping scope: %d",
-			owner_op);
+			owner_event);
 		return 0;
 	}
 }

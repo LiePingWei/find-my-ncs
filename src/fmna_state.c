@@ -338,7 +338,7 @@ static void nearby_timeout_set_request_handle(struct bt_conn *conn, uint16_t nea
 			nearby_separated_timeout);
 	}
 
-	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_SET_NEARBY_TIMEOUT);
+	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT);
 	FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, resp_opcode, resp_status);
 	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &cmd_buf);
 	if (err) {
@@ -364,7 +364,7 @@ static void unpair_request_handle(struct bt_conn *conn)
 		LOG_WRN("Rejecting the unpairing request");
 	}
 
-	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_UNPAIR);
+	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_CONFIG_EVENT_UNPAIR);
 	FMNA_GATT_COMMAND_RESPONSE_BUILD(resp_buf, resp_opcode, resp_status);
 	err = fmna_gatt_config_cp_indicate(
 		conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &resp_buf);
@@ -376,7 +376,7 @@ static void unpair_request_handle(struct bt_conn *conn)
 static void utc_request_handle(struct bt_conn *conn, uint64_t utc)
 {
 	int err;
-	uint16_t opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_SET_UTC);
+	uint16_t opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_CONFIG_EVENT_SET_UTC);
 
 	/* TODO: Set UTC. */
 	LOG_INF("FMN Config CP: responding to UTC settings request");
@@ -394,14 +394,14 @@ static bool event_handler(const struct event_header *eh)
 		struct fmna_event *event = cast_fmna_event(eh);
 
 		switch (event->id) {
-		case FMNA_BONDED:
+		case FMNA_EVENT_BONDED:
 			is_bonded = true;
 			break;
-		case FMNA_PAIRING_COMPLETED:
-		case FMNA_OWNER_CONNECTED:
+		case FMNA_EVENT_PAIRING_COMPLETED:
+		case FMNA_EVENT_OWNER_CONNECTED:
 			state_set(event->conn, CONNECTED);
 			break;
-		case FMNA_PUBLIC_KEYS_CHANGED:
+		case FMNA_EVENT_PUBLIC_KEYS_CHANGED:
 			fmna_public_keys_changed(&event->public_keys_changed);
 			break;
 		default:
@@ -414,14 +414,14 @@ static bool event_handler(const struct event_header *eh)
 	if (is_fmna_config_event(eh)) {
 		struct fmna_config_event *event = cast_fmna_config_event(eh);
 
-		switch (event->op) {
-		case FMNA_SET_NEARBY_TIMEOUT:
+		switch (event->id) {
+		case FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT:
 			nearby_timeout_set_request_handle(event->conn, event->nearby_timeout);
 			break;
-		case FMNA_UNPAIR:
+		case FMNA_CONFIG_EVENT_UNPAIR:
 			unpair_request_handle(event->conn);
 			break;
-		case FMNA_SET_UTC:
+		case FMNA_CONFIG_EVENT_SET_UTC:
 			utc_request_handle(event->conn, event->utc.current_time);
 			break;
 		default:

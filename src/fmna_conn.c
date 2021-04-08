@@ -154,7 +154,8 @@ static void persistant_conn_request_handle(struct bt_conn *conn, uint8_t persist
 			conn, FMNA_CONN_MULTI_STATUS_BIT_PERSISTENT_CONNECTION);
 	}
 
-	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_SET_PERSISTANT_CONN_STATUS);
+	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(
+		FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS);
 	FMNA_GATT_COMMAND_RESPONSE_BUILD(resp_buf, resp_opcode, FMNA_GATT_RESPONSE_STATUS_SUCCESS);
 	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &resp_buf);
 	if (err) {
@@ -183,7 +184,8 @@ static void max_connections_request_handle(struct bt_conn *conn, uint8_t max_con
 
 	max_connections = max_conns;
 
-	opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_SET_MAX_CONNECTIONS);
+	opcode = fmna_config_event_to_gatt_cmd_opcode(
+		FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS);
 	FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, opcode, FMNA_GATT_RESPONSE_STATUS_SUCCESS);
 	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &cmd_buf);
 	if (err) {
@@ -199,7 +201,8 @@ static void multi_status_request_handle(struct bt_conn *conn)
 
 	/* TODO: Move Config CP validation to GATT FMNS. */
 	if (!fmna_conn_multi_status_bit_check(conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED)) {
-		uint16_t opcode = fmna_config_event_to_gatt_cmd_opcode(FMNA_GET_MULTI_STATUS);
+		uint16_t opcode = fmna_config_event_to_gatt_cmd_opcode(
+			FMNA_CONFIG_EVENT_GET_MULTI_STATUS);
 
 		FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, opcode,
 						 FMNA_GATT_RESPONSE_STATUS_INVALID_STATE);
@@ -231,16 +234,16 @@ static bool event_handler(const struct event_header *eh)
 	if (is_fmna_config_event(eh)) {
 		struct fmna_config_event *event = cast_fmna_config_event(eh);
 
-		switch (event->op) {
-		case FMNA_SET_PERSISTANT_CONN_STATUS:
+		switch (event->id) {
+		case FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS:
 			persistant_conn_request_handle(event->conn,
 						       event->persistant_conn_status);
 			break;
-		case FMNA_SET_MAX_CONNECTIONS:
+		case FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS:
 			max_connections_request_handle(event->conn,
 						       event->max_connections);
 			break;
-		case FMNA_GET_MULTI_STATUS:
+		case FMNA_CONFIG_EVENT_GET_MULTI_STATUS:
 			multi_status_request_handle(event->conn);
 			break;
 		default:
