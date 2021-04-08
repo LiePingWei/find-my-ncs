@@ -40,6 +40,12 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMN_ADK_LOG_LEVEL);
 #define FMNS_NON_OWNER_MAX_RX_LEN 2
 #define FMNS_OWNER_MAX_RX_LEN 2
 
+#define FMNS_PAIRING_CHAR_INDEX   2
+#define FMNS_CONFIG_CHAR_INDEX    5
+#define FMNS_NON_OWNER_CHAR_INDEX 8
+#define FMNS_OWNER_CHAR_INDEX     11
+#define FMNS_DEBUG_CHAR_INDEX     14
+
 enum pairing_cp_opcode {
 	PAIRING_CP_OPCODE_BASE                 = 0x0100,
 	PAIRING_CP_OPCODE_INITIATE_PAIRING     = 0x0100,
@@ -565,7 +571,7 @@ int fmna_gatt_pairing_cp_indicate(struct bt_conn *conn,
 		return -EINVAL;
 	}
 
-	return cp_indicate(conn, &fmns_svc.attrs[2], pairing_opcode, buf);
+	return cp_indicate(conn, &fmns_svc.attrs[FMNS_PAIRING_CHAR_INDEX], pairing_opcode, buf);
 }
 
 int fmna_gatt_config_cp_indicate(struct bt_conn *conn,
@@ -595,7 +601,7 @@ int fmna_gatt_config_cp_indicate(struct bt_conn *conn,
 		return -EINVAL;
 	}
 
-	return cp_indicate(conn, &fmns_svc.attrs[5], config_opcode, buf);
+	return cp_indicate(conn, &fmns_svc.attrs[FMNS_CONFIG_CHAR_INDEX], config_opcode, buf);
 }
 
 int fmna_gatt_non_owner_cp_indicate(struct bt_conn *conn,
@@ -616,7 +622,7 @@ int fmna_gatt_non_owner_cp_indicate(struct bt_conn *conn,
 		return -EINVAL;
 	}
 
-	return cp_indicate(conn, &fmns_svc.attrs[8], non_owner_opcode, buf);
+	return cp_indicate(conn, &fmns_svc.attrs[FMNS_NON_OWNER_CHAR_INDEX], non_owner_opcode, buf);
 }
 
 int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
@@ -643,7 +649,7 @@ int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 		return -EINVAL;
 	}
 
-	return cp_indicate(conn, &fmns_svc.attrs[11], owner_opcode, buf);
+	return cp_indicate(conn, &fmns_svc.attrs[FMNS_OWNER_CHAR_INDEX], owner_opcode, buf);
 }
 
 uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_event_id config_event)
