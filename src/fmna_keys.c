@@ -36,26 +36,26 @@ static uint8_t curr_primary_pk[FMNA_PUBLIC_KEY_LEN];
 static uint8_t curr_secondary_pk[FMNA_PUBLIC_KEY_LEN];
 
 static uint8_t latched_primary_pk[FMNA_PUBLIC_KEY_LEN];
-bool is_primary_pk_latched = false;
+static bool is_primary_pk_latched = false;
 
 static uint32_t primary_pk_rotation_cnt = 0;
 static uint32_t secondary_pk_rotation_delta = 0;
 
-bool use_secondary_pk = false;
+static bool use_secondary_pk = false;
 
 static bool is_paired = false;
 
 /* Declaration of variables that are relevant to the BLE stack. */
 static uint8_t bt_id;
 static uint8_t bt_ltk[16];
-struct bt_keys *bt_keys = NULL;
+static struct bt_keys *bt_keys = NULL;
 
 
 static void key_rotation_work_handle(struct k_work *item);
 static void key_rotation_timeout_handle(struct k_timer *timer_id);
 
-K_WORK_DEFINE(key_rotation_work, key_rotation_work_handle);
-K_TIMER_DEFINE(key_rotation_timer, key_rotation_timeout_handle, NULL);
+static K_WORK_DEFINE(key_rotation_work, key_rotation_work_handle);
+static K_TIMER_DEFINE(key_rotation_timer, key_rotation_timeout_handle, NULL);
 
 static void bt_ltk_set(const bt_addr_le_t *bt_owner_addr)
 {

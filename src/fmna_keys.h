@@ -9,7 +9,7 @@ extern "C" {
 
 #include "fmna_storage.h"
 
-#define FMNA_PUBLIC_KEY_LEN        28
+#define FMNA_PUBLIC_KEY_LEN 28
 
 struct fmna_keys_init {
 	uint8_t master_pk[FMNA_MASTER_PUBLIC_KEY_LEN];
