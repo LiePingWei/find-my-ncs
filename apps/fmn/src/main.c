@@ -22,8 +22,16 @@
 
 #define BT_ID_FMN 1
 
+#define FMN_SOUND_DURATION K_SECONDS(5)
+
+#define FMN_SOUND_LED DK_LED1
+
 #define FMN_SN_LOOKUP_BUTTON              DK_BTN1_MSK
 #define FMN_FACTORY_SETTINGS_RESET_BUTTON DK_BTN4_MSK
+
+static void sound_timeout_work_handle(struct k_work *item);
+
+static K_DELAYED_WORK_DEFINE(sound_timeout_work, sound_timeout_work_handle);
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -84,6 +92,52 @@ static struct bt_conn_auth_cb conn_auth_callbacks = {
 	.pairing_failed = pairing_failed
 };
 
+static void sound_stop_indicate(void)
+{
+	printk("Stopping the sound from being played\n");
+
+	dk_set_led(FMN_SOUND_LED, 0);
+}
+
+static void sound_timeout_work_handle(struct k_work *item)
+{
+	int err;
+
+	err = fmna_sound_completed_indicate();
+	if (err) {
+		printk("fmna_sound_completed_indicate failed (err %d)\n", err);
+		return;
+	}
+
+	printk("Sound playing timed out\n");
+
+	sound_stop_indicate();
+}
+
+static void sound_start(void)
+{
+	printk("Received a request from FMN to start playing sound\n");
+	printk("Starting to play sound...\n");
+
+	k_delayed_work_submit(&sound_timeout_work, FMN_SOUND_DURATION);
+
+	dk_set_led(FMN_SOUND_LED, 1);
+}
+
+static void sound_stop(void)
+{
+	printk("Received a request from FMN to stop playing sound\n");
+
+	k_delayed_work_cancel(&sound_timeout_work);
+
+	sound_stop_indicate();
+}
+
+static struct fmna_sound_cb sound_callbacks = {
+	.sound_start = sound_start,
+	.sound_stop = sound_stop,
+};
+
 static int fmna_id_create(uint8_t id)
 {
 	int ret;
@@ -118,6 +172,12 @@ static int fmna_initialize(void)
 {
 	int err;
 	struct fmna_init_params init_params = {0};
+
+	err = fmna_sound_cb_register(&sound_callbacks);
+	if (err) {
+		printk("fmna_sound_cb_register failed (err %d)\n", err);
+		return err;
+	}
 
 	err = fmna_id_create(BT_ID_FMN);
 	if (err) {
@@ -156,9 +216,15 @@ static int dk_library_initialize(void)
 {
 	int err;
 
+	err = dk_leds_init();
+	if (err) {
+		printk("LEDs init failed (err %d)\n", err);
+		return err;
+	}
+
 	err = dk_buttons_init(button_changed);
 	if (err) {
-		printk("Cannot init buttons (err: %d)\n", err);
+		printk("Buttons init failed (err: %d)\n", err);
 		return err;
 	}
 
