@@ -129,6 +129,12 @@ def provision(mfi_uuid, mfi_token, serial_number, output_path, device, settings_
     nvs_dict = nvs.create_blank_nvs_dict(settings_base)
 
     if mfi_uuid and mfi_token:
+        mfi_token_len = len(mfi_token)
+        if mfi_token_len <= FMN_MFI_AUTH_TOKEN_LEN:
+            mfi_token += (bytes(FMN_MFI_AUTH_TOKEN_LEN - mfi_token_len))
+        else:
+            raise ValueError('--mfi-token specified with data longer than {} bytes.'.format(FMN_MFI_AUTH_TOKEN_LEN))
+
         create_and_insert_record_dict(nvs_dict, unhexlify(mfi_uuid), FMN_PROVISIONING_MFI_TOKEN_UUID)
         create_and_insert_record_dict(nvs_dict, mfi_token, FMN_PROVISIONING_MFI_AUTH_TOKEN)
     else:
