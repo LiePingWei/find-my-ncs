@@ -4,6 +4,7 @@
 #include "fmna_gatt_fmns.h"
 #include "fmna_product_plan.h"
 #include "fmna_serial_number.h"
+#include "fmna_storage.h"
 
 #include <logging/log.h>
 
@@ -88,19 +89,32 @@ static void encrypted_sn_response_build(enum sn_query_type query_type,
 	int err;
 	struct sn_hmac_payload sn_hmac_payload;
 	struct sn_payload sn_payload;
-	uint8_t server_shared_secret[32];
+	uint8_t server_shared_secret[FMNA_SERVER_SHARED_SECRET_LEN];
 
 	/* Clear the encrypted serial number initially in case of error. */
 	memset(sn_response, 0, SN_ENCRYPTED_RESPONSE_LEN);
 
-	/* TODO: Load sn_query_count from fmna_storage */
+	err = fmna_storage_pairing_item_load(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
+					     (uint8_t *) &sn_payload.counter,
+					     sizeof(sn_payload.counter));
+	if (err) {
+		LOG_ERR("fmna_serial_number: cannot load Serial Number counter");
+		return;
+	}
 
 	sn_payload.counter++;
 	sn_hmac_payload.counter = sn_payload.counter;
 
-	LOG_INF("Serial Number query count: %llu", sn_payload.counter);
+	/* Store the Serial Number counter. */
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
+					      (uint8_t *) &sn_payload.counter,
+					      sizeof(sn_payload.counter));
+	if (err) {
+		LOG_ERR("fmna_serial_number: cannot load Serial Number counter");
+		return;
+	}
 
-	/* TODO: Update sn_query_count in the fmna_storage */
+	LOG_INF("Serial Number query count: %llu", sn_payload.counter);
 
 	fmna_serial_number_get(sn_payload.serial_number);
 	memcpy(sn_hmac_payload.serial_number,
@@ -121,7 +135,13 @@ static void encrypted_sn_response_build(enum sn_query_type query_type,
 		return;
 	}
 
-	/* TODO: Load server_shared_secret from fmna_storage */
+	err = fmna_storage_pairing_item_load(FMNA_STORAGE_SERVER_SHARED_SECRET_ID,
+					     server_shared_secret,
+					     sizeof(server_shared_secret));
+	if (err) {
+		LOG_ERR("fmna_serial_number: cannot load Server Shared Secret");
+		return;
+	}
 
 	err = fm_crypto_authenticate_with_ksn(server_shared_secret,
 					      sizeof(sn_hmac_payload),
