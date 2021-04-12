@@ -6,6 +6,7 @@
 #include "fmna_keys.h"
 
 #include <bluetooth/conn.h>
+#include <power/reboot.h>
 
 #include <logging/log.h>
 
@@ -42,6 +43,11 @@ static void nearby_separated_timeout_handle(struct k_timer *timer_id);
 
 static K_WORK_DEFINE(nearby_separated_work, nearby_separated_work_handle);
 static K_TIMER_DEFINE(nearby_separated_timer, nearby_separated_timeout_handle, NULL);
+
+#if CONFIG_FMNA_DEBUG
+static void reset_work_handle(struct k_work *item);
+static struct k_delayed_work reset_work;
+#endif
 
 static int nearby_adv_start(void)
 {
@@ -287,6 +293,9 @@ int fmna_state_init(uint8_t bt_id)
 	};
 
 	k_work_init(&disconnected_work.work, disconnected_work_handle);
+#if CONFIG_FMNA_DEBUG
+	k_delayed_work_init(&reset_work, reset_work_handle);
+#endif
 
 	bt_conn_cb_register(&conn_callbacks);
 
@@ -388,6 +397,36 @@ static void utc_request_handle(struct bt_conn *conn, uint64_t utc)
 	}
 }
 
+#if CONFIG_FMNA_DEBUG
+static void reset_work_handle(struct k_work *item)
+{
+	LOG_INF("Executing the debug reset command");
+
+	sys_reboot(SYS_REBOOT_COLD);
+}
+
+static void reset_request_handle(struct bt_conn *conn)
+{
+	int err;
+	uint16_t resp_opcode;
+	uint16_t resp_status = FMNA_GATT_RESPONSE_STATUS_SUCCESS;
+
+	LOG_INF("FMN Debug CP: responding to reset request");
+
+	resp_opcode = fmna_debug_event_to_gatt_cmd_opcode(FMNA_DEBUG_EVENT_RESET);
+	FMNA_GATT_COMMAND_RESPONSE_BUILD(resp_buf, resp_opcode, resp_status);
+	err = fmna_gatt_debug_cp_indicate(conn, FMNA_GATT_DEBUG_COMMAND_RESPONSE_IND, &resp_buf);
+	if (err) {
+		LOG_ERR("fmna_gatt_debug_cp_indicate returned error: %d", err);
+	}
+
+	err = k_delayed_work_submit(&reset_work, K_MSEC(100));
+	if (err) {
+		LOG_ERR("fmna_state: k_delayed_work_submit returned error: %d", err);
+	}
+}
+#endif
+
 static bool event_handler(const struct event_header *eh)
 {
 	if (is_fmna_event(eh)) {
@@ -431,9 +470,29 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
+#if CONFIG_FMNA_DEBUG
+	if (is_fmna_debug_event(eh)) {
+		struct fmna_debug_event *event = cast_fmna_debug_event(eh);
+
+		switch (event->id) {
+		case FMNA_DEBUG_EVENT_RESET:
+			reset_request_handle(event->conn);
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+#endif
+
 	return false;
 }
 
 EVENT_LISTENER(fmna_state, event_handler);
 EVENT_SUBSCRIBE(fmna_state, fmna_event);
 EVENT_SUBSCRIBE(fmna_state, fmna_config_event);
+
+#if CONFIG_FMNA_DEBUG
+EVENT_SUBSCRIBE(fmna_state, fmna_debug_event);
+#endif
