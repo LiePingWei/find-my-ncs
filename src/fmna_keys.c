@@ -28,6 +28,8 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 #define KEY_ROTATION_TIMER_PERIOD K_MINUTES(15)
 
+static k_timeout_t key_rotation_timer_period;
+
 static uint8_t master_pk[FMNA_MASTER_PUBLIC_KEY_LEN];
 static uint8_t curr_primary_sk[FMNA_SYMMETRIC_KEY_LEN];
 static uint8_t curr_secondary_sk[FMNA_SYMMETRIC_KEY_LEN];
@@ -382,7 +384,7 @@ int fmna_keys_service_stop(void)
 static void keys_service_timer_start(void)
 {
 	/* Start key rotation timeout. */
-	k_timer_start(&key_rotation_timer, KEY_ROTATION_TIMER_PERIOD, KEY_ROTATION_TIMER_PERIOD);
+	k_timer_start(&key_rotation_timer, key_rotation_timer_period, key_rotation_timer_period);
 
 	LOG_INF("FMNA Keys rotation service started");
 }
@@ -640,6 +642,7 @@ int fmna_keys_init(uint8_t id)
 	bt_conn_cb_register(&conn_callbacks);
 
 	bt_id = id;
+	key_rotation_timer_period = KEY_ROTATION_TIMER_PERIOD;
 
 	if (is_paired) {
 		int err = paired_state_restore();
@@ -703,7 +706,7 @@ static void primary_key_roll_reconfigure(uint32_t primary_key_roll)
 
 	LOG_DBG("Next rotation timer timeout reconfigured to: %d [ms]", primary_key_roll);
 
-	k_timer_start(&key_rotation_timer, one_time_duration, KEY_ROTATION_TIMER_PERIOD);
+	k_timer_start(&key_rotation_timer, one_time_duration, key_rotation_timer_period);
 }
 
 static void separated_state_configure_request_handle(struct bt_conn *conn,
@@ -727,7 +730,7 @@ static void separated_state_configure_request_handle(struct bt_conn *conn,
 		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_PARAM;
 	}
 
-	if (K_MSEC(primary_key_roll).ticks > KEY_ROTATION_TIMER_PERIOD.ticks) {
+	if (K_MSEC(primary_key_roll).ticks > key_rotation_timer_period.ticks) {
 		LOG_WRN("Invalid primary key roll period: %d", primary_key_roll);
 		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_PARAM;
 	}
@@ -745,6 +748,31 @@ static void separated_state_configure_request_handle(struct bt_conn *conn,
 		LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
 	}
 }
+
+#if CONFIG_FMNA_DEBUG
+static void set_key_rotation_request_handle(struct bt_conn *conn, uint32_t key_rotation_timeout)
+{
+	int err;
+	uint16_t resp_opcode;
+	uint16_t resp_status = FMNA_GATT_RESPONSE_STATUS_SUCCESS;
+
+	LOG_INF("FMN Debug CP: responding to set key rotation timeout request: %d [ms]",
+		key_rotation_timeout);
+
+	key_rotation_timer_period = K_MSEC(key_rotation_timeout);
+
+	/* Restart key rotation timeout. */
+	k_timer_start(&key_rotation_timer, key_rotation_timer_period, key_rotation_timer_period);
+
+	resp_opcode = fmna_debug_event_to_gatt_cmd_opcode(
+		FMNA_DEBUG_EVENT_SET_KEY_ROTATION_TIMEOUT);
+	FMNA_GATT_COMMAND_RESPONSE_BUILD(resp_buf, resp_opcode, resp_status);
+	err = fmna_gatt_debug_cp_indicate(conn, FMNA_GATT_DEBUG_COMMAND_RESPONSE_IND, &resp_buf);
+	if (err) {
+		LOG_ERR("fmna_gatt_debug_cp_indicate returned error: %d", err);
+	}
+}
+#endif
 
 static bool event_handler(const struct event_header *eh)
 {
@@ -783,9 +811,30 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
+#if CONFIG_FMNA_DEBUG
+	if (is_fmna_debug_event(eh)) {
+		struct fmna_debug_event *event = cast_fmna_debug_event(eh);
+
+		switch (event->id) {
+		case FMNA_DEBUG_EVENT_SET_KEY_ROTATION_TIMEOUT:
+			set_key_rotation_request_handle(event->conn,
+							event->key_rotation_timeout);
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+#endif
+
 	return false;
 }
 
 EVENT_LISTENER(fmna_keys, event_handler);
 EVENT_SUBSCRIBE(fmna_keys, fmna_event);
 EVENT_SUBSCRIBE(fmna_keys, fmna_config_event);
+
+#if CONFIG_FMNA_DEBUG
+EVENT_SUBSCRIBE(fmna_keys, fmna_debug_event);
+#endif
