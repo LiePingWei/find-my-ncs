@@ -397,6 +397,31 @@ static void utc_request_handle(struct bt_conn *conn, uint64_t utc)
 	}
 }
 
+static void icloud_identifier_request_handle(struct bt_conn *conn)
+{
+	int err;
+	struct net_buf_simple icloud_rsp_buf;
+	uint8_t icloud_id[FMNA_ICLOUD_ID_LEN];
+
+	LOG_INF("FMN Owner CP: responding to iCloud identifier request");
+
+	err = fmna_storage_pairing_item_load(
+		FMNA_STORAGE_ICLOUD_ID_ID, icloud_id, sizeof(icloud_id));
+	if (err) {
+		LOG_ERR("fmna_state: cannot load iCloud identifier");
+		memset(icloud_id, 0, sizeof(icloud_id));
+	}
+
+	net_buf_simple_init_with_data(&icloud_rsp_buf, icloud_id, sizeof(icloud_id));
+
+	err = fmna_gatt_owner_cp_indicate(
+		conn, FMNA_GATT_OWNER_ICLOUD_ID_IND, &icloud_rsp_buf);
+	if (err) {
+		LOG_ERR("fmna_gatt_owner_cp_indicate returned error: %d", err);
+		return;
+	}
+}
+
 #if CONFIG_FMNA_DEBUG
 static void reset_work_handle(struct k_work *item)
 {
@@ -470,6 +495,20 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
+	if (is_fmna_owner_event(eh)) {
+		struct fmna_owner_event *event = cast_fmna_owner_event(eh);
+
+		switch (event->id) {
+		case FMNA_OWNER_EVENT_GET_ICLOUD_IDENTIFIER:
+			icloud_identifier_request_handle(event->conn);
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
 #if CONFIG_FMNA_DEBUG
 	if (is_fmna_debug_event(eh)) {
 		struct fmna_debug_event *event = cast_fmna_debug_event(eh);
@@ -492,6 +531,7 @@ static bool event_handler(const struct event_header *eh)
 EVENT_LISTENER(fmna_state, event_handler);
 EVENT_SUBSCRIBE(fmna_state, fmna_event);
 EVENT_SUBSCRIBE(fmna_state, fmna_config_event);
+EVENT_SUBSCRIBE(fmna_state, fmna_owner_event);
 
 #if CONFIG_FMNA_DEBUG
 EVENT_SUBSCRIBE(fmna_state, fmna_debug_event);
