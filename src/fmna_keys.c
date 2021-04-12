@@ -749,6 +749,30 @@ static void separated_state_configure_request_handle(struct bt_conn *conn,
 	}
 }
 
+static void current_primary_key_request_handle(struct bt_conn *conn)
+{
+	int err;
+	struct net_buf_simple pk_rsp_buf;
+	uint8_t primary_pk[FMNA_PUBLIC_KEY_LEN];
+
+	LOG_INF("FMN Owner CP: responding to current Primary Key request");
+
+	if (is_paired) {
+		memcpy(primary_pk, curr_primary_pk, sizeof(primary_pk));
+	} else {
+		memset(primary_pk, 0, sizeof(primary_pk));
+	}
+
+	net_buf_simple_init_with_data(&pk_rsp_buf, primary_pk, sizeof(primary_pk));
+
+	err = fmna_gatt_owner_cp_indicate(
+		conn, FMNA_GATT_OWNER_PRIMARY_KEY_IND, &pk_rsp_buf);
+	if (err) {
+		LOG_ERR("fmna_keys: fmna_gatt_owner_cp_indicate returned error: %d", err);
+		return;
+	}
+}
+
 #if CONFIG_FMNA_DEBUG
 static void set_key_rotation_request_handle(struct bt_conn *conn, uint32_t key_rotation_timeout)
 {
@@ -811,6 +835,20 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
+	if (is_fmna_owner_event(eh)) {
+		struct fmna_owner_event *event = cast_fmna_owner_event(eh);
+
+		switch (event->id) {
+		case FMNA_OWNER_EVENT_GET_CURRENT_PRIMARY_KEY:
+			current_primary_key_request_handle(event->conn);
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
 #if CONFIG_FMNA_DEBUG
 	if (is_fmna_debug_event(eh)) {
 		struct fmna_debug_event *event = cast_fmna_debug_event(eh);
@@ -834,6 +872,7 @@ static bool event_handler(const struct event_header *eh)
 EVENT_LISTENER(fmna_keys, event_handler);
 EVENT_SUBSCRIBE(fmna_keys, fmna_event);
 EVENT_SUBSCRIBE(fmna_keys, fmna_config_event);
+EVENT_SUBSCRIBE(fmna_keys, fmna_owner_event);
 
 #if CONFIG_FMNA_DEBUG
 EVENT_SUBSCRIBE(fmna_keys, fmna_debug_event);
