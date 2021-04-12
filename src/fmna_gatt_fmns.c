@@ -39,6 +39,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define FMNS_CONFIG_MAX_RX_LEN 10
 #define FMNS_NON_OWNER_MAX_RX_LEN 2
 #define FMNS_OWNER_MAX_RX_LEN 2
+#define FMNS_DEBUG_MAX_RX_LEN 10
 
 #define FMNS_PAIRING_CHAR_INDEX   2
 #define FMNS_CONFIG_CHAR_INDEX    5
@@ -90,8 +91,16 @@ enum owner_cp_opcode {
 	OWNER_CP_OPCODE_COMMAND_RESPONSE                 = 0x0406,
 };
 
+enum debug_cp_opcode {
+	DEBUG_CP_OPCODE_SET_KEY_ROTATION_TIMEOUT = 0x0500,
+	DEBUG_CP_OPCODE_RETRIEVE_LOGS            = 0x0501,
+	DEBUG_CP_OPCODE_LOG_RESPONSE             = 0x0502,
+	DEBUG_CP_OPCODE_COMMAND_RESPONSE         = 0x0503,
+	DEBUG_CP_OPCODE_RESET                    = 0x0504,
+};
+
 NET_BUF_SIMPLE_DEFINE_STATIC(cp_ind_buf, FMNA_GATT_PKT_MAX_LEN);
-K_SEM_DEFINE(cp_tx_sem, 1, 1);
+static K_SEM_DEFINE(cp_tx_sem, 1, 1);
 
 static void pairing_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 				       uint16_t value)
@@ -121,7 +130,7 @@ static void owner_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 		attr->handle, value);
 }
 
-#if CONFIG_FMN_DEBUG
+#if CONFIG_FMNA_DEBUG
 static void debug_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 				     uint16_t value)
 {
@@ -404,15 +413,92 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 	return len;
 }
 
-#if CONFIG_FMN_DEBUG
+#if CONFIG_FMNA_DEBUG
+static bool debug_cp_length_verify(uint16_t opcode, uint32_t len)
+{
+	uint16_t expected_pkt_len = 0;
+	const struct fmna_debug_event * const event = NULL;
+
+	switch (opcode) {
+	case DEBUG_CP_OPCODE_RETRIEVE_LOGS:
+	case DEBUG_CP_OPCODE_RESET:
+		break;
+	case DEBUG_CP_OPCODE_SET_KEY_ROTATION_TIMEOUT:
+		expected_pkt_len += sizeof(event->key_rotation_timeout);
+		break;
+	default:
+		return true;
+	}
+
+	if (len != expected_pkt_len) {
+		LOG_ERR("FMN Debug CP: wrong packet length: %d != %d for "
+			"0x%04X opcode", len, expected_pkt_len, opcode);
+		return false;
+	}
+
+	return true;
+}
+
 static ssize_t debug_cp_write(struct bt_conn *conn,
 			      const struct bt_gatt_attr *attr,
 			      const void *buf, uint16_t len,
 			      uint16_t offset, uint8_t flags)
 {
+	bool pkt_complete;
+
 	LOG_INF("FMN Debug CP write, handle: %u, conn: %p", attr->handle, conn);
 
-	return len;
+	NET_BUF_SIMPLE_DEFINE(debug_buf, FMNS_DEBUG_MAX_RX_LEN);
+
+	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&debug_buf, buf, len);
+	if (pkt_complete) {
+		struct fmna_debug_event event;
+		uint16_t opcode;
+
+		LOG_HEXDUMP_INF(debug_buf.data, debug_buf.len, "Debug packet:");
+		LOG_INF("Total packet length: %d", debug_buf.len);
+
+		if ((debug_buf.len < sizeof(opcode)) ||
+		    (debug_buf.len > FMNS_DEBUG_MAX_RX_LEN)) {
+			LOG_ERR("FMN Debug CP: packet length too large");
+			return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
+		}
+
+		opcode = net_buf_simple_pull_le16(&debug_buf);
+		if (!debug_cp_length_verify(opcode, debug_buf.len)) {
+			LOG_ERR("FMN Debug CP: returning GATT error");
+			return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
+		}
+
+		switch (opcode) {
+		case DEBUG_CP_OPCODE_SET_KEY_ROTATION_TIMEOUT:
+			event.id = FMNA_DEBUG_EVENT_SET_KEY_ROTATION_TIMEOUT;
+			event.key_rotation_timeout = net_buf_simple_pull_le32(&debug_buf);
+			break;
+		case DEBUG_CP_OPCODE_RETRIEVE_LOGS:
+			event.id = FMNA_DEBUG_EVENT_RETRIEVE_LOGS;
+			break;
+		case DEBUG_CP_OPCODE_RESET:
+			event.id = FMNA_DEBUG_EVENT_RESET;
+			break;
+		default:
+			LOG_ERR("FMN Debug CP, unexpected opcode: 0x%02X", opcode);
+			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+		}
+		event.conn = conn;
+
+		struct fmna_debug_event *event_heap = new_fmna_debug_event();
+
+		memcpy(&event.header, &event_heap->header, sizeof(event.header));
+		memcpy(event_heap, &event, sizeof(*event_heap));
+
+		EVENT_SUBMIT(event_heap);
+
+		return len;
+	} else {
+		LOG_ERR("FMN Debug CP: no support for chunked packets");
+		return BT_GATT_ERR(BT_ATT_ERR_INSUFFICIENT_RESOURCES);
+	}
 }
 #endif
 
@@ -447,7 +533,7 @@ BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),
 			       NULL, owner_cp_write, NULL),
 	BT_GATT_CCC(owner_cp_ccc_cfg_changed,
 		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
-#if CONFIG_FMN_DEBUG
+#if CONFIG_FMNA_DEBUG
 	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_DEBUG_CP,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
 			       BT_GATT_CHRC_INDICATE,
@@ -652,6 +738,29 @@ int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 	return cp_indicate(conn, &fmns_svc.attrs[FMNS_OWNER_CHAR_INDEX], owner_opcode, buf);
 }
 
+#if CONFIG_FMNA_DEBUG
+int fmna_gatt_debug_cp_indicate(struct bt_conn *conn,
+				enum fmna_gatt_debug_ind ind_type,
+				struct net_buf_simple *buf)
+{
+	uint16_t debug_opcode;
+
+	switch (ind_type) {
+	case FMNA_GATT_DEBUG_LOG_RESPONSE_IND:
+		debug_opcode = DEBUG_CP_OPCODE_LOG_RESPONSE;
+		break;
+	case FMNA_GATT_DEBUG_COMMAND_RESPONSE_IND:
+		debug_opcode = DEBUG_CP_OPCODE_COMMAND_RESPONSE;
+		break;
+	default:
+		LOG_ERR("Debug CP: invalid indication type: %d", ind_type);
+		return -EINVAL;
+	}
+
+	return cp_indicate(conn, &fmns_svc.attrs[FMNS_DEBUG_CHAR_INDEX], debug_opcode, buf);
+}
+#endif
+
 uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_event_id config_event)
 {
 	switch (config_event) {
@@ -709,3 +818,21 @@ uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_event_id owner_even
 		return 0;
 	}
 }
+
+#if CONFIG_FMNA_DEBUG
+uint16_t fmna_debug_event_to_gatt_cmd_opcode(enum fmna_debug_event_id debug_event)
+{
+	switch (debug_event) {
+	case FMNA_DEBUG_EVENT_SET_KEY_ROTATION_TIMEOUT:
+		return DEBUG_CP_OPCODE_SET_KEY_ROTATION_TIMEOUT;
+	case FMNA_DEBUG_EVENT_RETRIEVE_LOGS:
+		return DEBUG_CP_OPCODE_RETRIEVE_LOGS;
+	case FMNA_DEBUG_EVENT_RESET:
+		return DEBUG_CP_OPCODE_RESET;
+	default:
+		__ASSERT(0, "Debug event type outside the mapping scope: %d",
+			debug_event);
+		return 0;
+	}
+}
+#endif

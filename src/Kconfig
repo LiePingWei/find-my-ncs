@@ -20,7 +20,7 @@ config FMNA
 
 if FMNA
 
-config FMN_DEBUG
+config FMNA_DEBUG
 	bool "Enable FMN Accessory with Debug capabilities"
 
 # Product Plan configuration
