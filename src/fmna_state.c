@@ -171,6 +171,9 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 		/* Handle Nearby state transition. */
 
 		if (prev_state == CONNECTED) {
+			fmna_conn_multi_status_bit_clear(
+				fmn_paired_conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
+
 			fmn_paired_conn = NULL;
 		} else {
 			LOG_ERR("FMN State: Forbidden transition");
