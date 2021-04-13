@@ -58,6 +58,14 @@ int fmna_sound_cb_register(struct fmna_sound_cb *cb);
  */
 int fmna_sound_completed_indicate(void);
 
+/** @brief Enable serial number lookup.
+ *
+ *  Enable serial number lookup over BLE for a limited time duration
+ *  that is defined in the FMN specification.
+ *
+ *  @return Zero on success or negative error code otherwise
+ */
+int fmna_serial_number_lookup_enable(void);
 
 struct fmna_init_params {
 	uint8_t bt_id;
@@ -65,8 +73,6 @@ struct fmna_init_params {
 };
 
 int fmna_init(const struct fmna_init_params *init_params);
-
-int fmna_serial_number_lookup_enable(void);
 
 #ifdef __cplusplus
 }
