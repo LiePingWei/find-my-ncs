@@ -54,6 +54,12 @@ int fmna_init(const struct fmna_init_params *init_params)
 {
 	int err;
 
+	err = bt_enable(NULL);
+	if (err != -EALREADY) {
+		LOG_ERR("FMN: BLE stack should be enabled");
+		return -ENOPROTOOPT;
+	}
+
 	err = fmna_conn_init();
 	if (err) {
 		LOG_ERR("fmna_conn_init returned error: %d", err);
