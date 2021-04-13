@@ -49,6 +49,10 @@ static void sn_lookup_timeout_handle(struct k_timer *timer_id)
 
 int fmna_serial_number_lookup_enable(void)
 {
+	if (!IS_ENABLED(CONFIG_FMNA_CAPABILITY_BLE_SN_LOOKUP_ENABLED)) {
+		return -ENOTSUP;
+	}
+
 	k_timer_start(&sn_lookup_timer, SN_LOOKUP_INTERVAL, K_NO_WAIT);
 	is_lookup_enabled = true;
 
