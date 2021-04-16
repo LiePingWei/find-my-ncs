@@ -50,7 +50,7 @@ static void mfi_token_display_work_handler(struct k_work *work)
 			"Serial Number:");
 }
 
-int fmna_init(const struct fmna_init_params *init_params)
+int fmna_enable(const struct fmna_enable_param *params)
 {
 	int err;
 
@@ -66,7 +66,7 @@ int fmna_init(const struct fmna_init_params *init_params)
 		return err;
 	}
 
-	err = fmna_storage_init(init_params->use_default_factory_settings);
+	err = fmna_storage_init(params->use_default_factory_settings);
 	if (err) {
 		LOG_ERR("fmna_storage_init returned error: %d", err);
 		return err;
@@ -78,13 +78,13 @@ int fmna_init(const struct fmna_init_params *init_params)
 		return err;
 	}
 
-	err = fmna_keys_init(init_params->bt_id);
+	err = fmna_keys_init(params->bt_id);
 	if (err) {
 		LOG_ERR("fmna_keys_init returned error: %d", err);
 		return err;
 	}
 
-	err = fmna_state_init(init_params->bt_id);
+	err = fmna_state_init(params->bt_id);
 	if (err) {
 		LOG_ERR("fmna_state_init returned error: %d", err);
 		return err;

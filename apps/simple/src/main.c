@@ -108,7 +108,7 @@ static bool factory_settings_restore_check(void)
 static int fmna_initialize(void)
 {
 	int err;
-	struct fmna_init_params init_params = {0};
+	struct fmna_enable_param enable_param = {0};
 
 	err = fmna_sound_cb_register(&sound_callbacks);
 	if (err) {
@@ -122,12 +122,12 @@ static int fmna_initialize(void)
 		return err;
 	}
 
-	init_params.bt_id = FMNA_BT_ID;
-	init_params.use_default_factory_settings = factory_settings_restore_check();
+	enable_param.bt_id = FMNA_BT_ID;
+	enable_param.use_default_factory_settings = factory_settings_restore_check();
 
-	err = fmna_init(&init_params);
+	err = fmna_enable(&enable_param);
 	if (err) {
-		printk("fmna_init failed (err %d)\n", err);
+		printk("fmna_enable failed (err %d)\n", err);
 		return err;
 	}
 

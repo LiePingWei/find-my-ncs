@@ -67,12 +67,43 @@ int fmna_sound_completed_indicate(void);
  */
 int fmna_serial_number_lookup_enable(void);
 
-struct fmna_init_params {
+/** FMN Enable Parameters. */
+struct fmna_enable_param {
+	/**
+	 * @brief Bluetooth identity to be used by the FMN stack.
+	 *
+	 *  This identity should be created with bt_id_create function that is
+	 *  available in the Bluetooth API.
+	 *
+	 *  @note It is not possible to use the BT_ID_DEFAULT identity for FMN
+	 *        because it cannot be combined with bt_id_reset function used
+	 *        in the FMN stack.
+	 */
 	uint8_t bt_id;
+
+	/**
+	 * @brief Reset the FMN accessory to default factory settings.
+	 *
+	 *  This function resets the device to default factory settings as
+	 *  defined by the FMN specification. If the accessory is paired, it
+	 *  removes all persistent data that are associated with the owner
+	 *  device and the accessory starts to advertise in the unpaired mode.
+	 */
 	bool use_default_factory_settings;
 };
 
-int fmna_init(const struct fmna_init_params *init_params);
+/** @brief Enable the Find My Network (FMN) stack on the accessory.
+ *
+ *  This function activates the FMN feature. The user should be prepared
+ *  to respond to all registered FMN callbacks (e.g. fmna_sound_cb structure)
+ *  after calling this API. This function should only be called after bt_enable
+ *  function since BLE is required for FMN operations.
+ *
+ *  @param param Set of parameters to configure the enabling process.
+ *
+ *  @return Zero on success or negative error code otherwise
+ */
+int fmna_enable(const struct fmna_enable_param *param);
 
 #ifdef __cplusplus
 }
