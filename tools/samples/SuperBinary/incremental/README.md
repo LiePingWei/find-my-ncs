@@ -29,7 +29,7 @@ The build script performs the following steps:
     image files into it from following locations:
     *  `intermediate_update.bin` from the sample directory is used in the first
        stage of the update process. You have to create this file manually.
-    *  `apps/fmn/build/zephyr/app_update.bin` is generated during the application
+    *  `apps/simple/build/zephyr/app_update.bin` is generated during the application
        build. It is used in the second stage of the update process.
 2.  Run the `ncsfmntools SuperBinary` tool to perform the following operations:
     *  Calculate the SHA-256 of the payloads and put it into the `build/SuperBinary.plist` file.
@@ -50,7 +50,7 @@ To build this sample, complete the following steps:
 
 3.  Build your second stage application version, for example:
     ```
-    cd apps/fmn
+    cd apps/simple
     west build -b nrf52840dk_nrf52840
     ```
 

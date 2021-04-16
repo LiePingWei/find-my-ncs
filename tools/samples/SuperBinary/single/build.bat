@@ -2,7 +2,7 @@
 cd /D "%~dp0"
 
 if not exist ..\..\..\..\apps\fmn\build\zephyr\app_update.bin^
-          echo The '../../../../apps/fmn/build/zephyr/app_update.bin' file    ^
+          echo The '../../../../apps/simple/build/zephyr/app_update.bin' file    ^
           && echo does not exists. Prepare an application image as described  ^
           && echo in the documentation.                                       ^
           && exit /b 1

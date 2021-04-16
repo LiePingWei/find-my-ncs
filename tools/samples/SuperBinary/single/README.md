@@ -7,7 +7,7 @@ The `SuperBinary.plist` file defines a SuperBinary version `0.0.1` with payload 
 The build script performs the following steps:
 
 1.  Create a `build` directory and copy the
-    `apps/fmn/build/zephyr/app_update.bin` file to it. This file
+    `apps/simple/build/zephyr/app_update.bin` file to it. This file
     is generated during the application build. If you are not using
     the default build directory for application building, you have to
     change this path in the script.
@@ -27,7 +27,7 @@ To build this sample, complete the following steps:
 
 2.  Build the application with `west`:
     ```
-    cd apps/fmn
+    cd apps/simple
     west build -b nrf52840dk_nrf52840
     ```
 
