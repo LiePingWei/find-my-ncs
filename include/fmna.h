@@ -92,6 +92,29 @@ struct fmna_enable_param {
 	bool use_default_factory_settings;
 };
 
+/** FMN Enable callback structure */
+struct fmna_enable_cb {
+	/** @brief Notify the user about the exit from the pairing mode.
+	 *
+	 *  This callback will be called to notify the user about the
+	 *  advertising timeout in the pairing mode. It is possible to restart
+	 *  the advertising in this mode with the fmna_resume function. Such
+	 *  a restart should occur on the explicit intent of the device owner
+	 *  (e.g. button press).
+	 */
+	void (*pairing_mode_exited)(void);
+};
+
+/** @brief Resume the activity of the FMN stack.
+ *
+ *  This function resumes the activity of the FMN stack based on its own
+ *  internal state from the last pause. For example, such a pause could occur
+ *  after pairing_mode_exited callback from fmna_enable_cb structure.
+ *
+ *  @return Zero on success or negative error code otherwise
+ */
+int fmna_resume(void);
+
 /** @brief Enable the Find My Network (FMN) stack on the accessory.
  *
  *  This function activates the FMN feature. The user should be prepared
@@ -100,10 +123,12 @@ struct fmna_enable_param {
  *  function since BLE is required for FMN operations.
  *
  *  @param param Set of parameters to configure the enabling process.
+ *  @param cb    Enable callback structure.
  *
  *  @return Zero on success or negative error code otherwise
  */
-int fmna_enable(const struct fmna_enable_param *param);
+int fmna_enable(const struct fmna_enable_param *param,
+		const struct fmna_enable_cb *cb);
 
 #ifdef __cplusplus
 }

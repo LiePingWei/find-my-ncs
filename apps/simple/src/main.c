@@ -22,8 +22,11 @@
 
 #define FMNA_SOUND_LED DK_LED1
 
-#define FMNA_SN_LOOKUP_BUTTON              DK_BTN1_MSK
+#define FMNA_ADV_RESUME_BUTTON             DK_BTN1_MSK
+#define FMNA_SN_LOOKUP_BUTTON              DK_BTN2_MSK
 #define FMNA_FACTORY_SETTINGS_RESET_BUTTON DK_BTN4_MSK
+
+static bool pairing_mode_exit;
 
 static void sound_timeout_work_handle(struct k_work *item);
 
@@ -73,6 +76,17 @@ static void sound_stop(void)
 static struct fmna_sound_cb sound_callbacks = {
 	.sound_start = sound_start,
 	.sound_stop = sound_stop,
+};
+
+static void pairing_mode_exited(void)
+{
+	printk("Exited the FMN pairing mode\n");
+
+	pairing_mode_exit = true;
+}
+
+static struct fmna_enable_cb enable_callbacks = {
+	.pairing_mode_exited = pairing_mode_exited,
 };
 
 static int fmna_id_create(uint8_t id)
@@ -125,7 +139,7 @@ static int fmna_initialize(void)
 	enable_param.bt_id = FMNA_BT_ID;
 	enable_param.use_default_factory_settings = factory_settings_restore_check();
 
-	err = fmna_enable(&enable_param);
+	err = fmna_enable(&enable_param, &enable_callbacks);
 	if (err) {
 		printk("fmna_enable failed (err %d)\n", err);
 		return err;
@@ -159,6 +173,19 @@ static void button_changed(uint32_t button_state, uint32_t has_changed)
 {
 	int err;
 	uint32_t buttons = button_state & has_changed;
+
+	if (buttons & FMNA_ADV_RESUME_BUTTON) {
+		if (pairing_mode_exit) {
+			err = fmna_resume();
+			if (err) {
+				printk("Cannot resume the FMN activity (err: %d)\n", err);
+			} else {
+				printk("FMN pairing mode resumed\n");
+			}
+
+			pairing_mode_exit = false;
+		}
+	}
 
 	if (buttons & FMNA_SN_LOOKUP_BUTTON) {
 		err = fmna_serial_number_lookup_enable();

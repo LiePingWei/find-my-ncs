@@ -1,3 +1,4 @@
+#include "fmna_adv.h"
 #include "fmna_conn.h"
 #include "fmna_keys.h"
 #include "fmna_pair.h"
@@ -50,23 +51,38 @@ static void mfi_token_display_work_handler(struct k_work *work)
 			"Serial Number:");
 }
 
-int fmna_enable(const struct fmna_enable_param *params)
+int fmna_enable(const struct fmna_enable_param *param,
+		const struct fmna_enable_cb *cb)
 {
 	int err;
 
+	/* Verify the input parameters. */
+	if (!param || !cb) {
+		return -EINVAL;
+	}
+
+	/* Verify the state of FMN dependencies. */
 	err = bt_enable(NULL);
 	if (err != -EALREADY) {
 		LOG_ERR("FMN: BLE stack should be enabled");
 		return -ENOPROTOOPT;
 	}
 
+	/* Register enable callbacks. */
+	err = fmna_adv_unpaired_cb_register(cb->pairing_mode_exited);
+	if (err) {
+		LOG_ERR("fmna_adv_unpaired_cb_register returned error: %d", err);
+		return err;
+	}
+
+	/* Initialize FMN modules. */
 	err = fmna_conn_init();
 	if (err) {
 		LOG_ERR("fmna_conn_init returned error: %d", err);
 		return err;
 	}
 
-	err = fmna_storage_init(params->use_default_factory_settings);
+	err = fmna_storage_init(param->use_default_factory_settings);
 	if (err) {
 		LOG_ERR("fmna_storage_init returned error: %d", err);
 		return err;
@@ -78,13 +94,13 @@ int fmna_enable(const struct fmna_enable_param *params)
 		return err;
 	}
 
-	err = fmna_keys_init(params->bt_id);
+	err = fmna_keys_init(param->bt_id);
 	if (err) {
 		LOG_ERR("fmna_keys_init returned error: %d", err);
 		return err;
 	}
 
-	err = fmna_state_init(params->bt_id);
+	err = fmna_state_init(param->bt_id);
 	if (err) {
 		LOG_ERR("fmna_state_init returned error: %d", err);
 		return err;

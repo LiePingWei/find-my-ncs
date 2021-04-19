@@ -287,6 +287,27 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	k_work_submit(&disconnected_work.work);
 }
 
+int fmna_resume(void)
+{
+	int err;
+
+	if (state == UNDEFINED) {
+		return -EINVAL;
+	}
+
+	if (state == UNPAIRED) {
+		err = fmna_adv_start_unpaired(false);
+		if (err) {
+			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
+			return err;
+		}
+
+		return 0;
+	} else {
+		return -EALREADY;
+	}
+}
+
 int fmna_state_init(uint8_t bt_id)
 {
 	int err;
