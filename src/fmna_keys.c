@@ -392,6 +392,7 @@ static void keys_service_timer_start(void)
 int fmna_keys_service_start(const struct fmna_keys_init *init_keys)
 {
 	int err;
+	uint16_t storage_key_index_diff;
 
 	memcpy(master_pk, init_keys->master_pk, sizeof(master_pk));
 	memcpy(curr_primary_sk, init_keys->primary_sk,
@@ -431,6 +432,16 @@ int fmna_keys_service_start(const struct fmna_keys_init *init_keys)
 	err = secondary_key_roll();
 	if (err) {
 		LOG_ERR("secondary_key_roll returned error: %d", err);
+		return err;
+	}
+
+	/* Update the difference value. */
+	storage_key_index_diff = primary_pk_rotation_cnt;
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_CURRENT_KEYS_INDEX_DIFF_ID,
+					(uint8_t *) &storage_key_index_diff,
+					sizeof(storage_key_index_diff));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot store the diff between current and storage key");
 		return err;
 	}
 
