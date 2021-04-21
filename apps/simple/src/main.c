@@ -26,11 +26,21 @@
 #define FMNA_SN_LOOKUP_BUTTON              DK_BTN2_MSK
 #define FMNA_FACTORY_SETTINGS_RESET_BUTTON DK_BTN4_MSK
 
+#define BATTERY_SIMULATOR_CHANGE_RATE K_SECONDS(5)
+
 static bool pairing_mode_exit;
+static uint8_t battery_level;
 
 static void sound_timeout_work_handle(struct k_work *item);
 
 static K_DELAYED_WORK_DEFINE(sound_timeout_work, sound_timeout_work_handle);
+
+struct battery_simulator {
+	const uint8_t max_level;
+	const uint8_t min_level;
+	bool is_increasing;
+	struct k_timer timer;
+};
 
 static void sound_stop_indicate(void)
 {
@@ -78,6 +88,20 @@ static struct fmna_sound_cb sound_callbacks = {
 	.sound_stop = sound_stop,
 };
 
+static void battery_level_request(void)
+{
+	int err;
+
+	printk("Battery level request\n");
+
+	err = fmna_battery_level_set(battery_level);
+	if (err) {
+		printk("fmna_battery_level_set failed (err %d)\n", err);
+	} else {
+		printk("Setting battery level to: %d %%\n", battery_level);
+	}
+}
+
 static void pairing_mode_exited(void)
 {
 	printk("Exited the FMN pairing mode\n");
@@ -86,6 +110,7 @@ static void pairing_mode_exited(void)
 }
 
 static struct fmna_enable_cb enable_callbacks = {
+	.battery_level_request = battery_level_request,
 	.pairing_mode_exited = pairing_mode_exited,
 };
 
@@ -169,6 +194,49 @@ static int ble_stack_initialize(void)
 	return 0;
 }
 
+static void battery_simulator_timeout_handle(struct k_timer *timer_id)
+{
+	struct battery_simulator *battery_simulator =
+		CONTAINER_OF(timer_id, struct battery_simulator, timer);
+
+	if (battery_simulator->is_increasing) {
+		if (battery_level < battery_simulator->max_level) {
+			battery_level++;
+		} else {
+			battery_level--;
+			battery_simulator->is_increasing = false;
+		}
+	} else {
+		if (battery_level > battery_simulator->min_level) {
+			battery_level--;
+		} else {
+			battery_level++;
+			battery_simulator->is_increasing = true;
+		}
+	}
+}
+
+static int battery_simulator_initialize(void)
+{
+	static struct battery_simulator battery_simulator = {
+		.max_level = 100,
+		.min_level = 0,
+		.is_increasing = false,
+	};
+
+	k_timer_init(&battery_simulator.timer,
+		     battery_simulator_timeout_handle,
+		     NULL);
+
+	battery_level = battery_simulator.max_level;
+
+	k_timer_start(&battery_simulator.timer,
+		      BATTERY_SIMULATOR_CHANGE_RATE,
+		      BATTERY_SIMULATOR_CHANGE_RATE);
+
+	return 0;
+}
+
 static void button_changed(uint32_t button_state, uint32_t has_changed)
 {
 	int err;
@@ -225,6 +293,12 @@ void main(void)
 	err = dk_library_initialize();
 	if (err) {
 		printk("DK library init failed (err %d)\n", err);
+		return;
+	}
+
+	err = battery_simulator_initialize();
+	if (err) {
+		printk("Battery simulator init failed (err %d)\n", err);
 		return;
 	}
 

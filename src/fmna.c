@@ -1,4 +1,5 @@
 #include "fmna_adv.h"
+#include "fmna_battery.h"
 #include "fmna_conn.h"
 #include "fmna_keys.h"
 #include "fmna_pair.h"
@@ -76,6 +77,12 @@ int fmna_enable(const struct fmna_enable_param *param,
 	}
 
 	/* Initialize FMN modules. */
+	err = fmna_battery_init(cb->battery_level_request);
+	if (err) {
+		LOG_ERR("fmna_battery_init returned error: %d", err);
+		return err;
+	}
+
 	err = fmna_conn_init();
 	if (err) {
 		LOG_ERR("fmna_conn_init returned error: %d", err);

@@ -81,6 +81,22 @@ endchoice
 
 endmenu
 
+# Battery Level thresholds
+config FMNA_BATTERY_STATE_CRITICAL_THR
+	int "Battery level threshold [%] for entering critical battery state"
+	range 0 100
+	default 10
+
+config FMNA_BATTERY_STATE_LOW_THR
+	int "Battery level threshold [%] for entering low battery state"
+	range 0 100
+	default 40
+
+config FMNA_BATTERY_STATE_MEDIUM_THR
+	int "Battery level threshold [%] for entering medium battery state"
+	range 0 100
+	default 80
+
 # Override default BLE configuration
 
 config BT_DEVICE_NAME

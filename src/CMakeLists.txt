@@ -5,6 +5,7 @@ zephyr_library_include_directories(.)
 zephyr_library_include_directories(${ZEPHYR_BASE}/subsys/.)
 
 zephyr_library_sources(fmna_adv.c)
+zephyr_library_sources(fmna_battery.c)
 zephyr_library_sources(fmna_conn.c)
 zephyr_library_sources(fmna_gatt_ais.c)
 zephyr_library_sources(fmna_gatt_fmns.c)

@@ -94,6 +94,20 @@ struct fmna_enable_param {
 
 /** FMN Enable callback structure */
 struct fmna_enable_cb {
+	/** @brief Request the battery level from the user.
+	 *
+	 *  This callback will be called to indicate that the battery level
+	 *  information is requested. The user should provide the battery level
+	 *  data with @ref fmna_battery_level_set API in the context of this
+	 *  callback. If not provided, the previously set level of the battery
+	 *  is used for the current request.
+	 *
+	 *  @note It is necessary to provide the initial battery level during
+	 *  the FMN enabling process (@ref fmna_enable API). This process will
+	 *  be aborted with an error if this callback is ignored.
+	 */
+	void (*battery_level_request)(void);
+
 	/** @brief Notify the user about the exit from the pairing mode.
 	 *
 	 *  This callback will be called to notify the user about the
@@ -104,6 +118,18 @@ struct fmna_enable_cb {
 	 */
 	void (*pairing_mode_exited)(void);
 };
+
+/** @brief Set the current battery level as a percentage.
+ *
+ *  This function sets the current battery level as a percentage. It should
+ *  be called in the context of @ref battery_level_request callback from the
+ *  @ref fmna_enable_cb structure.
+ *
+ *  @param percentage_level Battery level as a percentage [0 - 100 %].
+ *
+ *  @return Zero on success or negative error code otherwise
+ */
+int fmna_battery_level_set(uint8_t percentage_level);
 
 /** @brief Resume the activity of the FMN stack.
  *

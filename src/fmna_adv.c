@@ -1,4 +1,5 @@
 #include "fmna_adv.h"
+#include "fmna_battery.h"
 #include "fmna_product_plan.h"
 
 #include <bluetooth/bluetooth.h>
@@ -21,11 +22,13 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define FMN_SVC_PAYLOAD_ACC_CATEGORY_LEN 8
 #define FMN_SVC_PAYLOAD_RESERVED_LEN     4
 
-#define PAIRED_ADV_APPLE_ID              0x004C
-#define PAIRED_ADV_PAYLOAD_TYPE          0x12
-#define PAIRED_ADV_STATUS_FIXED_BIT_POS  5
-#define PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS 6
-#define PAIRED_ADV_OPT_ADDR_TYPE_MASK    (0x03 << PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS)
+#define PAIRED_ADV_APPLE_ID                     0x004C
+#define PAIRED_ADV_PAYLOAD_TYPE                 0x12
+#define PAIRED_ADV_STATUS_FIXED_BIT_POS         5
+#define PAIRED_ADV_STATUS_BATTERY_STATE_BIT_POS 6
+#define PAIRED_ADV_STATUS_BATTERY_STATE_MASK    (BIT(6) & BIT(7))
+#define PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS        6
+#define PAIRED_ADV_OPT_ADDR_TYPE_MASK           (0x03 << PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS)
 
 #define SEPARATED_ADV_REM_PUBKEY_LEN (FMNA_PUBLIC_KEY_LEN - BT_ADDR_LEN)
 
@@ -222,8 +225,7 @@ static void unpaired_adv_payload_encode(struct unpaired_adv_payload *svc_payload
 
 	svc_payload->acc_category[0] = CONFIG_FMNA_CATEGORY;
 
-	/* TODO: Make battery level configurable. */
-	svc_payload->battery_state = 0;
+	svc_payload->battery_state = fmna_battery_state_get();
 }
 
 int fmna_adv_start_unpaired(bool change_address)
@@ -310,11 +312,18 @@ static void paired_adv_header_encode(struct paired_adv_payload_header *hdr,
 static void nearby_adv_payload_encode(struct nearby_adv_payload *adv_payload,
 				      const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN])
 {
+	enum fmna_battery_state battery_state;
+
 	memset(adv_payload, 0, sizeof(*adv_payload));
 
 	paired_adv_header_encode(&adv_payload->hdr, sizeof(*adv_payload));
 
+	battery_state = fmna_battery_state_get();
+
 	adv_payload->status |= BIT(PAIRED_ADV_STATUS_FIXED_BIT_POS);
+	adv_payload->status |= (battery_state << PAIRED_ADV_STATUS_BATTERY_STATE_BIT_POS) &
+		PAIRED_ADV_STATUS_BATTERY_STATE_MASK;
+
 	adv_payload->opt = ((pubkey[0] & PAIRED_ADV_OPT_ADDR_TYPE_MASK) >> PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS);
 }
 
@@ -364,11 +373,17 @@ static void separated_adv_payload_encode(struct separated_adv_payload *adv_paylo
 					 const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN],
 					 uint8_t hint)
 {
+	enum fmna_battery_state battery_state;
+
 	memset(adv_payload, 0, sizeof(*adv_payload));
 
 	paired_adv_header_encode(&adv_payload->hdr, sizeof(*adv_payload));
 
+	battery_state = fmna_battery_state_get();
+
 	adv_payload->status |= BIT(PAIRED_ADV_STATUS_FIXED_BIT_POS);
+	adv_payload->status |= (battery_state << PAIRED_ADV_STATUS_BATTERY_STATE_BIT_POS) &
+		PAIRED_ADV_STATUS_BATTERY_STATE_MASK;
 
 	memcpy(adv_payload->rem_pubkey, pubkey + BT_ADDR_LEN,
 	       sizeof(adv_payload->rem_pubkey));

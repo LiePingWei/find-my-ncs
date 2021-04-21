@@ -11,6 +11,7 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 
+#include "fmna_battery.h"
 #include "fmna_product_plan.h"
 
 #include <logging/log.h>
@@ -179,12 +180,12 @@ static ssize_t battery_level_read(struct bt_conn *conn,
 				  const struct bt_gatt_attr *attr,
 				  void *buf, uint16_t len, uint16_t offset)
 {
-	uint8_t battery_level = 0;
+	uint8_t battery_level;
 
 	LOG_INF("AIS Battery Level read, handle: %u, conn: %p",
 		attr->handle, conn);
 
-	/* TODO: Make battery level configurable. */
+	battery_level = fmna_battery_state_get();
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 				 &battery_level, sizeof(battery_level));
