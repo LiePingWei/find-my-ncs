@@ -48,145 +48,37 @@
  * Copyright (C) 2020 Apple Inc. All Rights Reserved.
  */
 
-#ifndef CoreUARPPlatformNRF5_h
-#define CoreUARPPlatformNRF5_h
+#define _UARPDK_LOG_MODULE_REGISTER
+#include "CoreUARPPlatformZephyr.h"
 
-#include <stdio.h>
-#include <stdint.h>
+#include <ctype.h>
+#include <stdarg.h>
 #include <stdlib.h>
-#include <string.h>
-#include "fmna_constants_platform.h"
-#include "nrf_log.h"
+#include <kernel.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/* -------------------------------------------------------------------------------- */
 
-typedef enum
+void * uarpZalloc( size_t length )
 {
-    kUARPLoggingCategoryAccessory,
-    kUARPLoggingCategoryController,
-    kUARPLoggingCategoryPlatform,
-    kUARPLoggingCategoryProduct,
-    kUARPLoggingCategoryMemory,
-    kUARPLoggingCategoryAssert,
-    kUARPLoggingCategoryMax
+    void *pBuffer;
+    
+    pBuffer = k_malloc( length );
+    
+    memset( pBuffer, 0, length );
+    
+    uarpLogInfo( kUARPLoggingCategoryMemory, "0x%p - alloc %d bytes", pBuffer, (int)length );
+
+    return pBuffer;
 }
-UARPLoggingCategory;
 
-#if !(UARP_DISABLE_LOGS)
+/* -------------------------------------------------------------------------------- */
 
-#define uarpLogError(category,msg,...)          NRF_LOG_ERROR(msg, ##__VA_ARGS__ )
-#define uarpLogDebug(category,msg,...)          NRF_LOG_INFO(msg, ##__VA_ARGS__)
-#define uarpLogInfo(category,msg,...)           NRF_LOG_INFO(msg, ##__VA_ARGS__)
+void uarpFree( void * pBuffer )
+{
+    if ( pBuffer )
+    {
+        uarpLogInfo( kUARPLoggingCategoryMemory, "0x%p - freed", pBuffer );
 
-#else
-
-#define uarpLogError( category, msg, ... )
-#define uarpLogDebug( category, msg, ... )
-#define uarpLogInfo( category, msg, ... )
-
-#endif
-
-#if !(UARP_DISABLE_REQUIRE_LOGS)
-
-void uarpLogFault( UARPLoggingCategory category, const char *msg, ... );
-
-#else
-
-#define uarpLogFault( category, msg, ... )
-
-#endif
-
-void * uarpZalloc( size_t length );
-void uarpFree( void * pBuffer );
-
-uint32_t uarpHtonl( uint32_t val32 );
-uint32_t uarpNtohl( uint32_t val32 );
-
-uint16_t uarpHtons( uint16_t val16 );
-uint16_t uarpNtohs( uint16_t val16 );
-
-#define __UARP_Require(assertion, exceptionLabel) \
-    do \
-    { \
-        if ( !(assertion) ) \
-        { \
-            uarpLogFault(kUARPLoggingCategoryAssert, "AssertMacros: %s, file: %s:%d\n", #assertion,  __FILE__, __LINE__); \
-            goto exceptionLabel; \
-        } \
-    } while ( 0 )
-
-#define __UARP_Require_Action(assertion, exceptionLabel, action) \
-    do \
-    { \
-        if ( !(assertion) ) \
-        { \
-            uarpLogFault(kUARPLoggingCategoryAssert, "AssertMacros: %s, file: %s:%d\n", #assertion,  __FILE__, __LINE__); \
-            { \
-                action; \
-            } \
-            goto exceptionLabel; \
-        } \
-    } while ( 0 )
-
-#define __UARP_Require_Quiet(assertion, exceptionLabel) \
-    do \
-    { \
-        if ( !(assertion) ) \
-        { \
-            goto exceptionLabel; \
-        } \
-    } while ( 0 )
-
-#define __UARP_Require_Action_Quiet(assertion, exceptionLabel, action) \
-    do \
-    { \
-        if ( !(assertion) ) \
-        { \
-            { \
-                action; \
-            } \
-            goto exceptionLabel; \
-        } \
-    } while ( 0 )
-
-#define __UARP_Check(assertion) \
-    do \
-    { \
-        if ( !(assertion) ) \
-        { \
-            uarpLogFault(kUARPLoggingCategoryAssert, "AssertMacros: %s, file: %s:%d\n", #assertion,  __FILE__, __LINE__); \
-        } \
-    } while ( 0 )
-
-#if !(UARP_DISABLE_VERIFY)
-
-#define __UARP_Verify_Action(assertion, exceptionLabel, action) \
-    do \
-    { \
-        if ( !(assertion) ) \
-        { \
-            uarpLogFault(kUARPLoggingCategoryAssert, "AssertMacros: %s, file: %s:%d\n", #assertion,  __FILE__, __LINE__); \
-            { \
-                action; \
-            } \
-            goto exceptionLabel; \
-        } \
-    } while ( 0 )
-
-#define __UARP_Verify_exit exit:
-
-#else
-
-#define __UARP_Verify_Action(assertion, exceptionLabel, action)
-
-#define __UARP_Verify_exit
-
-#endif
-
-#ifdef __cplusplus
+        k_free( pBuffer );
+    }
 }
-#endif
-
-#endif /* CoreUARPPlatformNRF5_h */

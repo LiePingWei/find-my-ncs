@@ -51,6 +51,6 @@
 #ifndef CoreUARPPlatform_h
 #define CoreUARPPlatform_h
 
-#include "CoreUARPPlatformNRF5.h"
+#include "CoreUARPPlatformZephyr.h"
 
 #endif /* CoreUARPPlatform_h */
