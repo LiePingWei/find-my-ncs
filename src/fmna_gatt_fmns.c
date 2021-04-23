@@ -144,6 +144,7 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 				const void *buf, uint16_t len,
 				uint16_t offset, uint8_t flags)
 {
+	int err;
 	bool pkt_complete;
 
 	NET_BUF_SIMPLE_DEFINE_STATIC(pairing_buf, FMNA_GATT_PKT_MAX_LEN);
@@ -151,7 +152,12 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 	LOG_INF("FMN Pairing CP write, handle: %u, conn: %p, len: %d",
 		attr->handle, conn, len);
 
-	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&pairing_buf, buf, len);
+	err = fmna_gatt_pkt_manager_chunk_collect(&pairing_buf, buf, len, &pkt_complete);
+	if (err) {
+		LOG_ERR("fmna_gatt_pkt_manager_chunk_collect: returned error: %d", err);
+		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+	}
+
 	if (pkt_complete) {
 		uint16_t opcode;
 		enum fmna_pair_event_id id;
@@ -174,7 +180,7 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 			LOG_ERR("FMN Pairing CP, unexpected opcode: 0x%02X",
 				opcode);
 			net_buf_simple_reset(&pairing_buf);
-			return len;
+			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 		}
 
 		struct fmna_pair_event *event = new_fmna_pair_event();
@@ -187,6 +193,7 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 		EVENT_SUBMIT(event);
 
 		net_buf_simple_reset(&pairing_buf);
+		
 	}
 
 	return len;
@@ -237,6 +244,7 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 			       const void *buf, uint16_t len,
 			       uint16_t offset, uint8_t flags)
 {
+	int err;
 	bool pkt_complete;
 
 	LOG_INF("FMN Configuration CP write, handle: %u, conn: %p",
@@ -244,7 +252,12 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 
 	NET_BUF_SIMPLE_DEFINE(config_buf, FMNS_CONFIG_MAX_RX_LEN);
 
-	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&config_buf, buf, len);
+	err = fmna_gatt_pkt_manager_chunk_collect(&config_buf, buf, len, &pkt_complete);
+	if (err) {
+		LOG_ERR("fmna_gatt_pkt_manager_chunk_collect: returned error: %d", err);
+		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+	}
+
 	if (pkt_complete) {
 		struct fmna_config_event event;
 		uint16_t opcode;
@@ -319,7 +332,7 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 		return len;
 	} else {
 		LOG_ERR("FMN Configuration CP: no support for chunked packets");
-		return BT_GATT_ERR(BT_ATT_ERR_INSUFFICIENT_RESOURCES);
+		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 	}
 }
 
@@ -328,13 +341,19 @@ static ssize_t non_owner_cp_write(struct bt_conn *conn,
 				  const void *buf, uint16_t len,
 				  uint16_t offset, uint8_t flags)
 {
+	int err;
 	bool pkt_complete;
 
 	NET_BUF_SIMPLE_DEFINE(non_owner_buf, FMNS_NON_OWNER_MAX_RX_LEN);
 
 	LOG_INF("FMN Non-owner CP write, handle: %u, conn: %p", attr->handle, conn);
 
-	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&non_owner_buf, buf, len);
+	err = fmna_gatt_pkt_manager_chunk_collect(&non_owner_buf, buf, len, &pkt_complete);
+	if (err) {
+		LOG_ERR("fmna_gatt_pkt_manager_chunk_collect: returned error: %d", err);
+		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+	}
+
 	if (pkt_complete) {
 		uint16_t opcode;
 		enum fmna_non_owner_event_id id;
@@ -362,6 +381,9 @@ static ssize_t non_owner_cp_write(struct bt_conn *conn,
 		event->conn = conn;
 
 		EVENT_SUBMIT(event);
+	} else {
+		LOG_ERR("FMN Configuration CP: no support for chunked packets");
+		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 	}
 
 	return len;
@@ -372,13 +394,19 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 			      const void *buf, uint16_t len,
 			      uint16_t offset, uint8_t flags)
 {
+	int err;
 	bool pkt_complete;
 
 	NET_BUF_SIMPLE_DEFINE(owner_buf, FMNS_OWNER_MAX_RX_LEN);
 
 	LOG_INF("FMN Owner CP write, handle: %u, conn: %p", attr->handle, conn);
 
-	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&owner_buf, buf, len);
+	err = fmna_gatt_pkt_manager_chunk_collect(&owner_buf, buf, len, &pkt_complete);
+	if (err) {
+		LOG_ERR("fmna_gatt_pkt_manager_chunk_collect: returned error: %d", err);
+		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+	}
+
 	if (pkt_complete) {
 		uint16_t opcode;
 		enum fmna_owner_event_id id;
@@ -408,6 +436,9 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 		event->conn = conn;
 
 		EVENT_SUBMIT(event);
+	} else {
+		LOG_ERR("FMN Configuration CP: no support for chunked packets");
+		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 	}
 
 	return len;
@@ -444,13 +475,19 @@ static ssize_t debug_cp_write(struct bt_conn *conn,
 			      const void *buf, uint16_t len,
 			      uint16_t offset, uint8_t flags)
 {
+	int err;
 	bool pkt_complete;
 
 	LOG_INF("FMN Debug CP write, handle: %u, conn: %p", attr->handle, conn);
 
 	NET_BUF_SIMPLE_DEFINE(debug_buf, FMNS_DEBUG_MAX_RX_LEN);
 
-	pkt_complete = fmna_gatt_pkt_manager_chunk_collect(&debug_buf, buf, len);
+	err = fmna_gatt_pkt_manager_chunk_collect(&debug_buf, buf, len, &pkt_complete);
+	if (err) {
+		LOG_ERR("fmna_gatt_pkt_manager_chunk_collect: returned error: %d", err);
+		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+	}
+
 	if (pkt_complete) {
 		struct fmna_debug_event event;
 		uint16_t opcode;
@@ -497,7 +534,7 @@ static ssize_t debug_cp_write(struct bt_conn *conn,
 		return len;
 	} else {
 		LOG_ERR("FMN Debug CP: no support for chunked packets");
-		return BT_GATT_ERR(BT_ATT_ERR_INSUFFICIENT_RESOURCES);
+		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
 	}
 }
 #endif
@@ -544,23 +581,6 @@ BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),
 #endif
 );
 
-static uint16_t pairing_ind_len_get(struct bt_conn *conn)
-{
-	uint16_t ind_data_len;
-
-	ind_data_len = bt_gatt_get_mtu(conn);
-	if (ind_data_len <= BT_ATT_HEADER_LEN) {
-		LOG_ERR("FMNS: MTU value too low: %d", ind_data_len);
-		LOG_ERR("FMNS: 0 MTU might indicate that the link is "
-			"disconnecting");
-
-		return 0;
-	}
-	ind_data_len -= BT_ATT_HEADER_LEN;
-
-	return ind_data_len;
-}
-
 static void cp_ind_cb(struct bt_conn *conn, struct bt_gatt_indicate_params *params, uint8_t err)
 {
 	uint8_t *ind_data;
@@ -568,8 +588,7 @@ static void cp_ind_cb(struct bt_conn *conn, struct bt_gatt_indicate_params *para
 
 	LOG_INF("Received FMN CP indication ACK with status: 0x%04X", err);
 
-	ind_data_len = pairing_ind_len_get(conn);
-	ind_data = fmna_gatt_pkt_manager_chunk_prepare(&cp_ind_buf, &ind_data_len);
+	ind_data = fmna_gatt_pkt_manager_chunk_prepare(conn, &cp_ind_buf, &ind_data_len);
 	if (!ind_data) {
 		/* Release the semaphore when there is not more data
 		 * to be sent for the whole packet transmission.
@@ -614,9 +633,7 @@ static int cp_indicate(struct bt_conn *conn,
 	net_buf_simple_add_le16(&cp_ind_buf, opcode);
 	net_buf_simple_add_mem(&cp_ind_buf, buf->data, buf->len);
 
-	ind_data_len = pairing_ind_len_get(conn);
-	ind_data = fmna_gatt_pkt_manager_chunk_prepare(&cp_ind_buf,
-						       &ind_data_len);
+	ind_data = fmna_gatt_pkt_manager_chunk_prepare(conn, &cp_ind_buf, &ind_data_len);
 	if (!ind_data) {
 		k_sem_give(&cp_tx_sem);
 
