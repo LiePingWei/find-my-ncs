@@ -16,7 +16,8 @@ config FMNA
 	select MBEDTLS_ENABLE_HEAP
 
 	select EVENT_MANAGER
-	# select LINKER_ORPHAN_SECTION_PLACE
+
+	select PM_SINGLE_IMAGE
 
 if FMNA
 

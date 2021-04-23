@@ -37,7 +37,6 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/index.html
     - name: nrf
       repo-path: sdk-nrf
-      revision: v1.5.0
       import: true
 
 
