@@ -6,6 +6,7 @@
 #include "fmna_serial_number.h"
 #include "fmna_storage.h"
 #include "fmna_state.h"
+#include "fmna_version.h"
 
 #include <fmna.h>
 
@@ -50,6 +51,21 @@ static void mfi_token_display_work_handler(struct k_work *work)
 	fmna_serial_number_get(serial_number);
 	LOG_HEXDUMP_INF(serial_number, sizeof(serial_number),
 			"Serial Number:");
+}
+
+static void firmware_version_display(void)
+{
+	int err;
+	struct fmna_version ver;
+
+	err = fmna_version_fw_get(&ver);
+	if (err) {
+		LOG_ERR("fmna_version_fw_get returned error: %d", err);
+		memset(&ver, 0, sizeof(ver));
+	}
+
+	LOG_INF("App firmware version: v%d.%d.%d",
+		ver.major, ver.minor, ver.revision);
 }
 
 int fmna_enable(const struct fmna_enable_param *param,
@@ -112,6 +128,8 @@ int fmna_enable(const struct fmna_enable_param *param,
 		LOG_ERR("fmna_state_init returned error: %d", err);
 		return err;
 	}
+
+	firmware_version_display();
 
 	/* MFi tokens use a lot of stack, offload display logic
 	 * to the workqueue.

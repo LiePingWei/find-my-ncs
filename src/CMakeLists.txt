@@ -18,6 +18,7 @@ zephyr_library_sources(fmna_sound.c)
 zephyr_library_sources(fmna_state.c)
 zephyr_library_sources(fmna_storage.c)
 zephyr_library_sources(fmna.c)
+zephyr_library_sources(fmna_version.c)
 
 add_subdirectory(crypto)
 add_subdirectory(events)

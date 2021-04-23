@@ -97,6 +97,29 @@ config FMNA_BATTERY_STATE_MEDIUM_THR
 	range 0 100
 	default 80
 
+menu "Firmware version"
+
+config FMNA_FIRMWARE_VERSION_MAJOR
+	int "FMNA Firmware major version"
+	default 1
+	range 0 65535
+
+config FMNA_FIRMWARE_VERSION_MINOR
+	int "FMNA Firmware major version"
+	default 0
+	range 0 255
+
+config FMNA_FIRMWARE_VERSION_REVISION
+	int "FMNA Firmware revision version"
+	default 0
+	range 0 255
+
+config FMNA_FIRMWARE_VERSION_BUILD
+	int "FMNA Firmware build version"
+	default 0
+
+endmenu
+
 # Override default BLE configuration
 
 config BT_DEVICE_NAME

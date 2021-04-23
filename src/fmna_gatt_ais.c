@@ -13,6 +13,7 @@
 
 #include "fmna_battery.h"
 #include "fmna_product_plan.h"
+#include "fmna_version.h"
 
 #include <logging/log.h>
 
@@ -137,12 +138,20 @@ static ssize_t fw_version_read(struct bt_conn *conn,
 			       const struct bt_gatt_attr *attr,
 			       void *buf, uint16_t len, uint16_t offset)
 {
-	uint32_t fw_version = VERSION_ENCODE(0, 1, 0);
+	int err;
+	uint32_t fw_version;
+	struct fmna_version ver;
+
+	err = fmna_version_fw_get(&ver);
+	if (err) {
+		LOG_ERR("AIS Firmware Version read: Firmware Version read failed");
+		memset(&ver, 0, sizeof(ver));
+	}
+
+	fw_version = VERSION_ENCODE(ver.major, ver.minor, ver.revision);
 
 	LOG_INF("AIS Firmware Version read, handle: %u, conn: %p",
 		attr->handle, conn);
-
-	/* TODO: Make version configurable. */
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 				 &fw_version, sizeof(fw_version));
