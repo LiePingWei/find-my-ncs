@@ -15,9 +15,9 @@ struct fmna_sound_cb {
 	 *  event.
 	 *
 	 *  The user should notify the FMN stack when the play sound action
-	 *  is completed using the fmna_sound_completed_indicate API. If the
-	 *  API is not called, the action eventually times out which
-	 *  is indicated by the sound_stop callback.
+	 *  is completed using the @ref fmna_sound_completed_indicate API. If
+	 *  the API is not called, the action eventually times out which
+	 *  is indicated by the @ref sound_stop callback.
 	 */
 	void (*sound_start)(void);
 
@@ -26,9 +26,9 @@ struct fmna_sound_cb {
 	 *  This callback will be called to stop the ongoing play sound action.
 	 *  The FMN stack will request this action in response to the command
 	 *  from the connected peer or when the sound event times out before
-	 *  the fmna_sound_completed_indicate API is called. The
-	 *  fmna_sound_completed_indicate API should not be called after the 
-	 *  sound_stop callback and will return an error if called.
+	 *  the @ref fmna_sound_completed_indicate API is called. The
+	 *  @ref fmna_sound_completed_indicate API should not be called after
+	 *  the @ref sound_stop callback and will return an error if called.
 	 */
 	void (*sound_stop)(void);
 };
@@ -47,10 +47,10 @@ int fmna_sound_cb_register(struct fmna_sound_cb *cb);
 /** @brief Indicate the completion of the play sound action.
  *
  *  Indicate that the play sound action is completed. This function should be
- *  called only after sound_start callback from fmna_sound_cb structure was
- *  called. This function should not be called if the play sound action is
- *  stopped by the FMN stack. This event is indicated by sound_stop callback
- *  from fmna_sound_cb structure.
+ *  called only after @ref sound_start callback from @ref fmna_sound_cb structure
+ *  was called. This function should not be called if the play sound action is
+ *  stopped by the FMN stack. This event is indicated by @ref sound_stop callback
+ *  from @ref fmna_sound_cb structure.
  *
  *  @param cb Sound callback structure.
  *
@@ -98,9 +98,9 @@ struct fmna_enable_cb {
 	 *
 	 *  This callback will be called to notify the user about the
 	 *  advertising timeout in the pairing mode. It is possible to restart
-	 *  the advertising in this mode with the fmna_resume function. Such
-	 *  a restart should occur on the explicit intent of the device owner
-	 *  (e.g. button press).
+	 *  the advertising in this mode with the @ref fmna_resume function.
+	 *  Such a restart should occur on the explicit intent of the device
+	 *  owner (e.g. button press).
 	 */
 	void (*pairing_mode_exited)(void);
 };
@@ -109,7 +109,7 @@ struct fmna_enable_cb {
  *
  *  This function resumes the activity of the FMN stack based on its own
  *  internal state from the last pause. For example, such a pause could occur
- *  after pairing_mode_exited callback from fmna_enable_cb structure.
+ *  after @ref pairing_mode_exited callback from @ref fmna_enable_cb structure.
  *
  *  @return Zero on success or negative error code otherwise
  */
@@ -118,9 +118,9 @@ int fmna_resume(void);
 /** @brief Enable the Find My Network (FMN) stack on the accessory.
  *
  *  This function activates the FMN feature. The user should be prepared
- *  to respond to all registered FMN callbacks (e.g. fmna_sound_cb structure)
- *  after calling this API. This function should only be called after bt_enable
- *  function since BLE is required for FMN operations.
+ *  to respond to all registered FMN callbacks (e.g. @ref fmna_sound_cb
+ *  structure) after calling this API. This function should only be called
+ *  after @ref bt_enable function since BLE is required for FMN operations.
  *
  *  @param param Set of parameters to configure the enabling process.
  *  @param cb    Enable callback structure.
