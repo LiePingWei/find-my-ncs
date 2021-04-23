@@ -13,7 +13,7 @@ pipeline
     }
     agent {
         docker {
-            image 'docker-dtr.nordicsemi.no/sw-production/ncs-int:2.4.1'
+            image 'docker-dtr.nordicsemi.no/sw-production/ncs-int:2.5.0'
             label 'build-node' // label of jenkins node to be used
         }
     }
