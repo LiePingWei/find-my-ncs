@@ -128,7 +128,7 @@ static ssize_t acc_capabilities_read(struct bt_conn *conn,
 	WRITE_BIT(acc_capabilities, BT_ACC_CAPABILITIES_BLE_SN_LOOKUP,
 		  IS_ENABLED(CONFIG_FMNA_CAPABILITY_BLE_SN_LOOKUP_ENABLED));
 	WRITE_BIT(acc_capabilities, BT_ACC_CAPABILITIES_FW_UPDATE_SVC,
-		  IS_ENABLED(CONFIG_FMNA_CAPABILITY_FW_UPDATE_SVC_ENABLED));
+		  IS_ENABLED(CONFIG_FMNA_CAPABILITY_FW_UPDATE_ENABLED));
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 				 &acc_capabilities, sizeof(acc_capabilities));

@@ -22,3 +22,5 @@ zephyr_library_sources(fmna_version.c)
 
 add_subdirectory(crypto)
 add_subdirectory(events)
+
+add_subdirectory_ifdef(CONFIG_FMNA_UARP uarp)

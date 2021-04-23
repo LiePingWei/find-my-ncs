@@ -17,7 +17,7 @@ config FMNA
 
 	select EVENT_MANAGER
 
-	select PM_SINGLE_IMAGE
+	select PM_SINGLE_IMAGE if !FMNA_UARP
 
 if FMNA
 
@@ -61,7 +61,7 @@ config FMNA_CAPABILITY_NFC_SN_LOOKUP_ENABLED
 config FMNA_CAPABILITY_BLE_SN_LOOKUP_ENABLED
 	bool "FMN Accessory Capability: declare Serial Number BLE lookup capability"
 
-config FMNA_CAPABILITY_FW_UPDATE_SVC_ENABLED
+config FMNA_CAPABILITY_FW_UPDATE_ENABLED
 	bool "FMN Accessory Capability: declare Firmware Update Service capability"
 
 choice FMNA_BATTERY_TYPE
@@ -97,6 +97,8 @@ config FMNA_BATTERY_STATE_MEDIUM_THR
 	range 0 100
 	default 80
 
+if !FMNA_UARP
+
 menu "Firmware version"
 
 config FMNA_FIRMWARE_VERSION_MAJOR
@@ -114,11 +116,8 @@ config FMNA_FIRMWARE_VERSION_REVISION
 	default 0
 	range 0 255
 
-config FMNA_FIRMWARE_VERSION_BUILD
-	int "FMNA Firmware build version"
-	default 0
-
 endmenu
+endif # !FMNA_UARP
 
 # Override default BLE configuration
 
@@ -147,6 +146,8 @@ config HEAP_MEM_POOL_SIZE
 
 config MAIN_STACK_SIZE
 	default 2048
+
+rsource "uarp/Kconfig"
 
 # Logger configuration
 

@@ -1,0 +1,164 @@
+
+config FMNA_UARP
+	bool
+	depends on FMNA_CAPABILITY_FW_UPDATE_ENABLED
+	default y
+	select BOOTLOADER_MCUBOOT
+	select DFU_TARGET
+	select DFU_TARGET_MCUBOOT
+	select IMG_MANAGER
+	select IMG_ERASE_PROGRESSIVELY
+	help
+	  Enable Unified Accessory Restore Protocol (UARP) for Firmware Updates.
+
+if FMNA_UARP
+
+menu "Unified Accessory Restore Protocol (UARP)"
+
+config FMNA_HARDWARE_VERSION
+	string "FMN Accessory Hardware Version"
+	default "1"
+
+config FMNA_UARP_PAYLOAD_4CC
+	string "Payload 4CC Tag"
+	default "FWUP"
+	help
+	  Payload 4CC Tag of a payload containing MCUboot image for FW update.
+	  It must be 4 characters long. Payloads with different 4CC will be
+	  ignored.
+
+config FMNA_UARP_TX_MSG_PAYLOAD_SIZE
+	int "TX message payload size"
+	default 64
+	range 24 256
+	help
+	  Maximum size of payload in a single outgoing UARP message. Entire
+	  UARP outgoing message payload must fit into this buffer.
+	  A minimum size is 24, but also each of the strings Manufacturer Name,
+	  Model Name, Serial Number, Hardware Version plus 8 bytes must fit
+	  into this payload.
+
+config FMNA_UARP_RX_MSG_PAYLOAD_SIZE
+	int "RX message payload size"
+	default 208
+	range 32 FMNA_UARP_PAYLOAD_WINDOW_SIZE
+	help
+	  Maximum size of payload in a single incoming UARP message. You can
+	  calculate number of ATT packets per single messages during the asset
+	  payload download using a formula:
+	  N = round_up((FMNA_UARP_RX_MSG_PAYLOAD_SIZE + 18) / (ATT_MTU - 4)),
+	  where ATT_MTU is MTU negotiated for a specific BLE connection.
+	  On the other hand, if you want to divide payload evenly to the
+	  N packets, you can use formula:
+	  FMNA_UARP_RX_MSG_PAYLOAD_SIZE = N * (ATT_MTU - 4) - 18
+
+config FMNA_UARP_PAYLOAD_WINDOW_SIZE
+	int "Payload window size"
+	default 1024
+	range 256 8192
+	help
+	  Size of the window that will be used to store data requested from the
+	  controller. Payload data will be divided into chunks of this size.
+	  Metadata must be requested at once, so metadata of a single payload
+	  or a SuperBinary cannot be bigger than this size.
+
+config FMNA_UARP_MCUBOOT_BUF_SIZE
+	int "Buffer size used for flash writes to MCUboot slot"
+	default 512
+	range 256 4096
+	help
+	  Buffer size needed for flash writes to MCUboot slot.
+
+config FMNA_UARP_REBOOT_DELAY_TIME
+	int "Reboot delay time"
+	default 1000
+	help
+	  Reboot delay time after successfully update in milliseconds.
+
+config FMNA_UARP_DEDICATED_THREAD
+	bool "Use dedicated thread for UARP"
+	help
+	  Creates a new thread to handle UARP and associated flash operations.
+	  It allows unloading system work queue and allow adjust thread priority
+	  for UARP.
+
+if FMNA_UARP_DEDICATED_THREAD
+
+config FMNA_UARP_THREAD_STACK_SIZE
+	int "Stack size for UARP thread"
+	default 3072 if NO_OPTIMIZATIONS
+	default 1536
+	help
+	  Stack size for dedicated UARP thread.
+
+config FMNA_UARP_THREAD_PRIORITY
+	int "Priority of UARP thread"
+	default NUM_PREEMPT_PRIORITIES
+	range 0 NUM_PREEMPT_PRIORITIES
+	help
+	  Priority of dedicated UARP thread.
+
+endif # FMNA_UARP_DEDICATED_THREAD
+
+config FMNA_UARP_TEST
+	bool "Enable UARP Test mode"
+	help
+	  Enable UARP test mode. In the test mode firmware update can be done also by a non Owner
+	  device. The new firmware confirmation is done on the application startup.
+	  This should be enabled only for development purpose.
+
+config FMNA_UARP_IMAGE_CONFIRMATION_ON_STARTUP
+	bool "Confirm test image on startup" if !FMNA_UARP_TEST
+	default y if FMNA_UARP_TEST
+	help
+	  Confirm MCUBoot test image on application startup. This can be enabled
+	  only for development purpose. In production, the confirmation should
+	  be done when the application actually seems to work properly.
+
+menu "UARPDK Module"
+
+config UARP_DISABLE_VENDOR_SPECIFIC
+	bool "Disable Vendor Specific Messages"
+	default y
+	help
+	  Disable handling of UARP Vendor Specific Messages.
+
+config UARP_DISABLE_REQUIRE_LOGS
+	bool "Disable 'Require' logs"
+	help
+	  Disable logging from __UARP_Require/Check/Verify family macros.
+
+config UARP_DISABLE_VERIFY
+	bool "Disable 'Verify' macros"
+	help
+	  Disable __UARP_Verify family macros.
+
+config UARP_ASSERT_ON_REQUIRE
+	bool "Assert in 'Require' macros"
+	help
+	  Put __ASSERT_NO_MSG() macro in __UARP_Require macros family.
+
+config UARP_ASSERT_ON_CHECK
+	bool "Assert in 'Check' macros"
+	help
+	  Put __ASSERT_NO_MSG() macro in __UARP_Check macro.
+
+config UARP_ASSERT_ON_VERIFY
+	bool "Assert in 'Verify' macros"
+	help
+	  Put __ASSERT_NO_MSG() macro in __UARP_Verify macros family.
+
+# Logger configuration for UARPDK module
+module = UARPDK
+module-str = UARPDK Module
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+endmenu # UARPDK Module
+
+# Logger configuration for FMN UARP Service
+module = FMNA_UARP
+module-str = FMN UARP Service
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+endmenu
+endif # FMNA_UARP
