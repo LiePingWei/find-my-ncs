@@ -97,6 +97,7 @@ enum debug_cp_opcode {
 	DEBUG_CP_OPCODE_LOG_RESPONSE             = 0x0502,
 	DEBUG_CP_OPCODE_COMMAND_RESPONSE         = 0x0503,
 	DEBUG_CP_OPCODE_RESET                    = 0x0504,
+	DEBUG_CP_OPCODE_UT_MOTION_TIMERS_CONFIG  = 0x0505,
 };
 
 NET_BUF_SIMPLE_DEFINE_STATIC(cp_ind_buf, FMNA_GATT_PKT_MAX_LEN);
@@ -457,6 +458,8 @@ static bool debug_cp_length_verify(uint16_t opcode, uint32_t len)
 	case DEBUG_CP_OPCODE_SET_KEY_ROTATION_TIMEOUT:
 		expected_pkt_len += sizeof(event->key_rotation_timeout);
 		break;
+	case DEBUG_CP_OPCODE_UT_MOTION_TIMERS_CONFIG:
+		expected_pkt_len += sizeof(event->configure_ut_timers);
 	default:
 		return true;
 	}
@@ -517,6 +520,13 @@ static ssize_t debug_cp_write(struct bt_conn *conn,
 			break;
 		case DEBUG_CP_OPCODE_RESET:
 			event.id = FMNA_DEBUG_EVENT_RESET;
+			break;
+		case DEBUG_CP_OPCODE_UT_MOTION_TIMERS_CONFIG:
+			event.id = FMNA_DEBUG_EVENT_CONFIGURE_UT_TIMERS;
+			event.configure_ut_timers.separated_ut_timeout =
+				net_buf_simple_pull_le32(&debug_buf);
+			event.configure_ut_timers.separated_ut_backoff =
+				net_buf_simple_pull_le32(&debug_buf);
 			break;
 		default:
 			LOG_ERR("FMN Debug CP, unexpected opcode: 0x%02X", opcode);
@@ -846,6 +856,8 @@ uint16_t fmna_debug_event_to_gatt_cmd_opcode(enum fmna_debug_event_id debug_even
 		return DEBUG_CP_OPCODE_RETRIEVE_LOGS;
 	case FMNA_DEBUG_EVENT_RESET:
 		return DEBUG_CP_OPCODE_RESET;
+	case FMNA_DEBUG_EVENT_CONFIGURE_UT_TIMERS:
+		return DEBUG_CP_OPCODE_UT_MOTION_TIMERS_CONFIG;
 	default:
 		__ASSERT(0, "Debug event type outside the mapping scope: %d",
 			debug_event);

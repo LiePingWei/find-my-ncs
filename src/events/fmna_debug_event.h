@@ -11,6 +11,7 @@ enum fmna_debug_event_id {
 	FMNA_DEBUG_EVENT_SET_KEY_ROTATION_TIMEOUT,
 	FMNA_DEBUG_EVENT_RETRIEVE_LOGS,
 	FMNA_DEBUG_EVENT_RESET,
+	FMNA_DEBUG_EVENT_CONFIGURE_UT_TIMERS,
 };
 
 struct fmna_debug_event {
@@ -21,6 +22,10 @@ struct fmna_debug_event {
 
 	union {
 		uint32_t key_rotation_timeout;
+		struct {
+			uint32_t separated_ut_timeout;
+			uint32_t separated_ut_backoff;
+		} configure_ut_timers;
 	};
 };
 
