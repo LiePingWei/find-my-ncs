@@ -215,6 +215,10 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 			LOG_ERR("separated_adv_start returned error: %d", err);
 			return err;
 		}
+
+		/* Emit event notifying that the device is in the Separated state. */
+		FMNA_EVENT_CREATE(event, FMNA_EVENT_SEPARATED, NULL);
+		EVENT_SUBMIT(event);
 	}
 
 	if (prev_state == UNDEFINED) {
