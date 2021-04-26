@@ -74,6 +74,59 @@ int fmna_sound_cb_register(struct fmna_sound_cb *cb);
  */
 int fmna_sound_completed_indicate(void);
 
+/** @brief Motion detection callback structure
+ *
+ *  @note All callback functions are executed in the context of the system
+ *  clock interrupt handler. The user should use the system workqueue to
+ *  perform non-trivial tasks in response to each callback.
+ */
+struct fmna_motion_detection_cb {
+	/** @brief Request the user to start the motion detector.
+	 *
+	 *  This callback will be called to start the motion detection
+	 *  activity. From now on, the motion detection events are polled
+	 *  periodically with the @ref motion_detection_period_expired API.
+	 *  The motion detection activity is finished when the
+	 *  @ref motion_detection_stop is called.
+	 */
+	void (*motion_detection_start)(void);
+
+	/** @brief Notify the user that the motion detection period has expired.
+	 *
+	 *  This callback will be periodically called at the end of each
+	 *  motion detection period. The @ref motion_detection_start function
+	 *  indicates the start of the first motion detection period.
+	 *  The next period is started as soon as the last period expires.
+	 *  The user should notify the FMN stack if the motion was detected
+	 *  in the last period. To pass this information, the return value
+	 *  of this callback is used.
+	 *
+	 *  @return true to indicate a detected motion in the last period
+	 *  or false otherwise.
+	 */
+	bool (*motion_detection_period_expired)(void);
+
+	/** @brief Notify the user that the motion detector can be stopped.
+	 *
+	 *  This callback will be called to notify the user that the motion
+	 *  detector is no longer used by the FMN protocol. It will conclude
+	 *  the motion detection activity that was started by the
+	 *  @ref motion_detection_start callback.
+	 */
+	void (*motion_detection_stop)(void);
+};
+
+/** @brief Register motion detection callbacks.
+ *
+ *  Register callbacks to handle motion detection activities required by the
+ *  Unwanted Tracking (UT) Detection feature from the FMN protocol.
+ *
+ *  @param cb Motion detection callback structure.
+ *
+ *  @return Zero on success or negative error code otherwise
+ */
+int fmna_motion_detection_cb_register(struct fmna_motion_detection_cb *cb);
+
 /** @brief Enable serial number lookup.
  *
  *  Enable serial number lookup over BLE for a limited time duration

@@ -53,6 +53,7 @@ config FMNA_CAPABILITY_PLAY_SOUND_ENABLED
 	bool "FMN Accessory Capability: declare sound playing capability"
 
 config FMNA_CAPABILITY_DETECT_MOTION_ENABLED
+	depends on FMNA_CAPABILITY_PLAY_SOUND_ENABLED
 	bool "FMN Accessory Capability: declare motion detecting capability"
 
 config FMNA_CAPABILITY_NFC_SN_LOOKUP_ENABLED
