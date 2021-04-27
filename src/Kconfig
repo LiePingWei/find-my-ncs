@@ -30,7 +30,7 @@ config FMNA_NORDIC_PRODUCT_PLAN
 
 config FMNA_PRODUCT_DATA
 	hex "FMN Accessory Product Data"
-	default f86ae43a63829ed8 if FMNA_NORDIC_PRODUCT_PLAN
+	default f86ae43ad21a6d93 if FMNA_NORDIC_PRODUCT_PLAN
 	default 0
 
 # AIS configuration
