@@ -64,9 +64,10 @@ static void sound_timeout_work_handle(struct k_work *item)
 	sound_stop_indicate();
 }
 
-static void sound_start(void)
+static void sound_start(enum fmna_sound_trigger sound_trigger)
 {
-	printk("Received a request from FMN to start playing sound\n");
+	printk("Received a request from FMN to start playing sound"
+	       "from the %d trigger type\n", sound_trigger);
 	printk("Starting to play sound...\n");
 
 	k_delayed_work_submit(&sound_timeout_work, FMNA_SOUND_DURATION);

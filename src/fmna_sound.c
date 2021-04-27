@@ -1,3 +1,4 @@
+#include "events/fmna_event.h"
 #include "events/fmna_config_event.h"
 #include "events/fmna_non_owner_event.h"
 #include "fmna_conn.h"
@@ -39,6 +40,9 @@ static bool sound_stop_no_callback(struct bt_conn *conn)
 			conn, FMNA_CONN_MULTI_STATUS_BIT_PLAYING_SOUND);
 	}
 
+	FMNA_EVENT_CREATE(event, FMNA_EVENT_SOUND_COMPLETED, NULL);
+	EVENT_SUBMIT(event);
+
 	return true;
 }
 
@@ -47,11 +51,11 @@ static bool sound_stop(struct bt_conn *conn)
 	bool ret;
 
 	__ASSERT(user_cb,
-	       "Sound callback structure is not registered. "
-	       "See fmna_sound_cb_register for details.");
+		"Sound callback structure is not registered. "
+		"See fmna_sound_cb_register for details.");
 	__ASSERT(user_cb->sound_stop,
-	       "The sound_start callback is not populated. "
-	       "See fmna_sound_cb_register for details.");
+		"The sound_start callback is not populated. "
+		"See fmna_sound_cb_register for details.");
 
 	ret = sound_stop_no_callback(conn);
 	if (!ret) {
@@ -67,14 +71,16 @@ static bool sound_stop(struct bt_conn *conn)
 	return true;
 }
 
-static bool sound_start(struct bt_conn *conn)
+bool sound_start(struct bt_conn *conn)
 {
+	enum fmna_sound_trigger sound_trigger;
+
 	__ASSERT(user_cb,
-	       "Sound callback structure is not registered. "
-	       "See fmna_sound_cb_register for details.");
+		"Sound callback structure is not registered. "
+		"See fmna_sound_cb_register for details.");
 	__ASSERT(user_cb->sound_start,
-	       "The sound_start callback is not populated. "
-	       "See fmna_sound_cb_register for details.");
+		"The sound_start callback is not populated. "
+		"See fmna_sound_cb_register for details.");
 
 	if (play_sound_in_progress) {
 		return false;
@@ -84,6 +90,15 @@ static bool sound_start(struct bt_conn *conn)
 		fmna_conn_multi_status_bit_set(
 			conn, FMNA_CONN_MULTI_STATUS_BIT_PLAYING_SOUND);
 		bt_conn_ref(conn);
+
+		if (fmna_conn_multi_status_bit_check(
+			conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED)) {
+			sound_trigger = FMNA_SOUND_TRIGGER_OWNER;
+		} else {
+			sound_trigger = FMNA_SOUND_TRIGGER_NON_OWNER;
+		}
+	} else {
+		sound_trigger = FMNA_SOUND_TRIGGER_UT_DETECTION;
 	}
 
 	play_sound_in_progress = true;
@@ -91,7 +106,7 @@ static bool sound_start(struct bt_conn *conn)
 
 	k_delayed_work_submit(&sound_timeout_work, SOUND_TIMEOUT);
 	if (user_cb && user_cb->sound_start) {
-		user_cb->sound_start();
+		user_cb->sound_start(sound_trigger);
 	} else {
 		LOG_ERR("The sound_start callback is not populated");
 	}
@@ -174,6 +189,11 @@ int fmna_sound_completed_indicate(void)
 	sound_completed_indication_send(conn);
 
 	return 0;
+}
+
+bool fmna_sound_start(void)
+{
+	return sound_start(NULL);
 }
 
 static void sound_command_response_send(struct bt_conn *conn,

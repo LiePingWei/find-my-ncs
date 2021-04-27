@@ -5,6 +5,20 @@
 extern "C" {
 #endif
 
+/** @brief Trigger types for a play sound action. */
+enum fmna_sound_trigger {
+	/** Play sound action is triggered by the Unwatned Tracking Detection
+	  * module.
+	  */
+	FMNA_SOUND_TRIGGER_UT_DETECTION,
+
+	/** Play sound action is triggered by the connected non-owner device. */
+	FMNA_SOUND_TRIGGER_NON_OWNER,
+
+	/** Play sound action is triggered by the connected owner device. */
+	FMNA_SOUND_TRIGGER_OWNER,
+};
+
 /** Sound callback structure */
 struct fmna_sound_cb {
 	/** @brief Request the user to start the play sound action.
@@ -18,8 +32,10 @@ struct fmna_sound_cb {
 	 *  is completed using the @ref fmna_sound_completed_indicate API. If
 	 *  the API is not called, the action eventually times out which
 	 *  is indicated by the @ref sound_stop callback.
+	 *
+	 *  @param sound_trigger Trigger for the play sound action.
 	 */
-	void (*sound_start)(void);
+	void (*sound_start)(enum fmna_sound_trigger sound_trigger);
 
 	/** @brief Request the user to stop the ongoing play sound action.
 	 *

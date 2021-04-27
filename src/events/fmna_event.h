@@ -21,6 +21,7 @@ enum fmna_event_id {
 	FMNA_EVENT_OWNER_CONNECTED,
 	FMNA_EVENT_PAIRING_COMPLETED,
 	FMNA_EVENT_PUBLIC_KEYS_CHANGED,
+	FMNA_EVENT_SOUND_COMPLETED,
 };
 
 struct fmna_public_keys_changed {
