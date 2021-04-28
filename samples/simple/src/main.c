@@ -18,18 +18,23 @@
 
 #define FMNA_BT_ID 1
 
-#define FMNA_SOUND_DURATION K_SECONDS(5)
+#define FMNA_PEER_SOUND_DURATION K_SECONDS(5)
+#define FMNA_UT_SOUND_DURATION   K_SECONDS(1)
 
-#define FMNA_SOUND_LED DK_LED1
+#define FMNA_SOUND_LED             DK_LED1
+#define FMNA_MOTION_INDICATION_LED DK_LED2
 
 #define FMNA_ADV_RESUME_BUTTON             DK_BTN1_MSK
 #define FMNA_SN_LOOKUP_BUTTON              DK_BTN2_MSK
+#define FMNA_MOTION_INDICATION_BUTTON      DK_BTN3_MSK
 #define FMNA_FACTORY_SETTINGS_RESET_BUTTON DK_BTN4_MSK
 
 #define BATTERY_SIMULATOR_CHANGE_RATE K_SECONDS(5)
 
 static bool pairing_mode_exit;
 static uint8_t battery_level;
+static bool motion_detection_enabled;
+static bool motion_detected;
 
 static void sound_timeout_work_handle(struct k_work *item);
 
@@ -66,13 +71,24 @@ static void sound_timeout_work_handle(struct k_work *item)
 
 static void sound_start(enum fmna_sound_trigger sound_trigger)
 {
-	printk("Received a request from FMN to start playing sound"
-	       "from the %d trigger type\n", sound_trigger);
-	printk("Starting to play sound...\n");
+	k_timeout_t sound_timeout;
 
-	k_delayed_work_submit(&sound_timeout_work, FMNA_SOUND_DURATION);
+	if (sound_trigger == FMNA_SOUND_TRIGGER_UT_DETECTION) {
+		printk("Play sound action triggered by the Unwanted Tracking "
+		       "Detection\n");
+
+		sound_timeout = FMNA_UT_SOUND_DURATION;
+	} else {
+		printk("Received a request from FMN to start playing sound "
+		       "from the connected peer\n");
+
+		sound_timeout = FMNA_PEER_SOUND_DURATION;
+	}
+	k_delayed_work_submit(&sound_timeout_work, sound_timeout);
 
 	dk_set_led(FMNA_SOUND_LED, 1);
+
+	printk("Starting to play sound...\n");
 }
 
 static void sound_stop(void)
@@ -87,6 +103,47 @@ static void sound_stop(void)
 static struct fmna_sound_cb sound_callbacks = {
 	.sound_start = sound_start,
 	.sound_stop = sound_stop,
+};
+
+static void motion_detection_start(void)
+{
+	printk("Starting motion detection...\n");
+
+	motion_detection_enabled = true;
+}
+
+static bool motion_detection_period_expired(void)
+{
+	bool is_detected;
+
+	is_detected = motion_detected;
+	motion_detected = false;
+
+	dk_set_led(FMNA_MOTION_INDICATION_LED, 0);
+
+	if (is_detected) {
+		printk("Motion detected in the last period\n");
+	} else {
+		printk("No motion detected in the last period\n");
+	}
+
+	return is_detected;
+}
+
+static void motion_detection_stop(void)
+{
+	printk("Stopping motion detection...\n");
+
+	motion_detection_enabled = false;
+	motion_detected = false;
+
+	dk_set_led(FMNA_MOTION_INDICATION_LED, 0);
+}
+
+static struct fmna_motion_detection_cb motion_detection_callbacks = {
+	.motion_detection_start = motion_detection_start,
+	.motion_detection_period_expired = motion_detection_period_expired,
+	.motion_detection_stop = motion_detection_stop,
 };
 
 static void battery_level_request(void)
@@ -153,6 +210,12 @@ static int fmna_initialize(void)
 	err = fmna_sound_cb_register(&sound_callbacks);
 	if (err) {
 		printk("fmna_sound_cb_register failed (err %d)\n", err);
+		return err;
+	}
+
+	err = fmna_motion_detection_cb_register(&motion_detection_callbacks);
+	if (err) {
+		printk("fmna_motion_detection_cb_register failed (err %d)\n", err);
 		return err;
 	}
 
@@ -262,6 +325,17 @@ static void button_changed(uint32_t button_state, uint32_t has_changed)
 			printk("Cannot enable FMN Serial Number lookup (err: %d)\n", err);
 		} else {
 			printk("FMN Serial Number lookup enabled\n");
+		}
+	}
+
+	if (buttons & FMNA_MOTION_INDICATION_BUTTON) {
+		if (motion_detection_enabled) {
+			motion_detected = true;
+			dk_set_led(FMNA_MOTION_INDICATION_LED, 1);
+
+			printk("Motion detected\n");
+		} else {
+			printk("Motion detection is disabled\n");
 		}
 	}
 }
