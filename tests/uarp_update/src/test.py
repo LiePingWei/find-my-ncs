@@ -16,7 +16,7 @@ JLINK_SNR = '682716472'
 CHECK_CONNECTIVITY_FW = True
 DEVICE_NAME = 'Nordic_FMN'
 SUPER_BINARY_VER = (1, 0, 20, 0)
-FIRMWARE_IMAGE_FILE = os.path.dirname(__file__) + '/../../../apps/simple/build/zephyr/app_update.bin'
+FIRMWARE_IMAGE_FILE = os.path.dirname(__file__) + '/../../../samples/simple/build/zephyr/app_update.bin'
 APPLY_FLAGS_METADATA = None # None or bytes, e.g.: b'\x01'
 SUPER_BINARY_FILE = None # If provided it is used directly. SUPER_BINARY_VER, FIRMWARE_IMAGE_FILE and APPLY_FLAGS_METADATA are ignored.
 #---------------------------------

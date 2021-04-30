@@ -9,8 +9,8 @@ if [ ! -f intermediate_update.bin ]; then
     exit 1
 fi
 
-if [ ! -f ../../../../apps/simple/build/zephyr/app_update.bin ]; then
-    echo "The '../../../../apps/simple/build/zephyr/app_update.bin' file"
+if [ ! -f ../../../../samples/simple/build/zephyr/app_update.bin ]; then
+    echo "The '../../../../samples/simple/build/zephyr/app_update.bin' file"
     echo "does not exists. Prepare an application image as described"
     echo "in the documentation."
     exit 1
@@ -18,7 +18,7 @@ fi
 
 mkdir -p build
 cp intermediate_update.bin build/
-cp ../../../../apps/simple/build/zephyr/app_update.bin build/
+cp ../../../../samples/simple/build/zephyr/app_update.bin build/
 
 python3 ../../../ncsfmntools SuperBinary    \
 	SuperBinary.plist                   \
