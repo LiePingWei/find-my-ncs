@@ -17,14 +17,15 @@ LOG_MODULE_REGISTER(fmna, CONFIG_FMNA_LOG_LEVEL);
 BUILD_ASSERT(CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE >= 4096,
 	"The workqueue stack size is too small for the FMN");
 
-static struct k_work mfi_token_display_work;
+static struct k_work basic_display_work;
 
-static void mfi_token_display_work_handler(struct k_work *work)
+static void basic_display_work_handler(struct k_work *work)
 {
 	int err;
 	uint8_t uuid[FMNA_SW_AUTH_UUID_BLEN] = {0};
 	uint8_t auth_token[FMNA_SW_AUTH_TOKEN_BLEN] = {0};
 	uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN] = {0};
+	struct fmna_version ver;
 
 	err = fmna_storage_uuid_load(uuid);
 	if (err == -ENOENT) {
@@ -51,12 +52,6 @@ static void mfi_token_display_work_handler(struct k_work *work)
 	fmna_serial_number_get(serial_number);
 	LOG_HEXDUMP_INF(serial_number, sizeof(serial_number),
 			"Serial Number:");
-}
-
-static void firmware_version_display(void)
-{
-	int err;
-	struct fmna_version ver;
 
 	err = fmna_version_fw_get(&ver);
 	if (err) {
@@ -64,8 +59,13 @@ static void firmware_version_display(void)
 		memset(&ver, 0, sizeof(ver));
 	}
 
-	LOG_INF("App firmware version: v%d.%d.%d",
+	LOG_INF("Application firmware version: v%d.%d.%d",
 		ver.major, ver.minor, ver.revision);
+
+	if (IS_ENABLED(CONFIG_FMNA_QUALIFICATION)) {
+		LOG_WRN("The FMN stack is configured for qualification");
+		LOG_WRN("The qualification configuration should not be used for production");
+	}
 }
 
 int fmna_enable(const struct fmna_enable_param *param,
@@ -129,13 +129,11 @@ int fmna_enable(const struct fmna_enable_param *param,
 		return err;
 	}
 
-	firmware_version_display();
-
-	/* MFi tokens use a lot of stack, offload display logic
+	/* MFi tokens use a lot of stack, offload basic display logic
 	 * to the workqueue.
 	 */
-	k_work_init(&mfi_token_display_work, mfi_token_display_work_handler);
-	k_work_submit(&mfi_token_display_work);
+	k_work_init(&basic_display_work, basic_display_work_handler);
+	k_work_submit(&basic_display_work);
 
 	return err;
 }
