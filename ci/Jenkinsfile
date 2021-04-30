@@ -35,6 +35,8 @@ pipeline
 
         stage('Build FMN') { steps { script { sh "west build fmn/samples/simple -b nrf52840dk_nrf52840" } } }
 
+        stage('Build FMN Qualification') { steps { script { sh "west build --build-dir=build/samples/qualification fmn/samples/qualification -b nrf52840dk_nrf52840" } } }
+
         stage('Build crypto') { steps { script { sh "west build --build-dir=build/build-crypto fmn/tests/crypto -b nrf52840dk_nrf52840" } } }
 
 
