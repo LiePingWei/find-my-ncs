@@ -785,7 +785,7 @@ static void current_primary_key_request_handle(struct bt_conn *conn)
 	}
 }
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 static void set_key_rotation_request_handle(struct bt_conn *conn, uint32_t key_rotation_timeout)
 {
 	int err;
@@ -861,7 +861,7 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 	if (is_fmna_debug_event(eh)) {
 		struct fmna_debug_event *event = cast_fmna_debug_event(eh);
 
@@ -886,6 +886,6 @@ EVENT_SUBSCRIBE(fmna_keys, fmna_event);
 EVENT_SUBSCRIBE(fmna_keys, fmna_config_event);
 EVENT_SUBSCRIBE(fmna_keys, fmna_owner_event);
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 EVENT_SUBSCRIBE(fmna_keys, fmna_debug_event);
 #endif

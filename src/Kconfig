@@ -21,8 +21,8 @@ config FMNA
 
 if FMNA
 
-config FMNA_DEBUG
-	bool "Enable FMN Accessory with Debug capabilities"
+config FMNA_QUALIFICATION
+	bool "Enable qualification capabilities used by the FMCA app"
 
 # Product Plan configuration
 config FMNA_NORDIC_PRODUCT_PLAN

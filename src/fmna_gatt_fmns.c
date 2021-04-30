@@ -130,7 +130,7 @@ static void owner_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 		attr->handle, value);
 }
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 static void debug_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 				     uint16_t value)
 {
@@ -444,7 +444,7 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 	return len;
 }
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 static bool debug_cp_length_verify(uint16_t opcode, uint32_t len)
 {
 	uint16_t expected_pkt_len = 0;
@@ -570,7 +570,7 @@ BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),
 			       NULL, owner_cp_write, NULL),
 	BT_GATT_CCC(owner_cp_ccc_cfg_changed,
 		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_DEBUG_CP,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
 			       BT_GATT_CHRC_INDICATE,
@@ -755,7 +755,7 @@ int fmna_gatt_owner_cp_indicate(struct bt_conn *conn,
 	return cp_indicate(conn, &fmns_svc.attrs[FMNS_OWNER_CHAR_INDEX], owner_opcode, buf);
 }
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 int fmna_gatt_debug_cp_indicate(struct bt_conn *conn,
 				enum fmna_gatt_debug_ind ind_type,
 				struct net_buf_simple *buf)
@@ -836,7 +836,7 @@ uint16_t fmna_owner_event_to_gatt_cmd_opcode(enum fmna_owner_event_id owner_even
 	}
 }
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 uint16_t fmna_debug_event_to_gatt_cmd_opcode(enum fmna_debug_event_id debug_event)
 {
 	switch (debug_event) {

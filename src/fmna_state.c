@@ -44,7 +44,7 @@ static void nearby_separated_timeout_handle(struct k_timer *timer_id);
 static K_WORK_DEFINE(nearby_separated_work, nearby_separated_work_handle);
 static K_TIMER_DEFINE(nearby_separated_timer, nearby_separated_timeout_handle, NULL);
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 static void reset_work_handle(struct k_work *item);
 static struct k_delayed_work reset_work;
 #endif
@@ -317,7 +317,7 @@ int fmna_state_init(uint8_t bt_id)
 	};
 
 	k_work_init(&disconnected_work.work, disconnected_work_handle);
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 	k_delayed_work_init(&reset_work, reset_work_handle);
 #endif
 
@@ -446,7 +446,7 @@ static void icloud_identifier_request_handle(struct bt_conn *conn)
 	}
 }
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 static void reset_work_handle(struct k_work *item)
 {
 	LOG_INF("Executing the debug reset command");
@@ -533,7 +533,7 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 	if (is_fmna_debug_event(eh)) {
 		struct fmna_debug_event *event = cast_fmna_debug_event(eh);
 
@@ -557,6 +557,6 @@ EVENT_SUBSCRIBE(fmna_state, fmna_event);
 EVENT_SUBSCRIBE(fmna_state, fmna_config_event);
 EVENT_SUBSCRIBE(fmna_state, fmna_owner_event);
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 EVENT_SUBSCRIBE(fmna_state, fmna_debug_event);
 #endif
