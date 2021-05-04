@@ -150,7 +150,7 @@ static void sound_timeout_work_handle(struct k_work *item)
 	}
 }
 
-int fmna_sound_cb_register(struct fmna_sound_cb *cb)
+int fmna_sound_cb_register(const struct fmna_sound_cb *cb)
 {
 	if (!IS_ENABLED(CONFIG_FMNA_CAPABILITY_PLAY_SOUND_ENABLED)) {
 		return -ENOTSUP;

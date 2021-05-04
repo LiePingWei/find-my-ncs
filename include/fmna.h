@@ -58,7 +58,7 @@ struct fmna_sound_cb {
  *
  *  @return Zero on success or negative error code otherwise
  */
-int fmna_sound_cb_register(struct fmna_sound_cb *cb);
+int fmna_sound_cb_register(const struct fmna_sound_cb *cb);
 
 /** @brief Indicate the completion of the play sound action.
  *
@@ -125,7 +125,7 @@ struct fmna_motion_detection_cb {
  *
  *  @return Zero on success or negative error code otherwise
  */
-int fmna_motion_detection_cb_register(struct fmna_motion_detection_cb *cb);
+int fmna_motion_detection_cb_register(const struct fmna_motion_detection_cb *cb);
 
 /** @brief Enable serial number lookup.
  *

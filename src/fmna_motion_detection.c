@@ -169,7 +169,7 @@ static void motion_poll_timeout_handle(struct k_timer *timer_id)
 	}
 }
 
-int fmna_motion_detection_cb_register(struct fmna_motion_detection_cb *cb)
+int fmna_motion_detection_cb_register(const struct fmna_motion_detection_cb *cb)
 {
 	if (!IS_ENABLED(CONFIG_FMNA_CAPABILITY_DETECT_MOTION_ENABLED)) {
 		return -ENOTSUP;

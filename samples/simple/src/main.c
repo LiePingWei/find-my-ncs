@@ -100,7 +100,7 @@ static void sound_stop(void)
 	sound_stop_indicate();
 }
 
-static struct fmna_sound_cb sound_callbacks = {
+static const struct fmna_sound_cb sound_callbacks = {
 	.sound_start = sound_start,
 	.sound_stop = sound_stop,
 };
@@ -140,7 +140,7 @@ static void motion_detection_stop(void)
 	dk_set_led(FMNA_MOTION_INDICATION_LED, 0);
 }
 
-static struct fmna_motion_detection_cb motion_detection_callbacks = {
+static const struct fmna_motion_detection_cb motion_detection_callbacks = {
 	.motion_detection_start = motion_detection_start,
 	.motion_detection_period_expired = motion_detection_period_expired,
 	.motion_detection_stop = motion_detection_stop,
@@ -167,7 +167,7 @@ static void pairing_mode_exited(void)
 	pairing_mode_exit = true;
 }
 
-static struct fmna_enable_cb enable_callbacks = {
+static const struct fmna_enable_cb enable_callbacks = {
 	.battery_level_request = battery_level_request,
 	.pairing_mode_exited = pairing_mode_exited,
 };
