@@ -244,7 +244,8 @@ static void primary_key_rotation_indicate(void)
 	for (uint8_t i = 0; i < owners_num; i++) {
 		struct bt_conn *conn = owners[i];
 
-		LOG_INF("FMN Keys: sending Primary Key roll indication: %p", conn);
+		LOG_INF("FMN Keys: sending Primary Key roll indication: %p",
+			(void *) conn);
 
 		err = fmna_gatt_config_cp_indicate(
 			conn, FMNA_GATT_CONFIG_KEYROLL_IND, &resp_buf);

@@ -150,7 +150,7 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 	NET_BUF_SIMPLE_DEFINE_STATIC(pairing_buf, FMNA_GATT_PKT_MAX_LEN);
 
 	LOG_INF("FMN Pairing CP write, handle: %u, conn: %p, len: %d",
-		attr->handle, conn, len);
+		attr->handle, (void *) conn, len);
 
 	err = fmna_gatt_pkt_manager_chunk_collect(&pairing_buf, buf, len, &pkt_complete);
 	if (err) {
@@ -248,7 +248,7 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 	bool pkt_complete;
 
 	LOG_INF("FMN Configuration CP write, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	NET_BUF_SIMPLE_DEFINE(config_buf, FMNS_CONFIG_MAX_RX_LEN);
 
@@ -346,7 +346,7 @@ static ssize_t non_owner_cp_write(struct bt_conn *conn,
 
 	NET_BUF_SIMPLE_DEFINE(non_owner_buf, FMNS_NON_OWNER_MAX_RX_LEN);
 
-	LOG_INF("FMN Non-owner CP write, handle: %u, conn: %p", attr->handle, conn);
+	LOG_INF("FMN Non-owner CP write, handle: %u, conn: %p", attr->handle, (void *) conn);
 
 	err = fmna_gatt_pkt_manager_chunk_collect(&non_owner_buf, buf, len, &pkt_complete);
 	if (err) {
@@ -399,7 +399,7 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 
 	NET_BUF_SIMPLE_DEFINE(owner_buf, FMNS_OWNER_MAX_RX_LEN);
 
-	LOG_INF("FMN Owner CP write, handle: %u, conn: %p", attr->handle, conn);
+	LOG_INF("FMN Owner CP write, handle: %u, conn: %p", attr->handle, (void *) conn);
 
 	err = fmna_gatt_pkt_manager_chunk_collect(&owner_buf, buf, len, &pkt_complete);
 	if (err) {
@@ -478,7 +478,7 @@ static ssize_t debug_cp_write(struct bt_conn *conn,
 	int err;
 	bool pkt_complete;
 
-	LOG_INF("FMN Debug CP write, handle: %u, conn: %p", attr->handle, conn);
+	LOG_INF("FMN Debug CP write, handle: %u, conn: %p", attr->handle, (void *) conn);
 
 	NET_BUF_SIMPLE_DEFINE(debug_buf, FMNS_DEBUG_MAX_RX_LEN);
 

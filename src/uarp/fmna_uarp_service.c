@@ -80,7 +80,7 @@ static ssize_t data_cp_write(struct bt_conn *conn,
 			     uint16_t offset, uint8_t flags)
 {
 	LOG_INF("UARP data control point write, handle: %u, conn: %p, len: %d",
-		attr->handle, conn, len);
+		attr->handle, (void *) conn, len);
 
 	if (!IS_ENABLED(CONFIG_FMNA_UARP_TEST)) {
 		if (!fmna_conn_multi_status_bit_check(conn,

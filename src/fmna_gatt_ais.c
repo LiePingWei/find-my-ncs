@@ -67,7 +67,7 @@ static ssize_t product_data_read(struct bt_conn *conn,
 				 void *buf, uint16_t len, uint16_t offset)
 {
 	LOG_INF("AIS Product Data read, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 				 &fmna_pp_product_data, sizeof(fmna_pp_product_data));
@@ -78,7 +78,7 @@ static ssize_t manufacturer_name_read(struct bt_conn *conn,
 				      void *buf, uint16_t len, uint16_t offset)
 {
 	LOG_INF("AIS Manufacturer Name read, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, attr->user_data,
 				 strlen(attr->user_data));
@@ -89,7 +89,7 @@ static ssize_t model_name_read(struct bt_conn *conn,
 			       void *buf, uint16_t len, uint16_t offset)
 {
 	LOG_INF("AIS Model Name read, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, attr->user_data,
 				 strlen(attr->user_data));
@@ -102,7 +102,7 @@ static ssize_t acc_category_read(struct bt_conn *conn,
 	uint8_t acc_category[ACC_CATEGORY_LEN] = {0};
 
 	LOG_INF("AIS Accessory Category read, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	acc_category[0] = CONFIG_FMNA_CATEGORY;
 
@@ -117,7 +117,7 @@ static ssize_t acc_capabilities_read(struct bt_conn *conn,
 	uint32_t acc_capabilities = 0;
 
 	LOG_INF("AIS Accessory Capabilities read, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	WRITE_BIT(acc_capabilities, BT_ACC_CAPABILITIES_PLAY_SOUND,
 		  IS_ENABLED(CONFIG_FMNA_CAPABILITY_PLAY_SOUND_ENABLED));
@@ -151,7 +151,7 @@ static ssize_t fw_version_read(struct bt_conn *conn,
 	fw_version = VERSION_ENCODE(ver.major, ver.minor, ver.revision);
 
 	LOG_INF("AIS Firmware Version read, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 				 &fw_version, sizeof(fw_version));
@@ -164,7 +164,7 @@ static ssize_t fmn_version_read(struct bt_conn *conn,
 	uint32_t fmn_spec_version = VERSION_ENCODE(1, 0, 0);
 
 	LOG_INF("AIS Find My Network Version read, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	/* TODO: Make version configurable. */
 
@@ -179,7 +179,7 @@ static ssize_t battery_type_read(struct bt_conn *conn,
 	uint8_t battery_type = BATTERY_TYPE;
 
 	LOG_INF("AIS Battery Type read, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 				 &battery_type, sizeof(battery_type));
@@ -192,7 +192,7 @@ static ssize_t battery_level_read(struct bt_conn *conn,
 	uint8_t battery_level;
 
 	LOG_INF("AIS Battery Level read, handle: %u, conn: %p",
-		attr->handle, conn);
+		attr->handle, (void *) conn);
 
 	battery_level = fmna_battery_state_get();
 
