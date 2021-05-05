@@ -1,3 +1,9 @@
+#
+# Copyright (c) 2021 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
+#
+
 cmake_minimum_required(VERSION 3.13.1)
 
 set(FIND_MY_DIR

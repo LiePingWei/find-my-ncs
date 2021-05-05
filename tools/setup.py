@@ -1,3 +1,9 @@
+#
+# Copyright (c) 2021 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
+#
+
 from setuptools import setup, find_packages
 
 setup(name='ncsfmntools',

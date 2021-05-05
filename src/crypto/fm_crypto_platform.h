@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2021 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
+ */
+
 #ifndef FM_CRYPTO_PLATFORM_H_
 #define FM_CRYPTO_PLATFORM_H_
 

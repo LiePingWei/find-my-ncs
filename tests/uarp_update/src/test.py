@@ -1,6 +1,8 @@
-#!/usr/bin/env python3
-# Copyright (c) 2019-2020 Nordic Semiconductor ASA
-# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+# Copyright (c) 2021 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
+#
 
 import os
 import logging

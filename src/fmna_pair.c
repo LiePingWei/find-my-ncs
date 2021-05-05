@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2021 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
+ */
+
 #include "fmna_keys.h"
 #include "fmna_gatt_fmns.h"
 #include "fmna_product_plan.h"

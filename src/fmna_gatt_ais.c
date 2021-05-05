@@ -1,5 +1,7 @@
-/** @file
- *  @brief Accessory information service
+/*
+ * Copyright (c) 2021 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
 #include <zephyr/types.h>

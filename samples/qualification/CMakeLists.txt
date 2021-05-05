@@ -1,8 +1,9 @@
 #
-# Copyright (c) 2020 Nordic Semiconductor
+# Copyright (c) 2021 Nordic Semiconductor
 #
-# SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+# SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
 #
+
 cmake_minimum_required(VERSION 3.13.1)
 
 set(CONF_FILE prj.conf)
