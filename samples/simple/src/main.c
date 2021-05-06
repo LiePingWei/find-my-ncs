@@ -176,7 +176,7 @@ static int fmna_id_create(uint8_t id)
 {
 	int ret;
 	bt_addr_le_t addrs[CONFIG_BT_ID_MAX];
-	size_t count;
+	size_t count = ARRAY_SIZE(addrs);
 
 	bt_id_get(addrs, &count);
 	if (id < count) {
