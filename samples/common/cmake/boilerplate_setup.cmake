@@ -6,11 +6,8 @@
 
 cmake_minimum_required(VERSION 3.13.1)
 
-set(FIND_MY_DIR
-    "${CMAKE_CURRENT_LIST_DIR}/../.."
-    CACHE PATH "Find My root directory")
 set(FIND_MY_COMMON_CONFIG_DIR
-    "${FIND_MY_DIR}/samples/common/configuration/"
+    "${CMAKE_CURRENT_LIST_DIR}/../configuration/"
     CACHE PATH "Common configuration directory")
 
 if (NOT CMAKE_BUILD_TYPE)
