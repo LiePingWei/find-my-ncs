@@ -3,6 +3,3 @@ build:
     - nrfxlib
   cmake: .
   kconfig: Kconfig.fmn
-  settings:
-    board_root: .
-    dts_root: .
