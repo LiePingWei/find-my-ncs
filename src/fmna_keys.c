@@ -670,6 +670,9 @@ static int paired_state_restore()
 		 secondary_pk_rotation_cnt);
 	LOG_HEXDUMP_DBG(curr_secondary_pk, sizeof(curr_secondary_pk), hexdump_header);
 
+	/* Use the secondary key as a separated key. */
+	use_secondary_pk = true;
+
 	/* Start key rotation service timer. */
 	keys_service_timer_start();
 
