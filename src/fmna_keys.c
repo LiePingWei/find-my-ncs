@@ -473,6 +473,15 @@ int fmna_keys_service_start(const struct fmna_keys_init *init_keys)
 		return err;
 	}
 
+	/* Update the Secondary SK value in storage. */
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_SECONDARY_SK_ID,
+					      curr_secondary_sk,
+					      sizeof(curr_secondary_sk));
+	if (err) {
+		LOG_ERR("fmna_keys: cannot store Secondary SK");
+		return err;
+	}
+
 	/* Start key rotation service timer. */
 	keys_service_timer_start();
 
