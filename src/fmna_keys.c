@@ -286,6 +286,9 @@ static void key_rotation_work_handle(struct k_work *item)
 			return;
 		}
 
+		/* Switch to the secondary key at the end of the current
+		 * separated key period.
+		 */
 		use_secondary_pk = true;
 	} else {
 		/* The secondary Public Key update is omitted. */
@@ -358,11 +361,6 @@ int fmna_keys_separated_key_get(uint8_t separated_key[FMNA_PUBLIC_KEY_LEN])
 	}
 
 	return 0;
-}
-
-void fmna_keys_nearby_state_notify(void)
-{
-	use_secondary_pk = false;
 }
 
 static void fmna_keys_state_cleanup(void)
@@ -501,6 +499,11 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 
 				fmna_conn_multi_status_bit_set(
 					conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
+
+				/* Stop using the secondary key after exit from
+				 * the Separated state.
+				 */
+				use_secondary_pk = false;
 
 				FMNA_EVENT_CREATE(event, FMNA_EVENT_OWNER_CONNECTED, conn);
 				EVENT_SUBMIT(event);

@@ -186,8 +186,6 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 			return -EINVAL;
 		}
 
-		fmna_keys_nearby_state_notify();
-
 		if (nearby_separated_timeout != 0) {
 			k_timer_start(&nearby_separated_timer,
 				K_SECONDS(nearby_separated_timeout),

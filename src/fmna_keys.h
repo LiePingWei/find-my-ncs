@@ -27,8 +27,6 @@ int fmna_keys_primary_key_get(uint8_t primary_key[FMNA_PUBLIC_KEY_LEN]);
 
 int fmna_keys_separated_key_get(uint8_t separated_key[FMNA_PUBLIC_KEY_LEN]);
 
-void fmna_keys_nearby_state_notify(void);
-
 int fmna_keys_service_stop(void);
 
 int fmna_keys_service_start(const struct fmna_keys_init *init_keys);
