@@ -22,7 +22,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define PRIMARY_KEYS_PER_SECONDARY_KEY       96
 #define SECONDARY_KEY_EVAL_INDEX_LOWER_BOUND 4
 #define SECONDARY_KEY_INDEX_FROM_PRIMARY(_index) \
-	((_index / PRIMARY_KEYS_PER_SECONDARY_KEY) + 1)
+	(((_index) / PRIMARY_KEYS_PER_SECONDARY_KEY) + 1)
 
 /*
  * Index period after which keys are updated in the storage.
@@ -48,6 +48,7 @@ static bool is_primary_pk_latched = false;
 
 static uint32_t primary_pk_rotation_cnt = 0;
 static uint32_t secondary_pk_rotation_delta = 0;
+static uint32_t secondary_pk_rotation_cnt = 0;
 
 static bool use_secondary_pk = false;
 
@@ -141,6 +142,22 @@ static int primary_key_roll(void)
 	return 0;
 }
 
+static bool secondary_key_is_outdated(uint32_t primary_key_index)
+{
+	int result;
+	uint32_t expected_secondary_key_index;
+
+	expected_secondary_key_index =
+		SECONDARY_KEY_INDEX_FROM_PRIMARY(primary_key_index);
+	result = expected_secondary_key_index - secondary_pk_rotation_cnt;
+
+	__ASSERT(((result == 0) || (result == 1)),
+		 "Secondary Key is not synced properly with Primary Key. "
+		 "Index diff: %d", result);
+
+	return (result != 0);
+}
+
 static int secondary_key_roll(void)
 {
 	int err;
@@ -160,7 +177,9 @@ static int secondary_key_roll(void)
 		return err;
 	}
 
-	LOG_DBG("Rolling Secondary Public Key: PW");
+	secondary_pk_rotation_cnt++;
+
+	LOG_DBG("Rolling Secondary Public Key: PW[%d]", secondary_pk_rotation_cnt);
 	LOG_HEXDUMP_DBG(curr_secondary_pk, sizeof(curr_secondary_pk), "Secondary Public Key");
 
 	return 0;
@@ -277,18 +296,21 @@ static void key_rotation_work_handle(struct k_work *item)
 
 	if ((primary_pk_rotation_cnt % PRIMARY_KEYS_PER_SECONDARY_KEY) ==
 	    secondary_pk_rotation_delta) {
+		/* The end of the current separated key period. */
+
+		/* Check if the secondary key update is necessary. */
+		if (secondary_key_is_outdated(primary_pk_rotation_cnt)) {
+			err = secondary_key_roll();
+			if (err) {
+				LOG_ERR("secondary_key_roll returned error: %d", err);
+				return;
+			}
+		}
+
 		/* Reset the latched primary key. */
 		is_primary_pk_latched = false;
 
-		err = secondary_key_roll();
-		if (err) {
-			LOG_ERR("secondary_key_roll returned error: %d", err);
-			return;
-		}
-
-		/* Switch to the secondary key at the end of the current
-		 * separated key period.
-		 */
+		/* Use the secondary key as a separated key. */
 		use_secondary_pk = true;
 	} else {
 		/* The secondary Public Key update is omitted. */
@@ -367,6 +389,7 @@ static void fmna_keys_state_cleanup(void)
 {
 	primary_pk_rotation_cnt = 0;
 	secondary_pk_rotation_delta = 0;
+	secondary_pk_rotation_cnt = 0;
 
 	is_primary_pk_latched = false;
 	use_secondary_pk = false;
@@ -604,6 +627,7 @@ static int paired_state_restore()
 			return err;
 		}
 	}
+	secondary_pk_rotation_cnt = SECONDARY_KEY_INDEX_FROM_PRIMARY(primary_pk_rotation_cnt);
 
 	/* Derive public keys and LTK. */
 	/* SK(i+1) -> Primary_Key(i+1) */
@@ -643,7 +667,7 @@ static int paired_state_restore()
 	snprintk(hexdump_header,
 		 sizeof(hexdump_header), 
 		 "Restored Secondary Public Key: PW[%d]",
-		 SECONDARY_KEY_INDEX_FROM_PRIMARY(primary_pk_rotation_cnt));
+		 secondary_pk_rotation_cnt);
 	LOG_HEXDUMP_DBG(curr_secondary_pk, sizeof(curr_secondary_pk), hexdump_header);
 
 	/* Start key rotation service timer. */
