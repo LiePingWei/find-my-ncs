@@ -185,7 +185,7 @@ static int secondary_key_roll(void)
 	return 0;
 }
 
-static int rotating_key_storage_update()
+static int rotating_key_storage_update(void)
 {
 	int err;
 	uint16_t current_keys_index_diff = 0;
@@ -557,7 +557,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	}
 }
 
-static int paired_state_restore()
+static int paired_state_restore(void)
 {
 	int err;
 	int64_t start_time;
