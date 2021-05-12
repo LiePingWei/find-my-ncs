@@ -294,19 +294,18 @@ static void key_rotation_work_handle(struct k_work *item)
 		return;
 	}
 
+	/* Check if the secondary key update is necessary. */
+	if (secondary_key_is_outdated(primary_pk_rotation_cnt)) {
+		err = secondary_key_roll();
+		if (err) {
+			LOG_ERR("secondary_key_roll returned error: %d", err);
+			return;
+		}
+	}
+
+	/* Check if this is the end of the current separated key period. */
 	if ((primary_pk_rotation_cnt % PRIMARY_KEYS_PER_SECONDARY_KEY) ==
 	    secondary_pk_rotation_delta) {
-		/* The end of the current separated key period. */
-
-		/* Check if the secondary key update is necessary. */
-		if (secondary_key_is_outdated(primary_pk_rotation_cnt)) {
-			err = secondary_key_roll();
-			if (err) {
-				LOG_ERR("secondary_key_roll returned error: %d", err);
-				return;
-			}
-		}
-
 		/* Reset the latched primary key. */
 		is_primary_pk_latched = false;
 
