@@ -1,7 +1,7 @@
 .. _simple:
 
-Find My: Simple
-###############
+Find My Simple
+##############
 
 Overview
 ********
@@ -22,6 +22,21 @@ You can also use the app interface to play a sound on the device.
 To reset the accessory to default factory settings, press **Button 4** during the application boot-up.
 
 The sample uses the background device firmware upgrade (DFU) solution called Unified Accessory Restore Protocol (UARP) which is compatible with the Find My iOS application.
+
+Requirements
+************
+
+The sample supports the following development kits:
+
++-------------------+-----------+--------------------+---------+-----------+
+|Hardware platforms |PCA        |Build target        |*ZDebug* |*ZRelease* +
++===================+===========+====================+=========+===========+
+|nRF52840 DK        |PCA10056   |nrf52840dk_nrf52840 | x       | x         |
++-------------------+-----------+--------------------+---------+-----------+
+|nRF52833 DK        |PCA10100   |nrf52833dk_nrf52833 |         | x         |
++-------------------+-----------+--------------------+---------+-----------+
+|nRF52 DK           |PCA10040   |nrf52dk_nrf52832    |         | x         |
++-------------------+-----------+--------------------+---------+-----------+
 
 User interface
 **************
@@ -47,7 +62,7 @@ LED 2:
 Building and running
 ********************
 
-To build and run this sample, refer to generic instructions from the top-level :file:`README.rst` file.
+To build and run this sample, refer to generic instructions in the :ref:`samples_buidling` section.
 
 Testing
 =======
