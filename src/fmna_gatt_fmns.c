@@ -9,6 +9,7 @@
 
 #include "fmna_gatt_fmns.h"
 #include "fmna_gatt_pkt_manager.h"
+#include "fmna_state.h"
 
 #include "events/fmna_pair_event.h"
 
@@ -157,6 +158,11 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 	LOG_INF("FMN Pairing CP write, handle: %u, conn: %p, len: %d",
 		attr->handle, (void *) conn, len);
 
+	if (fmna_state_is_paired()) {
+		LOG_ERR("FMN Pairing CP write: already paired");
+		return BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED);
+	}
+
 	err = fmna_gatt_pkt_manager_chunk_collect(&pairing_buf, buf, len, &pkt_complete);
 	if (err) {
 		LOG_ERR("fmna_gatt_pkt_manager_chunk_collect: returned error: %d", err);
@@ -198,7 +204,6 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 		EVENT_SUBMIT(event);
 
 		net_buf_simple_reset(&pairing_buf);
-		
 	}
 
 	return len;
