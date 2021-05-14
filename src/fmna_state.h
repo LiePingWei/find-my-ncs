@@ -13,6 +13,19 @@ extern "C" {
 
 #include <zephyr.h>
 
+enum fmna_state {
+	FMNA_STATE_UNPAIRED,
+	FMNA_STATE_CONNECTED,
+	FMNA_STATE_NEARBY,
+	FMNA_STATE_SEPARATED,
+
+	FMNA_STATE_UNDEFINED,
+};
+
+enum fmna_state fmna_state_get(void);
+
+bool fmna_state_is_paired(void);
+
 int fmna_state_init(uint8_t bt_id);
 
 #ifdef __cplusplus
