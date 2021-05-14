@@ -7,6 +7,7 @@
 #include <zephyr/types.h>
 #include <zephyr.h>
 
+#include "fmna_conn.h"
 #include "fmna_gatt_fmns.h"
 #include "fmna_gatt_pkt_manager.h"
 #include "fmna_state.h"
@@ -256,6 +257,10 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 {
 	int err;
 	bool pkt_complete;
+	struct fmna_config_event event;
+	struct fmna_config_event *event_heap;
+	enum fmna_gatt_response_status resp_status = FMNA_GATT_RESPONSE_STATUS_SUCCESS;
+	uint16_t opcode = FMNS_OPCODE_NONE;
 
 	LOG_INF("FMN Configuration CP write, handle: %u, conn: %p",
 		attr->handle, (void *) conn);
@@ -265,85 +270,115 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 	err = fmna_gatt_pkt_manager_chunk_collect(&config_buf, buf, len, &pkt_complete);
 	if (err) {
 		LOG_ERR("fmna_gatt_pkt_manager_chunk_collect: returned error: %d", err);
-		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_COMMAND;
+		goto error;
 	}
 
-	if (pkt_complete) {
-		struct fmna_config_event event;
-		uint16_t opcode;
+	if (config_buf.len < sizeof(opcode)) {
+		LOG_ERR("FMN Configuration CP: packet length too small");
 
-		LOG_HEXDUMP_INF(config_buf.data, config_buf.len, "Config packet:");
-		LOG_INF("Total packet length: %d", config_buf.len);
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_COMMAND;
+		goto error;
+	}
 
-		if ((config_buf.len < sizeof(opcode)) ||
-		    (config_buf.len > FMNS_CONFIG_MAX_RX_LEN)) {
-			LOG_ERR("FMN Configuration CP: packet length too large");
-			return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
-		}
+	LOG_HEXDUMP_DBG(config_buf.data, config_buf.len, "Config packet:");
+	LOG_DBG("Total packet length: %d", config_buf.len);
 
-		opcode = net_buf_simple_pull_le16(&config_buf);
-		if (!config_cp_length_verify(opcode, config_buf.len)) {
-			LOG_ERR("FMN Configuration CP: returning GATT error");
-			return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
-		}
+	opcode = net_buf_simple_pull_le16(&config_buf);
 
-		switch (opcode) {
-		case CONFIG_CP_OPCODE_START_SOUND:
-			event.id = FMNA_CONFIG_EVENT_START_SOUND;
-			break;
-		case CONFIG_CP_OPCODE_STOP_SOUND:
-			event.id = FMNA_CONFIG_EVENT_STOP_SOUND;
-			break;
-		case CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS:
-			event.id = FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS;
-			event.persistant_conn_status = net_buf_simple_pull_u8(&config_buf);
-			break;
-		case CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT:
-			event.id = FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT;
-			event.nearby_timeout = net_buf_simple_pull_le16(&config_buf);
-			break;
-		case CONFIG_CP_OPCODE_UNPAIR:
-			event.id = FMNA_CONFIG_EVENT_UNPAIR;
-			break;
-		case CONFIG_CP_OPCODE_CONFIGURE_SEPARATED_STATE:
-			event.id = FMNA_CONFIG_EVENT_CONFIGURE_SEPARATED_STATE;
-			event.separated_state.next_primary_key_roll =
-				net_buf_simple_pull_le32(&config_buf);
-			event.separated_state.seconday_key_evaluation_index =
-				net_buf_simple_pull_le32(&config_buf);
-			break;
-		case CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY:
-			event.id = FMNA_CONFIG_EVENT_LATCH_SEPARATED_KEY;
-			break;
-		case CONFIG_CP_OPCODE_SET_MAX_CONNECTIONS:
-			event.id = FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS;
-			event.max_connections = net_buf_simple_pull_u8(&config_buf);
-			break;
-		case CONFIG_CP_OPCODE_SET_UTC:
-			event.id = FMNA_CONFIG_EVENT_SET_UTC;
-			event.utc.current_time = net_buf_simple_pull_le64(&config_buf);
-			break;
-		case CONFIG_CP_OPCODE_GET_MULTI_STATUS:
-			event.id = FMNA_CONFIG_EVENT_GET_MULTI_STATUS;
-			break;
-		default:
-			LOG_ERR("FMN Configuration CP, unexpected opcode: 0x%02X", opcode);
-			return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
-		}
-		event.conn = conn;
-
-		struct fmna_config_event *event_heap = new_fmna_config_event();
-
-		memcpy(&event.header, &event_heap->header, sizeof(event.header));
-		memcpy(event_heap, &event, sizeof(*event_heap));
-
-		EVENT_SUBMIT(event_heap);
-
-		return len;
-	} else {
+	if (!pkt_complete) {
 		LOG_ERR("FMN Configuration CP: no support for chunked packets");
-		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_LENGTH;
+		goto error;
 	}
+
+	if (!config_cp_length_verify(opcode, config_buf.len)) {
+		LOG_ERR("FMN Configuration CP: invalid length");
+
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_LENGTH;
+		goto error;
+	}
+
+	switch (opcode) {
+	case CONFIG_CP_OPCODE_START_SOUND:
+		event.id = FMNA_CONFIG_EVENT_START_SOUND;
+		break;
+	case CONFIG_CP_OPCODE_STOP_SOUND:
+		event.id = FMNA_CONFIG_EVENT_STOP_SOUND;
+		break;
+	case CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS:
+		event.id = FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS;
+		event.persistant_conn_status = net_buf_simple_pull_u8(&config_buf);
+		break;
+	case CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT:
+		event.id = FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT;
+		event.nearby_timeout = net_buf_simple_pull_le16(&config_buf);
+		break;
+	case CONFIG_CP_OPCODE_UNPAIR:
+		event.id = FMNA_CONFIG_EVENT_UNPAIR;
+		break;
+	case CONFIG_CP_OPCODE_CONFIGURE_SEPARATED_STATE:
+		event.id = FMNA_CONFIG_EVENT_CONFIGURE_SEPARATED_STATE;
+		event.separated_state.next_primary_key_roll =
+			net_buf_simple_pull_le32(&config_buf);
+		event.separated_state.seconday_key_evaluation_index =
+			net_buf_simple_pull_le32(&config_buf);
+		break;
+	case CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY:
+		event.id = FMNA_CONFIG_EVENT_LATCH_SEPARATED_KEY;
+		break;
+	case CONFIG_CP_OPCODE_SET_MAX_CONNECTIONS:
+		event.id = FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS;
+		event.max_connections = net_buf_simple_pull_u8(&config_buf);
+		break;
+	case CONFIG_CP_OPCODE_SET_UTC:
+		event.id = FMNA_CONFIG_EVENT_SET_UTC;
+		event.utc.current_time = net_buf_simple_pull_le64(&config_buf);
+		break;
+	case CONFIG_CP_OPCODE_GET_MULTI_STATUS:
+		event.id = FMNA_CONFIG_EVENT_GET_MULTI_STATUS;
+		break;
+	default:
+		LOG_ERR("FMN Configuration CP, unexpected opcode: 0x%02X", opcode);
+
+		opcode = FMNS_OPCODE_NONE;
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_COMMAND;
+		goto error;
+	}
+	event.conn = conn;
+
+	if (!fmna_conn_multi_status_bit_check(
+		conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED)) {
+		LOG_ERR("FMN Configuration CP: invalid peer role");
+
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_STATE;
+		goto error;
+	}
+
+	event_heap = new_fmna_config_event();
+
+	memcpy(&event.header, &event_heap->header, sizeof(event.header));
+	memcpy(event_heap, &event, sizeof(*event_heap));
+
+	EVENT_SUBMIT(event_heap);
+
+error:
+	if (resp_status != FMNA_GATT_RESPONSE_STATUS_SUCCESS) {
+		FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, opcode, resp_status);
+
+		err = fmna_gatt_config_cp_indicate(
+			conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &cmd_buf);
+		if (err) {
+			LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
+		}
+
+		LOG_ERR("FMN Configuration CP: rejecting command, opcode: 0x%02X, status: 0x%02X",
+			opcode, resp_status);
+	}
+
+	return len;
 }
 
 static ssize_t non_owner_cp_write(struct bt_conn *conn,

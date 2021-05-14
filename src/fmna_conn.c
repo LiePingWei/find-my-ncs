@@ -205,25 +205,6 @@ static void multi_status_request_handle(struct bt_conn *conn)
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
 	NET_BUF_SIMPLE_DEFINE(status_buf, sizeof(fmna_conn->multi_status));
 
-	/* TODO: Move Config CP validation to GATT FMNS. */
-	if (!fmna_conn_multi_status_bit_check(conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED)) {
-		uint16_t opcode = fmna_config_event_to_gatt_cmd_opcode(
-			FMNA_CONFIG_EVENT_GET_MULTI_STATUS);
-
-		FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, opcode,
-						 FMNA_GATT_RESPONSE_STATUS_INVALID_STATE);
-
-		err = fmna_gatt_config_cp_indicate(
-			conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &cmd_buf);
-		if (err) {
-			LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
-		}
-
-		LOG_ERR("FMN Config CP: rejecting multi status request");
-
-		return;
-	}
-
 	LOG_INF("FMN Config CP: responding to connection multi status: 0x%02X",
 		fmna_conn->multi_status);
 
