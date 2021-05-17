@@ -26,7 +26,7 @@ static struct bt_conn *sound_initiator = NULL;
 
 static void sound_timeout_work_handle(struct k_work *item);
 
-static K_DELAYED_WORK_DEFINE(sound_timeout_work, sound_timeout_work_handle);
+static K_WORK_DELAYABLE_DEFINE(sound_timeout_work, sound_timeout_work_handle);
 
 static bool sound_stop_no_callback(struct bt_conn *conn)
 {
@@ -39,7 +39,7 @@ static bool sound_stop_no_callback(struct bt_conn *conn)
 	}
 
 	play_sound_in_progress = false;
-	k_delayed_work_cancel(&sound_timeout_work);
+	k_work_cancel_delayable(&sound_timeout_work);
 
 	if (conn) {
 		fmna_conn_multi_status_bit_clear(
@@ -110,7 +110,7 @@ bool sound_start(struct bt_conn *conn)
 	play_sound_in_progress = true;
 	sound_initiator        = conn;
 
-	k_delayed_work_submit(&sound_timeout_work, SOUND_TIMEOUT);
+	k_work_reschedule(&sound_timeout_work, SOUND_TIMEOUT);
 	if (user_cb && user_cb->sound_start) {
 		user_cb->sound_start(sound_trigger);
 	} else {

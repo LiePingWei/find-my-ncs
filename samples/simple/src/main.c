@@ -38,7 +38,7 @@ static bool motion_detected;
 
 static void sound_timeout_work_handle(struct k_work *item);
 
-static K_DELAYED_WORK_DEFINE(sound_timeout_work, sound_timeout_work_handle);
+static K_WORK_DELAYABLE_DEFINE(sound_timeout_work, sound_timeout_work_handle);
 
 struct battery_simulator {
 	const uint8_t max_level;
@@ -84,7 +84,7 @@ static void sound_start(enum fmna_sound_trigger sound_trigger)
 
 		sound_timeout = FMNA_PEER_SOUND_DURATION;
 	}
-	k_delayed_work_submit(&sound_timeout_work, sound_timeout);
+	k_work_reschedule(&sound_timeout_work, sound_timeout);
 
 	dk_set_led(FMNA_SOUND_LED, 1);
 
@@ -95,7 +95,7 @@ static void sound_stop(void)
 {
 	printk("Received a request from FMN to stop playing sound\n");
 
-	k_delayed_work_cancel(&sound_timeout_work);
+	k_work_cancel_delayable(&sound_timeout_work);
 
 	sound_stop_indicate();
 }

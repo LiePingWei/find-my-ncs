@@ -49,7 +49,7 @@ static K_WORK_DELAYABLE_DEFINE(persistent_conn_work, persistent_conn_work_handle
 
 #if CONFIG_FMNA_QUALIFICATION
 static void reset_work_handle(struct k_work *item);
-static struct k_delayed_work reset_work;
+static K_WORK_DELAYABLE_DEFINE(reset_work, reset_work_handle);
 #endif
 
 static int nearby_adv_start(void)
@@ -377,9 +377,6 @@ int fmna_state_init(uint8_t bt_id)
 	};
 
 	k_work_init(&disconnected_work.work, disconnected_work_handle);
-#if CONFIG_FMNA_QUALIFICATION
-	k_delayed_work_init(&reset_work, reset_work_handle);
-#endif
 
 	bt_conn_cb_register(&conn_callbacks);
 
@@ -536,9 +533,9 @@ static void reset_request_handle(struct bt_conn *conn)
 		LOG_ERR("fmna_gatt_debug_cp_indicate returned error: %d", err);
 	}
 
-	err = k_delayed_work_submit(&reset_work, K_MSEC(100));
+	err = k_work_reschedule(&reset_work, K_MSEC(100));
 	if (err) {
-		LOG_ERR("fmna_state: k_delayed_work_submit returned error: %d", err);
+		LOG_ERR("fmna_state: k_work_reschedule returned error: %d", err);
 	}
 }
 #endif

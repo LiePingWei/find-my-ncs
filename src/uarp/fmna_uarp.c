@@ -737,7 +737,7 @@ static int apply_and_reboot(struct fmna_uarp_accessory *accessory,
 			    struct uarpPlatformAsset *asset,
 			    k_timeout_t delay)
 {
-	static K_DELAYED_WORK_DEFINE(reboot_work, reboot_work_handler);
+	static K_WORK_DELAYABLE_DEFINE(reboot_work, reboot_work_handler);
 	int ret;
 
 	ret = dfu_target_done(true);
@@ -747,7 +747,7 @@ static int apply_and_reboot(struct fmna_uarp_accessory *accessory,
 		report_failure(accessory, asset, LAST_ERROR_DFU_DONE_FAILED, ret);
 	} else {
 		LOG_INF("Apply Staged Assets: Updating Active FW Version to Staged FW Version");
-		k_delayed_work_submit(&reboot_work, delay);
+		k_work_reschedule(&reboot_work, delay);
 		accessory->state = ASSET_APPLIED;
 	}
 
