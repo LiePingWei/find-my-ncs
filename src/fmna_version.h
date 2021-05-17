@@ -13,6 +13,11 @@ extern 'C' {
 
 #include <zephyr.h>
 
+#define FMNA_VERSION_ENCODE(fmna_version) (               \
+	((uint32_t)(fmna_version.major) << 16) |         \
+	(((uint32_t)(fmna_version.minor) & 0xFF) << 8) | \
+	((uint32_t)(fmna_version.revision) & 0xFF))
+
 struct fmna_version {
 	uint16_t major;
 	uint8_t minor;

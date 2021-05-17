@@ -59,11 +59,6 @@ enum acc_capabilities {
 	BT_ACC_CAPABILITIES_FW_UPDATE_SVC = 4,
 };
 
-#define VERSION_ENCODE(major, minor, release) ( \
-	((uint32_t)(major) << 16) |             \
-	(((uint32_t)(minor) & 0xFF) << 8) |     \
-	((uint32_t)(release) & 0xFF))
-
 static ssize_t product_data_read(struct bt_conn *conn,
 				 const struct bt_gatt_attr *attr,
 				 void *buf, uint16_t len, uint16_t offset)
@@ -150,7 +145,7 @@ static ssize_t fw_version_read(struct bt_conn *conn,
 		memset(&ver, 0, sizeof(ver));
 	}
 
-	fw_version = VERSION_ENCODE(ver.major, ver.minor, ver.revision);
+	fw_version = FMNA_VERSION_ENCODE(ver);
 
 	LOG_INF("AIS Firmware Version read, handle: %u, conn: %p",
 		attr->handle, (void *) conn);
@@ -163,7 +158,12 @@ static ssize_t fmn_version_read(struct bt_conn *conn,
 				const struct bt_gatt_attr *attr,
 				void *buf, uint16_t len, uint16_t offset)
 {
-	uint32_t fmn_spec_version = VERSION_ENCODE(1, 0, 0);
+	struct fmna_version ver_desc = {
+		.major = 1,
+		.minor = 0,
+		.revision = 0,
+	};
+	uint32_t fmn_spec_version = FMNA_VERSION_ENCODE(ver_desc);
 
 	LOG_INF("AIS Find My Network Version read, handle: %u, conn: %p",
 		attr->handle, (void *) conn);
