@@ -9,6 +9,7 @@
 #include "fmna_product_plan.h"
 #include "fmna_serial_number.h"
 #include "fmna_storage.h"
+#include "fmna_version.h"
 #include "crypto/fm_crypto.h"
 #include "events/fmna_pair_event.h"
 #include "events/fmna_event.h"
@@ -106,10 +107,21 @@ int fmna_pair_init(void)
 	return err;
 }
 
+static void pairing_peer_disconnect(struct bt_conn *conn)
+{
+	int err;
+
+	err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+	if (err) {
+		LOG_ERR("bt_conn_disconnect returned error: %d", err);
+	}
+}
+
 static int e2_msg_populate(struct fmna_initiate_pairing *init_pairing,
 			   struct e2_encr_msg *e2_encr_msg)
 {
 	int err;
+	struct fmna_version ver;
 
 	memcpy(e2_encr_msg->session_nonce,
 	       init_pairing->session_nonce,
@@ -131,8 +143,13 @@ static int e2_msg_populate(struct fmna_initiate_pairing *init_pairing,
 
 	memcpy(e2_encr_msg->seedk1, seedk1, sizeof(e2_encr_msg->seedk1));
 
-	/* TODO: Get the real version number */
-	e2_encr_msg->fw_version = (1 << 16) | (0 << 8) | 16;
+	err = fmna_version_fw_get(&ver);
+	if (err) {
+		LOG_ERR("FMNA Pair: Firmware Version read failed");
+		memset(&ver, 0, sizeof(ver));
+	}
+
+	e2_encr_msg->fw_version = FMNA_VERSION_ENCODE(ver);
 
 	memcpy(e2_encr_msg->product_data, fmna_pp_product_data, sizeof(e2_encr_msg->product_data));
 
@@ -391,7 +408,7 @@ static void initiate_pairing_cmd_handle(struct bt_conn *conn,
 		LOG_ERR("pairing_data_generate returned error: %d",
 			err);
 
-		/* TODO: Emit pairing failure event. */
+		pairing_peer_disconnect(conn);
 		return;
 	}
 
@@ -418,7 +435,7 @@ static void finalize_pairing_cmd_handle(struct bt_conn *conn,
 		LOG_ERR("pairing_status_generate returned error: %d",
 			err);
 
-		/* TODO: Emit pairing failure event. */
+		pairing_peer_disconnect(conn);
 		return;
 	}
 
