@@ -152,7 +152,7 @@ def extract(device, settings_base):
     # Trim zeroes at the end and covert to base64 format
     auth_token = bytearray(auth_token)
     remove_zeros(auth_token)
-    auth_token_base64 = base64.encodestring(auth_token).replace(six.binary_type(b'\n'), six.binary_type(b'')).decode()
+    auth_token_base64 = base64.encodebytes(auth_token).replace(six.binary_type(b'\n'), six.binary_type(b'')).decode()
 
     print("SW Authentication Token: %s" % auth_token_base64)
 
