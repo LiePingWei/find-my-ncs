@@ -240,7 +240,7 @@ static void sound_completed_handle(void)
 	}
 }
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 static void configure_ut_timers_request_handle(struct bt_conn *conn,
 					       uint32_t separated_ut_timeout,
 					       uint32_t separated_ut_backoff)
@@ -290,7 +290,7 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 	if (is_fmna_debug_event(eh)) {
 		struct fmna_debug_event *event = cast_fmna_debug_event(eh);
 
@@ -315,7 +315,7 @@ static bool event_handler(const struct event_header *eh)
 EVENT_LISTENER(fmna_motion_detection, event_handler);
 EVENT_SUBSCRIBE(fmna_motion_detection, fmna_event);
 
-#if CONFIG_FMNA_DEBUG
+#if CONFIG_FMNA_QUALIFICATION
 EVENT_SUBSCRIBE(fmna_motion_detection, fmna_debug_event);
 #endif
 
