@@ -497,6 +497,28 @@ error:
 	return len;
 }
 
+static bool owner_cp_length_verify(uint16_t opcode, uint32_t len)
+{
+	uint16_t expected_pkt_len = 0;
+
+	switch (opcode) {
+	case OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY:
+	case OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER:
+	case OWNER_CP_OPCODE_GET_SERIAL_NUMBER:
+		break;
+	default:
+		return true;
+	}
+
+	if (len != expected_pkt_len) {
+		LOG_ERR("FMN Owner CP: wrong packet length: %d != %d for "
+			"0x%04X opcode", len, expected_pkt_len, opcode);
+		return false;
+	}
+
+	return true;
+}
+
 static ssize_t owner_cp_write(struct bt_conn *conn,
 			      const struct bt_gatt_attr *attr,
 			      const void *buf, uint16_t len,
@@ -504,6 +526,11 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 {
 	int err;
 	bool pkt_complete;
+	enum fmna_state state;
+	enum fmna_owner_event_id id;
+	struct fmna_owner_event *event;
+	enum fmna_gatt_response_status resp_status = FMNA_GATT_RESPONSE_STATUS_SUCCESS;
+	uint16_t opcode = FMNS_OPCODE_NONE;
 
 	NET_BUF_SIMPLE_DEFINE(owner_buf, FMNS_OWNER_MAX_RX_LEN);
 
@@ -512,41 +539,80 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 	err = fmna_gatt_pkt_manager_chunk_collect(&owner_buf, buf, len, &pkt_complete);
 	if (err) {
 		LOG_ERR("fmna_gatt_pkt_manager_chunk_collect: returned error: %d", err);
-		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_COMMAND;
+		goto error;
 	}
 
-	if (pkt_complete) {
-		uint16_t opcode;
-		enum fmna_owner_event_id id;
+	if (owner_buf.len < sizeof(opcode)) {
+		LOG_ERR("FMN Owner CP: packet length too small");
 
-		LOG_HEXDUMP_INF(owner_buf.data, owner_buf.len, "Owner packet:");
-		LOG_INF("Total packet length: %d", owner_buf.len);
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_COMMAND;
+		goto error;
+	}
 
-		opcode = net_buf_simple_pull_le16(&owner_buf);
-		switch (opcode) {
-		case OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY:
-			id = FMNA_OWNER_EVENT_GET_CURRENT_PRIMARY_KEY;
-			break;
-		case OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER:
-			id = FMNA_OWNER_EVENT_GET_ICLOUD_IDENTIFIER;
-			break;
-		case OWNER_CP_OPCODE_GET_SERIAL_NUMBER:
-			id = FMNA_OWNER_EVENT_GET_SERIAL_NUMBER;
-			break;
-		default:
-			LOG_ERR("FMN Owner CP, unexpected opcode: 0x%02X", opcode);
-			return len;
+	LOG_HEXDUMP_DBG(owner_buf.data, owner_buf.len, "Owner packet:");
+	LOG_DBG("Total packet length: %d", owner_buf.len);
+
+	opcode = net_buf_simple_pull_le16(&owner_buf);
+
+	if (!pkt_complete) {
+		LOG_ERR("FMN Owner CP: no support for chunked packets");
+
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_LENGTH;
+		goto error;
+	}
+
+	if (!owner_cp_length_verify(opcode, owner_buf.len)) {
+		LOG_ERR("FMN Owner CP: invalid length");
+
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_LENGTH;
+		goto error;
+	}
+
+	switch (opcode) {
+	case OWNER_CP_OPCODE_GET_CURRENT_PRIMARY_KEY:
+		id = FMNA_OWNER_EVENT_GET_CURRENT_PRIMARY_KEY;
+		break;
+	case OWNER_CP_OPCODE_GET_ICLOUD_IDENTIFIER:
+		id = FMNA_OWNER_EVENT_GET_ICLOUD_IDENTIFIER;
+		break;
+	case OWNER_CP_OPCODE_GET_SERIAL_NUMBER:
+		id = FMNA_OWNER_EVENT_GET_SERIAL_NUMBER;
+		break;
+	default:
+		LOG_ERR("FMN Owner CP, unexpected opcode: 0x%02X", opcode);
+
+		opcode = FMNS_OPCODE_NONE;
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_COMMAND;
+		goto error;
+	}
+
+	state = fmna_state_get();
+	if ((state == FMNA_STATE_NEARBY) || (state == FMNA_STATE_UNPAIRED)) {
+		LOG_ERR("FMN Owner CP: invalid state");
+
+		resp_status = FMNA_GATT_RESPONSE_STATUS_INVALID_STATE;
+		goto error;
+	}
+
+	event = new_fmna_owner_event();
+	event->id = id;
+	event->conn = conn;
+	EVENT_SUBMIT(event);
+
+error:
+	if (resp_status != FMNA_GATT_RESPONSE_STATUS_SUCCESS) {
+		FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, opcode, resp_status);
+
+		err = fmna_gatt_owner_cp_indicate(
+			conn, FMNA_GATT_OWNER_COMMAND_RESPONSE_IND, &cmd_buf);
+		if (err) {
+			LOG_ERR("fmna_gatt_owner_cp_indicate returned error: %d", err);
 		}
 
-		struct fmna_owner_event *event = new_fmna_owner_event();
-
-		event->id = id;
-		event->conn = conn;
-
-		EVENT_SUBMIT(event);
-	} else {
-		LOG_ERR("FMN Configuration CP: no support for chunked packets");
-		return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+		LOG_ERR("FMN Owner CP: rejecting command, opcode: 0x%02X, status: 0x%02X",
+			opcode, resp_status);
 	}
 
 	return len;
