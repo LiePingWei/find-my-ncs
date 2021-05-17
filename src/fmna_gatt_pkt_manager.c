@@ -43,6 +43,11 @@ int fmna_gatt_pkt_manager_chunk_collect(struct net_buf_simple *pkt,
 {
 	*pkt_complete = false;
 
+	if (!chunk_len) {
+		LOG_ERR("FMN Packet: 0 length");
+		return -EINVAL;
+	}
+
 	switch (chunk[0]) {
 	case FRAGMENTED_FLAG_START_OR_CONTINUE:
 		break;
