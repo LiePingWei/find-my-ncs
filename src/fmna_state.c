@@ -94,7 +94,7 @@ static int separated_adv_start(void)
 	return err;
 }
 
-static char *state_name_get(enum fmna_state state)
+static const char *state_name_get(enum fmna_state state)
 {
 	switch (state) {
 	case FMNA_STATE_UNPAIRED:
@@ -115,7 +115,7 @@ static char *state_name_get(enum fmna_state state)
 static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 {
 	int err = 0;
-	char *state_str;
+	const char *state_str = state_name_get(new_state);
 	enum fmna_state prev_state = state;
 
 	if (prev_state == new_state) {
@@ -124,7 +124,6 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 	}
 
 	state = new_state;
-	state_str = state_name_get(new_state);
 
 	/* Handle Unpaired state transition. */
 	if (new_state == FMNA_STATE_UNPAIRED) {
