@@ -19,6 +19,15 @@ struct conn_owner_finder {
 	const uint8_t owner_array_size;
 };
 
+struct conn_status_finder {
+	const struct {
+		enum fmna_conn_multi_status_bit status_bit;
+	} in;
+	struct {
+		bool is_found;
+	} out;
+};
+
 struct fmna_conn {
 	uint32_t multi_status;
 	bool is_valid;
@@ -54,6 +63,16 @@ static void conn_owner_iterator(struct bt_conn *conn, void *user_data)
 		}
 
 		*conn_owner_finder->owner_cnt += 1;
+	}
+}
+
+static void conn_status_iterator(struct bt_conn *conn, void *user_data)
+{
+	struct conn_status_finder *conn_status_finder =
+		(struct conn_status_finder *) user_data;
+
+	if (fmna_conn_multi_status_bit_check(conn, conn_status_finder->in.status_bit)) {
+		conn_status_finder->out.is_found = true;
 	}
 }
 
@@ -148,11 +167,16 @@ static void persistant_conn_request_handle(struct bt_conn *conn, uint8_t persist
 {
 	int err;
 	uint16_t resp_opcode;
+	struct conn_status_finder conn_status_finder = {
+		.in.status_bit = FMNA_CONN_MULTI_STATUS_BIT_PERSISTENT_CONNECTION,
+		.out.is_found = false,
+	};
 
 	LOG_INF("FMN Config CP: responding to pesistant connection request: %d",
 		persistant_conn_status);
 
-	if (persistant_conn_status & BIT(0)) {
+	bt_conn_foreach(BT_CONN_TYPE_ALL, conn_status_iterator, &conn_status_finder);
+	if ((persistant_conn_status & BIT(0)) && !conn_status_finder.out.is_found) {
 		fmna_conn_multi_status_bit_set(
 			conn, FMNA_CONN_MULTI_STATUS_BIT_PERSISTENT_CONNECTION);
 	} else {
