@@ -22,6 +22,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 /* Timeout values in seconds */
 #define NEARBY_SEPARATED_TIMEOUT_DEFAULT 30
 #define NEARBY_SEPARATED_TIMEOUT_MAX     3600
+#define PERSISTENT_CONN_ADV_TIMEOUT      180
 
 struct disconnected_work {
 	struct k_work work;
@@ -34,14 +35,17 @@ static struct bt_conn *fmn_paired_conn;
 static bool is_bonded = false;
 static bool is_maintained = false;
 static bool unpair_pending = false;
+static bool persistent_conn_adv = false;
 
 static uint16_t nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
 
 static void nearby_separated_work_handle(struct k_work *item);
 static void nearby_separated_timeout_handle(struct k_timer *timer_id);
+static void persistent_conn_work_handle(struct k_work *item);
 
 static K_WORK_DEFINE(nearby_separated_work, nearby_separated_work_handle);
 static K_TIMER_DEFINE(nearby_separated_timer, nearby_separated_timeout_handle, NULL);
+static K_WORK_DELAYABLE_DEFINE(persistent_conn_work, persistent_conn_work_handle);
 
 #if CONFIG_FMNA_QUALIFICATION
 static void reset_work_handle(struct k_work *item);
@@ -98,6 +102,41 @@ static int separated_adv_start(void)
 	return err;
 }
 
+static void advertise_restart_on_no_state_change(void)
+{
+	int err;
+
+	switch (state) {
+	case FMNA_STATE_UNPAIRED:
+		err = fmna_adv_start_unpaired(false);
+		if (err) {
+			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
+			return;
+		}
+		break;
+	case FMNA_STATE_CONNECTED:
+		/* No action is necessary. */
+		break;
+	case FMNA_STATE_NEARBY:
+		err = nearby_adv_start();
+		if (err) {
+			LOG_ERR("nearby_adv_start returned error: %d", err);
+			return;
+		}
+		break;
+	case FMNA_STATE_SEPARATED:
+		err = separated_adv_start();
+		if (err) {
+			LOG_ERR("separated_adv_start returned error: %d", err);
+			return;
+		}
+		break;
+	case FMNA_STATE_UNDEFINED:
+		__ASSERT(0, "FMN state must be defined at this point");
+		break;
+	}
+}
+
 static const char *state_name_get(enum fmna_state state)
 {
 	switch (state) {
@@ -151,6 +190,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 			}
 
 			unpair_pending = false;
+			persistent_conn_adv = false;
 		}
 
 		err = fmna_adv_start_unpaired(true);
@@ -177,6 +217,16 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 				fmn_paired_conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
 
 			fmn_paired_conn = NULL;
+
+			if (fmna_conn_multi_status_bit_check(conn,
+				FMNA_CONN_MULTI_STATUS_BIT_PERSISTENT_CONNECTION)) {
+				k_work_reschedule(&persistent_conn_work,
+						  K_SECONDS(PERSISTENT_CONN_ADV_TIMEOUT));
+
+				persistent_conn_adv = true;
+
+				LOG_DBG("Starting persistant connection advertising");
+			}
 		} else {
 			LOG_ERR("FMN State: Forbidden transition");
 			return -EINVAL;
@@ -240,9 +290,21 @@ static void nearby_separated_timeout_handle(struct k_timer *timer_id)
 	k_work_submit(&nearby_separated_work);
 }
 
+static void persistent_conn_work_handle(struct k_work *item)
+{
+	if (!persistent_conn_adv) {
+		return;
+	}
+
+	LOG_DBG("Stopping persistant connection advertising");
+
+	persistent_conn_adv = false;
+
+	advertise_restart_on_no_state_change();
+}
+
 static void disconnected_work_handle(struct k_work *item)
 {
-	int err;
 	struct disconnected_work *disconnect =
 		CONTAINER_OF(item, struct disconnected_work, work);
 	struct bt_conn *conn = disconnect->conn;
@@ -258,25 +320,7 @@ static void disconnected_work_handle(struct k_work *item)
 
 	LOG_DBG("Disconnected (reason %u)", reason);
 
-	if (state == FMNA_STATE_UNPAIRED) {
-		err = fmna_adv_start_unpaired(false);
-		if (err) {
-			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
-			return;
-		}
-	} else if (state == FMNA_STATE_NEARBY) {
-		err = nearby_adv_start();
-		if (err) {
-			LOG_ERR("nearby_adv_start returned error: %d", err);
-			return;
-		}
-	} else if (state == FMNA_STATE_SEPARATED) {
-		err = separated_adv_start();
-		if (err) {
-			LOG_ERR("separated_adv_start returned error: %d", err);
-			return;
-		}
-	}
+	advertise_restart_on_no_state_change();
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -360,13 +404,16 @@ static void fmna_public_keys_changed(struct fmna_public_keys_changed *keys_chang
 	is_maintained = (state == FMNA_STATE_CONNECTED);
 
 	/* Restart the advertising with a new key payload. */
-	if (state == FMNA_STATE_NEARBY) {
-		nearby_adv_start();
-	} else if (state == FMNA_STATE_SEPARATED) {
-		if (keys_changed->separated_key_changed) {
-			separated_adv_start();
-		}
+	if (state == FMNA_STATE_UNPAIRED) {
+		return;
 	}
+
+	if ((state == FMNA_STATE_SEPARATED) &&
+	    !keys_changed->separated_key_changed) {
+		return;
+	}
+
+	advertise_restart_on_no_state_change();
 }
 
 static void nearby_timeout_set_request_handle(struct bt_conn *conn, uint16_t nearby_timeout)
