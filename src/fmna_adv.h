@@ -16,10 +16,12 @@ extern "C" {
 #include "fmna_keys.h"
 
 struct fmna_adv_nearby_config {
+	bool is_maintained;
 	uint8_t primary_key[FMNA_PUBLIC_KEY_LEN];
 };
 
 struct fmna_adv_separated_config {
+	bool is_maintained;
 	uint8_t primary_key[FMNA_PUBLIC_KEY_LEN];
 	uint8_t separated_key[FMNA_PUBLIC_KEY_LEN];
 };

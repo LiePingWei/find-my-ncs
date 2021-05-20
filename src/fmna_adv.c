@@ -30,6 +30,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 #define PAIRED_ADV_APPLE_ID                     0x004C
 #define PAIRED_ADV_PAYLOAD_TYPE                 0x12
+#define PAIRED_ADV_STATUS_MAINTAINED_BIT_POS    2
 #define PAIRED_ADV_STATUS_FIXED_BIT_POS         5
 #define PAIRED_ADV_STATUS_BATTERY_STATE_BIT_POS 6
 #define PAIRED_ADV_STATUS_BATTERY_STATE_MASK    (BIT(6) & BIT(7))
@@ -329,6 +330,9 @@ static void nearby_adv_payload_encode(struct nearby_adv_payload *adv_payload,
 
 	battery_state = fmna_battery_state_get();
 
+	if (config->is_maintained) {
+		adv_payload->status |= BIT(PAIRED_ADV_STATUS_MAINTAINED_BIT_POS);
+	}
 	adv_payload->status |= BIT(PAIRED_ADV_STATUS_FIXED_BIT_POS);
 	adv_payload->status |= (battery_state << PAIRED_ADV_STATUS_BATTERY_STATE_BIT_POS) &
 		PAIRED_ADV_STATUS_BATTERY_STATE_MASK;
@@ -392,6 +396,9 @@ static void separated_adv_payload_encode(struct separated_adv_payload *adv_paylo
 
 	battery_state = fmna_battery_state_get();
 
+	if (config->is_maintained) {
+		adv_payload->status |= BIT(PAIRED_ADV_STATUS_MAINTAINED_BIT_POS);
+	}
 	adv_payload->status |= BIT(PAIRED_ADV_STATUS_FIXED_BIT_POS);
 	adv_payload->status |= (battery_state << PAIRED_ADV_STATUS_BATTERY_STATE_BIT_POS) &
 		PAIRED_ADV_STATUS_BATTERY_STATE_MASK;

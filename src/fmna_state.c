@@ -32,6 +32,7 @@ struct disconnected_work {
 static enum fmna_state state = FMNA_STATE_UNDEFINED;
 static struct bt_conn *fmn_paired_conn;
 static bool is_bonded = false;
+static bool is_maintained = false;
 static bool unpair_pending = false;
 
 static uint16_t nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
@@ -53,6 +54,8 @@ static int nearby_adv_start(void)
 	struct fmna_adv_nearby_config config;
 
 	fmna_keys_primary_key_get(config.primary_key);
+
+	config.is_maintained = is_maintained;
 
 	err = fmna_adv_start_nearby(&config);
 	if (err) {
@@ -81,6 +84,8 @@ static int separated_adv_start(void)
 		LOG_ERR("fmna_keys_separated_key_get returned error: %d", err);
 		return err;
 	}
+
+	config.is_maintained = is_maintained;
 
 	err = fmna_adv_start_separated(&config);
 	if (err) {
@@ -163,6 +168,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 		}
 
 		fmn_paired_conn = conn;
+		is_maintained = true;
 	} else if (new_state == FMNA_STATE_NEARBY) {
 		/* Handle Nearby state transition. */
 
@@ -350,6 +356,10 @@ int fmna_state_init(uint8_t bt_id)
 
 static void fmna_public_keys_changed(struct fmna_public_keys_changed *keys_changed)
 {
+	/* Set the maintained status. */
+	is_maintained = (state == FMNA_STATE_CONNECTED);
+
+	/* Restart the advertising with a new key payload. */
 	if (state == FMNA_STATE_NEARBY) {
 		nearby_adv_start();
 	} else if (state == FMNA_STATE_SEPARATED) {
