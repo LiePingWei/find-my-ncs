@@ -15,7 +15,9 @@
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
-#define FMN_ADV_INTERVAL_FAST BT_GAP_ADV_FAST_INT_MIN_1
+#define UNPAIRED_ADV_INTERVAL    0x0030 /* 30 ms */
+#define PAIRED_ADV_INTERVAL      0x0C80 /* 2 s */
+#define PAIRED_ADV_INTERVAL_FAST 0x0030 /* 30 ms */
 
 /* Unpaired advertiser timeout 10 min in [N * 10 ms]:
  * 10 * 60 * 100 * 10ms = 10 * 60 s = 10 min
@@ -153,21 +155,31 @@ static int bt_ext_advertising_stop(void)
 	return 0;
 }
 
-static int bt_ext_advertising_start(const struct bt_data *ad, size_t ad_len)
+static void adv_param_populate(struct bt_le_adv_param *param, uint32_t interval)
+{
+	memset(param, 0, sizeof(*param));
+
+	param->id = bt_id;
+	param->options = BT_LE_ADV_OPT_CONNECTABLE;
+
+	param->interval_min = interval;
+	param->interval_max = interval;
+}
+
+static int bt_ext_advertising_start(const struct bt_data *ad,
+				    size_t ad_len,
+				    uint32_t interval)
 {
 	int err;
+	struct bt_le_adv_param param;
 	struct bt_le_ext_adv_start_param ext_adv_start_param = {0};
-	struct bt_le_adv_param param = {0};
 
 	if (adv_set) {
 		LOG_ERR("Advertising set is already claimed");
 		return -EAGAIN;
 	}
 
-	param.interval_min = BT_GAP_ADV_FAST_INT_MIN_1;
-	param.interval_max = BT_GAP_ADV_FAST_INT_MAX_1;
-	param.options = BT_LE_ADV_OPT_CONNECTABLE;
-	param.id = bt_id;
+	adv_param_populate(&param, interval);
 
 	err = bt_le_ext_adv_create(&param, &ext_adv_callbacks, &adv_set);
 	if (err) {
@@ -188,17 +200,6 @@ static int bt_ext_advertising_start(const struct bt_data *ad, size_t ad_len)
 	}
 
 	return err;
-}
-
-static void adv_param_populate(struct bt_le_adv_param *param, uint32_t interval)
-{
-	memset(param, 0, sizeof(*param));
-
-	param->id = bt_id;
-	param->options = BT_LE_ADV_OPT_CONNECTABLE;
-
-	param->interval_min = interval;
-	param->interval_max = interval;
 }
 
 static int id_addr_reconfigure(bt_addr_le_t *addr)
@@ -272,7 +273,7 @@ int fmna_adv_start_unpaired(bool change_address)
 	unpaired_adv_payload_encode(&adv_payload.unpaired);
 
 	/* Configure the advertising parameters. */
-	adv_param_populate(&param, FMN_ADV_INTERVAL_FAST);
+	adv_param_populate(&param, UNPAIRED_ADV_INTERVAL);
 	start_param.timeout = UNPAIRED_ADV_TIMEOUT;
 
 	err = bt_le_ext_adv_create(&param, &unpaired_adv_callbacks, &adv_set);
@@ -351,6 +352,7 @@ int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config)
 
 	int err;
 	bt_addr_le_t addr;
+	uint32_t interval = PAIRED_ADV_INTERVAL;
 
 	/* Stop any ongoing advertising. */
 	err = bt_ext_advertising_stop();
@@ -373,7 +375,7 @@ int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config)
 		return err;
 	}
 
-	err = bt_ext_advertising_start(nearby_ad, ARRAY_SIZE(nearby_ad));
+	err = bt_ext_advertising_start(nearby_ad, ARRAY_SIZE(nearby_ad), interval);
 	if (err) {
 		LOG_ERR("bt_ext_advertising_start returned error: %d", err);
 		return err;
@@ -423,6 +425,7 @@ int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 
 	int err;
 	bt_addr_le_t addr;
+	uint32_t interval = PAIRED_ADV_INTERVAL;
 
 	/* Stop any ongoing advertising. */
 	err = bt_ext_advertising_stop();
@@ -445,7 +448,7 @@ int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 		return err;
 	}
 
-	err = bt_ext_advertising_start(separated_ad, ARRAY_SIZE(separated_ad));
+	err = bt_ext_advertising_start(separated_ad, ARRAY_SIZE(separated_ad), interval);
 	if (err) {
 		LOG_ERR("bt_ext_advertising_start returned error: %d", err);
 		return err;
