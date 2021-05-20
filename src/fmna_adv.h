@@ -15,15 +15,22 @@ extern "C" {
 
 #include "fmna_keys.h"
 
-#define FMNA_ADV_SEPARATED_HINT_INDEX 5
+struct fmna_adv_nearby_config {
+	uint8_t primary_key[FMNA_PUBLIC_KEY_LEN];
+};
+
+struct fmna_adv_separated_config {
+	uint8_t primary_key[FMNA_PUBLIC_KEY_LEN];
+	uint8_t separated_key[FMNA_PUBLIC_KEY_LEN];
+};
 
 typedef void (*fmna_adv_timeout_cb_t)(void);
 
 int fmna_adv_start_unpaired(bool change_address);
 
-int fmna_adv_start_nearby(const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN]);
+int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config);
 
-int fmna_adv_start_separated(const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN], uint8_t hint);
+int fmna_adv_start_separated(const struct fmna_adv_separated_config *config);
 
 int fmna_adv_unpaired_cb_register(fmna_adv_timeout_cb_t cb);
 

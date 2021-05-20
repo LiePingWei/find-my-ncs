@@ -50,11 +50,11 @@ static struct k_delayed_work reset_work;
 static int nearby_adv_start(void)
 {
 	int err;
-	uint8_t primary_pk[FMNA_PUBLIC_KEY_LEN];
+	struct fmna_adv_nearby_config config;
 
-	fmna_keys_primary_key_get(primary_pk);
+	fmna_keys_primary_key_get(config.primary_key);
 
-	err = fmna_adv_start_nearby(primary_pk);
+	err = fmna_adv_start_nearby(&config);
 	if (err) {
 		LOG_ERR("fmna_adv_start_nearby returned error: %d", err);
 		return err;
@@ -68,22 +68,21 @@ static int nearby_adv_start(void)
 static int separated_adv_start(void)
 {
 	int err;
-	uint8_t primary_pk[FMNA_PUBLIC_KEY_LEN];
-	uint8_t separated_pk[FMNA_PUBLIC_KEY_LEN];
+	struct fmna_adv_separated_config config;
 
-	err = fmna_keys_primary_key_get(primary_pk);
+	err = fmna_keys_primary_key_get(config.primary_key);
 	if (err) {
 		LOG_ERR("fmna_keys_primary_key_get returned error: %d", err);
 		return err;
 	}
 
-	err = fmna_keys_separated_key_get(separated_pk);
+	err = fmna_keys_separated_key_get(config.separated_key);
 	if (err) {
 		LOG_ERR("fmna_keys_separated_key_get returned error: %d", err);
 		return err;
 	}
 
-	err = fmna_adv_start_separated(separated_pk, primary_pk[FMNA_ADV_SEPARATED_HINT_INDEX]);
+	err = fmna_adv_start_separated(&config);
 	if (err) {
 		LOG_ERR("fmna_adv_start_separated returned error: %d", err);
 		return err;

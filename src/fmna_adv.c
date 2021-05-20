@@ -37,6 +37,8 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define PAIRED_ADV_OPT_ADDR_TYPE_MASK           (0x03 << PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS)
 
 #define SEPARATED_ADV_REM_PUBKEY_LEN (FMNA_PUBLIC_KEY_LEN - BT_ADDR_LEN)
+#define SEPARATED_ADV_HINT_INDEX      5
+
 
 struct __packed unpaired_adv_payload {
 	uint16_t uuid;
@@ -316,8 +318,9 @@ static void paired_adv_header_encode(struct paired_adv_payload_header *hdr,
 }
 
 static void nearby_adv_payload_encode(struct nearby_adv_payload *adv_payload,
-				      const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN])
+				      const struct fmna_adv_nearby_config *config)
 {
+	uint8_t opt;
 	enum fmna_battery_state battery_state;
 
 	memset(adv_payload, 0, sizeof(*adv_payload));
@@ -330,10 +333,12 @@ static void nearby_adv_payload_encode(struct nearby_adv_payload *adv_payload,
 	adv_payload->status |= (battery_state << PAIRED_ADV_STATUS_BATTERY_STATE_BIT_POS) &
 		PAIRED_ADV_STATUS_BATTERY_STATE_MASK;
 
-	adv_payload->opt = ((pubkey[0] & PAIRED_ADV_OPT_ADDR_TYPE_MASK) >> PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS);
+	opt = (config->primary_key[0] & PAIRED_ADV_OPT_ADDR_TYPE_MASK);
+	opt = (opt >> PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS);
+	adv_payload->opt = opt;
 }
 
-int fmna_adv_start_nearby(const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN])
+int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config)
 {
 	static const struct bt_data nearby_ad[] = {
 		BT_DATA(BT_DATA_MANUFACTURER_DATA, (uint8_t *) &adv_payload,
@@ -350,14 +355,14 @@ int fmna_adv_start_nearby(const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN])
 		return err;
 	}
 
-	nearby_adv_payload_encode(&adv_payload.nearby, pubkey);
+	nearby_adv_payload_encode(&adv_payload.nearby, config);
 
 	/*
 	 * Reconfigure the BT address after coming back from the Separated
 	 * state. Each address reconfiguration changes the BLE identity and
 	 * removes BLE bonds.
 	 */
-	paired_addr_encode(&addr, pubkey);
+	paired_addr_encode(&addr, config->primary_key);
 	err = id_addr_reconfigure(&addr);
 	if (err) {
 		LOG_ERR("id_addr_reconfigure returned error: %d", err);
@@ -376,9 +381,9 @@ int fmna_adv_start_nearby(const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN])
 }
 
 static void separated_adv_payload_encode(struct separated_adv_payload *adv_payload,
-					 const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN],
-					 uint8_t hint)
+					 const struct fmna_adv_separated_config *config)
 {
+	uint8_t opt;
 	enum fmna_battery_state battery_state;
 
 	memset(adv_payload, 0, sizeof(*adv_payload));
@@ -391,14 +396,18 @@ static void separated_adv_payload_encode(struct separated_adv_payload *adv_paylo
 	adv_payload->status |= (battery_state << PAIRED_ADV_STATUS_BATTERY_STATE_BIT_POS) &
 		PAIRED_ADV_STATUS_BATTERY_STATE_MASK;
 
-	memcpy(adv_payload->rem_pubkey, pubkey + BT_ADDR_LEN,
+	memcpy(adv_payload->rem_pubkey,
+	       config->separated_key + BT_ADDR_LEN,
 	       sizeof(adv_payload->rem_pubkey));
 
-	adv_payload->opt = ((pubkey[0] & PAIRED_ADV_OPT_ADDR_TYPE_MASK) >> PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS);
-	adv_payload->hint = hint;
+	opt = (config->separated_key[0] & PAIRED_ADV_OPT_ADDR_TYPE_MASK);
+	opt = (opt >> PAIRED_ADV_OPT_ADDR_TYPE_BIT_POS);
+	adv_payload->opt = opt;
+
+	adv_payload->hint = config->primary_key[SEPARATED_ADV_HINT_INDEX];
 }
 
-int fmna_adv_start_separated(const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN], uint8_t hint)
+int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 {
 	static const struct bt_data separated_ad[] = {
 		BT_DATA(BT_DATA_MANUFACTURER_DATA, (uint8_t *) &adv_payload,
@@ -415,14 +424,14 @@ int fmna_adv_start_separated(const uint8_t pubkey[FMNA_PUBLIC_KEY_LEN], uint8_t 
 		return err;
 	}
 
-	separated_adv_payload_encode(&adv_payload.separated, pubkey, hint);
+	separated_adv_payload_encode(&adv_payload.separated, config);
 
 	/*
 	 * Reconfigure the BT address after coming back from the Separated
 	 * state. Each address reconfiguration changes the BLE identity and
 	 * removes BLE bonds.
 	 */
-	paired_addr_encode(&addr, pubkey);
+	paired_addr_encode(&addr, config->separated_key);
 	err = id_addr_reconfigure(&addr);
 	if (err) {
 		LOG_ERR("id_addr_reconfigure returned error: %d", err);
