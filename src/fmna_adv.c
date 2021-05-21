@@ -352,7 +352,7 @@ int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config)
 
 	int err;
 	bt_addr_le_t addr;
-	uint32_t interval = PAIRED_ADV_INTERVAL;
+	uint32_t interval;
 
 	/* Stop any ongoing advertising. */
 	err = bt_ext_advertising_stop();
@@ -375,6 +375,7 @@ int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config)
 		return err;
 	}
 
+	interval = config->fast_mode ? PAIRED_ADV_INTERVAL_FAST : PAIRED_ADV_INTERVAL;
 	err = bt_ext_advertising_start(nearby_ad, ARRAY_SIZE(nearby_ad), interval);
 	if (err) {
 		LOG_ERR("bt_ext_advertising_start returned error: %d", err);
@@ -425,7 +426,7 @@ int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 
 	int err;
 	bt_addr_le_t addr;
-	uint32_t interval = PAIRED_ADV_INTERVAL;
+	uint32_t interval;
 
 	/* Stop any ongoing advertising. */
 	err = bt_ext_advertising_stop();
@@ -448,6 +449,7 @@ int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 		return err;
 	}
 
+	interval = config->fast_mode ? PAIRED_ADV_INTERVAL_FAST : PAIRED_ADV_INTERVAL;
 	err = bt_ext_advertising_start(separated_ad, ARRAY_SIZE(separated_ad), interval);
 	if (err) {
 		LOG_ERR("bt_ext_advertising_start returned error: %d", err);

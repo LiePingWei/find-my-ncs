@@ -59,6 +59,7 @@ static int nearby_adv_start(void)
 
 	fmna_keys_primary_key_get(config.primary_key);
 
+	config.fast_mode = persistent_conn_adv;
 	config.is_maintained = is_maintained;
 
 	err = fmna_adv_start_nearby(&config);
@@ -89,6 +90,7 @@ static int separated_adv_start(void)
 		return err;
 	}
 
+	config.fast_mode = persistent_conn_adv;
 	config.is_maintained = is_maintained;
 
 	err = fmna_adv_start_separated(&config);
