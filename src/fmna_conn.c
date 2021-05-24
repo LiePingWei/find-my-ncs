@@ -163,7 +163,7 @@ int fmna_conn_init(void)
 	return 0;
 }
 
-static void persistant_conn_request_handle(struct bt_conn *conn, uint8_t persistant_conn_status)
+static void persistent_conn_request_handle(struct bt_conn *conn, uint8_t persistent_conn_status)
 {
 	int err;
 	uint16_t resp_opcode;
@@ -173,10 +173,10 @@ static void persistant_conn_request_handle(struct bt_conn *conn, uint8_t persist
 	};
 
 	LOG_INF("FMN Config CP: responding to pesistant connection request: %d",
-		persistant_conn_status);
+		persistent_conn_status);
 
 	bt_conn_foreach(BT_CONN_TYPE_ALL, conn_status_iterator, &conn_status_finder);
-	if ((persistant_conn_status & BIT(0)) && !conn_status_finder.out.is_found) {
+	if ((persistent_conn_status & BIT(0)) && !conn_status_finder.out.is_found) {
 		fmna_conn_multi_status_bit_set(
 			conn, FMNA_CONN_MULTI_STATUS_BIT_PERSISTENT_CONNECTION);
 	} else {
@@ -185,7 +185,7 @@ static void persistant_conn_request_handle(struct bt_conn *conn, uint8_t persist
 	}
 
 	resp_opcode = fmna_config_event_to_gatt_cmd_opcode(
-		FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS);
+		FMNA_CONFIG_EVENT_SET_PERSISTENT_CONN_STATUS);
 	FMNA_GATT_COMMAND_RESPONSE_BUILD(resp_buf, resp_opcode, FMNA_GATT_RESPONSE_STATUS_SUCCESS);
 	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &resp_buf);
 	if (err) {
@@ -246,9 +246,9 @@ static bool event_handler(const struct event_header *eh)
 		struct fmna_config_event *event = cast_fmna_config_event(eh);
 
 		switch (event->id) {
-		case FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS:
-			persistant_conn_request_handle(event->conn,
-						       event->persistant_conn_status);
+		case FMNA_CONFIG_EVENT_SET_PERSISTENT_CONN_STATUS:
+			persistent_conn_request_handle(event->conn,
+						       event->persistent_conn_status);
 			break;
 		case FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS:
 			max_connections_request_handle(event->conn,

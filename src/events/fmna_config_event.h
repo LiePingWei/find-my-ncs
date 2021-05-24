@@ -10,7 +10,7 @@ extern "C" {
 enum fmna_config_event_id {
 	FMNA_CONFIG_EVENT_START_SOUND,
 	FMNA_CONFIG_EVENT_STOP_SOUND,
-	FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS,
+	FMNA_CONFIG_EVENT_SET_PERSISTENT_CONN_STATUS,
 	FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT,
 	FMNA_CONFIG_EVENT_UNPAIR,
 	FMNA_CONFIG_EVENT_CONFIGURE_SEPARATED_STATE,
@@ -36,7 +36,7 @@ struct fmna_config_event {
 	struct bt_conn *conn;
 
 	union {
-		uint8_t persistant_conn_status;
+		uint8_t persistent_conn_status;
 		uint16_t nearby_timeout;
 		struct fmna_separated_state separated_state;
 		uint8_t max_connections;

@@ -227,7 +227,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 
 				persistent_conn_adv = true;
 
-				LOG_DBG("Starting persistant connection advertising");
+				LOG_DBG("Starting persistent connection advertising");
 			}
 		} else {
 			LOG_ERR("FMN State: Forbidden transition");
@@ -298,7 +298,7 @@ static void persistent_conn_work_handle(struct k_work *item)
 		return;
 	}
 
-	LOG_DBG("Stopping persistant connection advertising");
+	LOG_DBG("Stopping persistent connection advertising");
 
 	persistent_conn_adv = false;
 

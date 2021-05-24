@@ -65,7 +65,7 @@ enum pairing_cp_opcode {
 enum config_cp_opcode {
 	CONFIG_CP_OPCODE_START_SOUND                  = 0x0200,
 	CONFIG_CP_OPCODE_STOP_SOUND                   = 0x0201,
-	CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS = 0x0202,
+	CONFIG_CP_OPCODE_PERSISTENT_CONNECTION_STATUS = 0x0202,
 	CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT           = 0x0203,
 	CONFIG_CP_OPCODE_UNPAIR                       = 0x0204,
 	CONFIG_CP_OPCODE_CONFIGURE_SEPARATED_STATE    = 0x0205,
@@ -222,8 +222,8 @@ static bool config_cp_length_verify(uint16_t opcode, uint32_t len)
 	case CONFIG_CP_OPCODE_LATCH_SEPARATED_KEY:
 	case CONFIG_CP_OPCODE_GET_MULTI_STATUS:
 		break;
-	case CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS:
-		expected_pkt_len += sizeof(event->persistant_conn_status);
+	case CONFIG_CP_OPCODE_PERSISTENT_CONNECTION_STATUS:
+		expected_pkt_len += sizeof(event->persistent_conn_status);
 		break;
 	case CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT:
 		expected_pkt_len += sizeof(event->nearby_timeout);
@@ -308,9 +308,9 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 	case CONFIG_CP_OPCODE_STOP_SOUND:
 		event.id = FMNA_CONFIG_EVENT_STOP_SOUND;
 		break;
-	case CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS:
-		event.id = FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS;
-		event.persistant_conn_status = net_buf_simple_pull_u8(&config_buf);
+	case CONFIG_CP_OPCODE_PERSISTENT_CONNECTION_STATUS:
+		event.id = FMNA_CONFIG_EVENT_SET_PERSISTENT_CONN_STATUS;
+		event.persistent_conn_status = net_buf_simple_pull_u8(&config_buf);
 		break;
 	case CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT:
 		event.id = FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT;
@@ -992,8 +992,8 @@ uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_event_id config_e
 		return CONFIG_CP_OPCODE_START_SOUND;
 	case FMNA_CONFIG_EVENT_STOP_SOUND:
 		return CONFIG_CP_OPCODE_STOP_SOUND;
-	case FMNA_CONFIG_EVENT_SET_PERSISTANT_CONN_STATUS:
-		return CONFIG_CP_OPCODE_PERSISTANT_CONNECTION_STATUS;
+	case FMNA_CONFIG_EVENT_SET_PERSISTENT_CONN_STATUS:
+		return CONFIG_CP_OPCODE_PERSISTENT_CONNECTION_STATUS;
 	case FMNA_CONFIG_EVENT_SET_NEARBY_TIMEOUT:
 		return CONFIG_CP_OPCODE_SET_NEARBY_TIMEOUT;
 	case FMNA_CONFIG_EVENT_UNPAIR:
