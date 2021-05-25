@@ -10,6 +10,7 @@ config FMNA
 	select BT_PERIPHERAL
 	select BT_SMP
 	select BT_EXT_ADV
+	select BT_TPS
 
 	select BT_SETTINGS
 	select FLASH
