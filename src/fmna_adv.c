@@ -77,6 +77,17 @@ union adv_payload {
 	struct separated_adv_payload separated;
 };
 
+struct adv_start_config {
+	struct {
+		const struct bt_data *payload;
+		size_t len;
+	} ad;
+	const struct bt_le_ext_adv_cb *cb;
+
+	uint32_t interval;
+	uint16_t timeout;
+};
+
 static uint8_t bt_id;
 static union adv_payload adv_payload;
 static struct bt_le_ext_adv *adv_set = NULL;
@@ -155,23 +166,10 @@ static int bt_ext_advertising_stop(void)
 	return 0;
 }
 
-static void adv_param_populate(struct bt_le_adv_param *param, uint32_t interval)
-{
-	memset(param, 0, sizeof(*param));
-
-	param->id = bt_id;
-	param->options = BT_LE_ADV_OPT_CONNECTABLE;
-
-	param->interval_min = interval;
-	param->interval_max = interval;
-}
-
-static int bt_ext_advertising_start(const struct bt_data *ad,
-				    size_t ad_len,
-				    uint32_t interval)
+static int bt_ext_advertising_start(const struct adv_start_config *config)
 {
 	int err;
-	struct bt_le_adv_param param;
+	struct bt_le_adv_param param = {0};
 	struct bt_le_ext_adv_start_param ext_adv_start_param = {0};
 
 	if (adv_set) {
@@ -179,15 +177,20 @@ static int bt_ext_advertising_start(const struct bt_data *ad,
 		return -EAGAIN;
 	}
 
-	adv_param_populate(&param, interval);
+	param.id = bt_id;
+	param.options = BT_LE_ADV_OPT_CONNECTABLE;
+	param.interval_min = config->interval;
+	param.interval_max = config->interval;
 
-	err = bt_le_ext_adv_create(&param, &ext_adv_callbacks, &adv_set);
+	ext_adv_start_param.timeout = config->timeout;
+
+	err = bt_le_ext_adv_create(&param, config->cb, &adv_set);
 	if (err) {
 		LOG_ERR("bt_le_ext_adv_create returned error: %d", err);
 		return err;
 	}
 
-	err = bt_le_ext_adv_set_data(adv_set, ad, ad_len, NULL, 0);
+	err = bt_le_ext_adv_set_data(adv_set, config->ad.payload, config->ad.len, NULL, 0);
 	if (err) {
 		LOG_ERR("bt_le_ext_adv_set_data returned error: %d", err);
 		return err;
@@ -246,8 +249,7 @@ int fmna_adv_start_unpaired(bool change_address)
 	};
 
 	int err;
-	struct bt_le_ext_adv_start_param start_param = {0};
-	struct bt_le_adv_param param = {0};
+	struct adv_start_config start_config = {0};
 
 	/* Stop any ongoing advertising. */
 	err = bt_ext_advertising_stop();
@@ -272,25 +274,14 @@ int fmna_adv_start_unpaired(bool change_address)
 	/* Encode the FMN Service payload for advertising data set. */
 	unpaired_adv_payload_encode(&adv_payload.unpaired);
 
-	/* Configure the advertising parameters. */
-	adv_param_populate(&param, UNPAIRED_ADV_INTERVAL);
-	start_param.timeout = UNPAIRED_ADV_TIMEOUT;
-
-	err = bt_le_ext_adv_create(&param, &unpaired_adv_callbacks, &adv_set);
+	start_config.ad.payload = unpaired_ad;
+	start_config.ad.len = ARRAY_SIZE(unpaired_ad);
+	start_config.cb = &unpaired_adv_callbacks;
+	start_config.interval = UNPAIRED_ADV_INTERVAL;
+	start_config.timeout = UNPAIRED_ADV_TIMEOUT;
+	err = bt_ext_advertising_start(&start_config);
 	if (err) {
-		LOG_ERR("bt_le_ext_adv_create returned error: %d", err);
-		return err;
-	}
-
-	err = bt_le_ext_adv_set_data(adv_set, unpaired_ad, ARRAY_SIZE(unpaired_ad), NULL, 0);
-	if (err) {
-		LOG_ERR("bt_le_ext_adv_set_data returned error: %d", err);
-		return err;
-	}
-
-	err = bt_le_ext_adv_start(adv_set, &start_param);
-	if (err) {
-		LOG_ERR("bt_le_ext_adv_start returned error: %d", err);
+		LOG_ERR("bt_ext_advertising_start returned error: %d", err);
 		return err;
 	}
 
@@ -352,7 +343,7 @@ int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config)
 
 	int err;
 	bt_addr_le_t addr;
-	uint32_t interval;
+	struct adv_start_config start_config = {0};
 
 	/* Stop any ongoing advertising. */
 	err = bt_ext_advertising_stop();
@@ -375,8 +366,12 @@ int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config)
 		return err;
 	}
 
-	interval = config->fast_mode ? PAIRED_ADV_INTERVAL_FAST : PAIRED_ADV_INTERVAL;
-	err = bt_ext_advertising_start(nearby_ad, ARRAY_SIZE(nearby_ad), interval);
+	start_config.ad.payload = nearby_ad;
+	start_config.ad.len = ARRAY_SIZE(nearby_ad);
+	start_config.cb = &ext_adv_callbacks;
+	start_config.interval = config->fast_mode ?
+		PAIRED_ADV_INTERVAL_FAST : PAIRED_ADV_INTERVAL;
+	err = bt_ext_advertising_start(&start_config);
 	if (err) {
 		LOG_ERR("bt_ext_advertising_start returned error: %d", err);
 		return err;
@@ -426,7 +421,7 @@ int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 
 	int err;
 	bt_addr_le_t addr;
-	uint32_t interval;
+	struct adv_start_config start_config = {0};
 
 	/* Stop any ongoing advertising. */
 	err = bt_ext_advertising_stop();
@@ -449,8 +444,12 @@ int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 		return err;
 	}
 
-	interval = config->fast_mode ? PAIRED_ADV_INTERVAL_FAST : PAIRED_ADV_INTERVAL;
-	err = bt_ext_advertising_start(separated_ad, ARRAY_SIZE(separated_ad), interval);
+	start_config.ad.payload = separated_ad;
+	start_config.ad.len = ARRAY_SIZE(separated_ad);
+	start_config.cb = &ext_adv_callbacks;
+	start_config.interval = config->fast_mode ?
+		PAIRED_ADV_INTERVAL_FAST : PAIRED_ADV_INTERVAL;
+	err = bt_ext_advertising_start(&start_config);
 	if (err) {
 		LOG_ERR("bt_ext_advertising_start returned error: %d", err);
 		return err;
