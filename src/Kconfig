@@ -11,6 +11,7 @@ config FMNA
 	select BT_SMP
 	select BT_EXT_ADV
 	select BT_TPS
+	select BT_CTLR_TX_PWR_DYNAMIC_CONTROL
 
 	select BT_SETTINGS
 	select FLASH

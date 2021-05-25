@@ -10,10 +10,13 @@
 
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/conn.h>
+#include <bluetooth/hci_vs.h>
 #include <sys/byteorder.h>
 #include <logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
+
+#define ADV_TX_POWER 4 /* 4dBm */
 
 #define UNPAIRED_ADV_INTERVAL    0x0030 /* 30 ms */
 #define PAIRED_ADV_INTERVAL      0x0C80 /* 2 s */
@@ -141,6 +144,37 @@ static const struct bt_le_ext_adv_cb unpaired_adv_callbacks = {
 	.connected = ext_adv_connected,
 };
 
+static void bt_ext_advertising_stop_tx_power_set(uint16_t handle)
+{
+	int err;
+	struct bt_hci_cp_vs_write_tx_power_level *cp;
+	struct bt_hci_rp_vs_write_tx_power_level *rp;
+	struct net_buf *buf;
+	struct net_buf *rsp = NULL;
+
+	buf = bt_hci_cmd_create(BT_HCI_OP_VS_WRITE_TX_POWER_LEVEL, sizeof(*cp));
+	if (!buf) {
+		LOG_ERR("fmna_adv: cannot allocate buffer to set TX power");
+		return;
+	}
+
+	cp = net_buf_add(buf, sizeof(*cp));
+	cp->handle = sys_cpu_to_le16(handle);
+	cp->handle_type = BT_HCI_VS_LL_HANDLE_TYPE_ADV;
+	cp->tx_power_level = ADV_TX_POWER;
+
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_VS_WRITE_TX_POWER_LEVEL, buf, &rsp);
+	if (err) {
+		LOG_ERR("fmna_adv: cannot set TX power (err: %d)", err);
+		return;
+	}
+
+	rp = (struct bt_hci_rp_vs_write_tx_power_level *) rsp->data;
+	LOG_DBG("Advertising TX power set to %d dBm", rp->selected_tx_power);
+
+	net_buf_unref(rsp);
+}
+
 static int bt_ext_advertising_stop(void)
 {
 	int err;
@@ -171,6 +205,7 @@ static int bt_ext_advertising_start(const struct adv_start_config *config)
 	int err;
 	struct bt_le_adv_param param = {0};
 	struct bt_le_ext_adv_start_param ext_adv_start_param = {0};
+	uint16_t adv_handle;
 
 	if (adv_set) {
 		LOG_ERR("Advertising set is already claimed");
@@ -195,6 +230,12 @@ static int bt_ext_advertising_start(const struct adv_start_config *config)
 		LOG_ERR("bt_le_ext_adv_set_data returned error: %d", err);
 		return err;
 	}
+
+	/* TODO: Migrate to the proper BLE API for retrieving advertising handle once
+	 *       it is added and implemented.
+	 */
+	adv_handle = bt_le_ext_adv_get_index(adv_set);
+	bt_ext_advertising_stop_tx_power_set(adv_handle);
 
 	err = bt_le_ext_adv_start(adv_set, &ext_adv_start_param);
 	if (err) {
