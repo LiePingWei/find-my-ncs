@@ -105,6 +105,20 @@ config FMNA_BATTERY_STATE_MEDIUM_THR
 	range 0 100
 	default 80
 
+# NFC configuration
+config FMNA_NFC
+	bool
+	depends on FMNA_CAPABILITY_NFC_SN_LOOKUP_ENABLED
+	default y
+	select NFC_T2T_NRFXLIB
+	select NFC_NDEF
+	select NFC_NDEF_MSG
+	select NFC_NDEF_RECORD
+	select NFC_NDEF_URI_REC
+	select NFC_NDEF_URI_MSG
+	help
+	  Enable NFC support.
+
 if !FMNA_UARP
 
 menu "Firmware version"

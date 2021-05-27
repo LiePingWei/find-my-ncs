@@ -8,6 +8,7 @@
 #include "fmna_battery.h"
 #include "fmna_conn.h"
 #include "fmna_keys.h"
+#include "fmna_nfc.h"
 #include "fmna_pair.h"
 #include "fmna_serial_number.h"
 #include "fmna_storage.h"
@@ -139,6 +140,14 @@ int fmna_enable(const struct fmna_enable_param *param,
 	if (err) {
 		LOG_ERR("fmna_state_init returned error: %d", err);
 		return err;
+	}
+
+	if (IS_ENABLED(CONFIG_FMNA_NFC)) {
+		err = fmna_nfc_init(param->bt_id);
+		if (err) {
+			LOG_ERR("fmna_nfc_init returned error: %d", err);
+			return err;
+		}
 	}
 
 	/* MFi tokens use a lot of stack, offload basic display logic

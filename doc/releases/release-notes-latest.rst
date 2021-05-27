@@ -15,7 +15,7 @@ Highlights
 This release covers the following features:
 
 * Support for *pair before use* accessories, also called coexistence feature.
-
+* NFC support using the NFC-A Type 2 Tag library.
 * A new sample for the SuperBinary tool that can create a SuperBinary file
   remotely using GitHub Actions.
 
@@ -49,6 +49,9 @@ Changelog
 * Added support for *pair before use* accessories in the Find My stack.
 * Added new API in the Find My header file for *pair before use* accessories.
 * Added conceptual docs for *pair before use* accessories.
+
+* Added NFC support to the Find My stack using the NFC-A Type 2 Tag library.
+* Enabled NFC support in the Find My Simple and Qualification samples.
 
 * Added logic for removing Bluetooth LE bond information of a peer that does not finish the Find My pairing procedure.
 

@@ -27,6 +27,8 @@ zephyr_library_sources(fmna_storage.c)
 zephyr_library_sources(fmna.c)
 zephyr_library_sources(fmna_version.c)
 
+zephyr_library_sources_ifdef(CONFIG_FMNA_NFC fmna_nfc.c)
+
 add_subdirectory(crypto)
 add_subdirectory(events)
 
