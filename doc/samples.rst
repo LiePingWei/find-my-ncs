@@ -3,6 +3,10 @@
 Samples
 #######
 
+.. contents::
+   :local:
+   :depth: 2
+
 The Find My add-on provides a set of samples that demonstrate how to work with the Find My stack.
 
 Find My samples
@@ -50,7 +54,7 @@ Building and running a sample
 
 .. note::
    Provision your development kit with a HEX file containing the MFi tokens before running any Find My samples.
-   See `the ncsfmntools documentation <https://github.com/nrfconnect/sdk-find-my/tree/master/tools/doc>`_ to learn how to generate the HEX file.
+   See :ref:`provision` to learn how to generate the HEX file.
 
 To build a Find My sample, complete the following steps:
 
