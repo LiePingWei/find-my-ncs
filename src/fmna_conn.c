@@ -5,6 +5,7 @@
  */
 
 #include "events/fmna_config_event.h"
+#include "events/fmna_event.h"
 #include "fmna_conn.h"
 #include "fmna_gatt_fmns.h"
 
@@ -283,6 +284,7 @@ static void max_connections_request_handle(struct bt_conn *conn, uint8_t max_con
 {
 	int err;
 	uint16_t opcode;
+	bool use_event;
 	struct conn_disconnecter conn_disconnecter;
 
 	LOG_INF("FMN Config CP: responding to max connections settings request: %d",
@@ -302,6 +304,7 @@ static void max_connections_request_handle(struct bt_conn *conn, uint8_t max_con
 	conn_disconnecter.disconnect_num = (fmna_conn_connection_num_get() - max_conns);
 	conn_disconnecter.req_conn = conn;
 
+	use_event = (max_connections != max_conns);
 	max_connections = max_conns;
 
 	if (conn_disconnecter.disconnect_num > 0) {
@@ -326,6 +329,12 @@ static void max_connections_request_handle(struct bt_conn *conn, uint8_t max_con
 		if (err) {
 			LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
 		}
+	}
+
+	/* Emit the event. */
+	if (use_event) {
+		FMNA_EVENT_CREATE(event, FMNA_EVENT_MAX_CONN_CHANGED, conn);
+		EVENT_SUBMIT(event);
 	}
 }
 
