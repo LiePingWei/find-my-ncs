@@ -24,14 +24,14 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define NEARBY_SEPARATED_TIMEOUT_MAX     3600
 #define PERSISTENT_CONN_ADV_TIMEOUT      180
 
-struct disconnected_work {
+static struct disconnected_work {
 	struct k_work work;
 	struct bt_conn *conn;
 	uint8_t reason;
 } disconnected_work;
+static struct k_work connected_work;
 
 static enum fmna_state state = FMNA_STATE_UNDEFINED;
-static struct bt_conn *fmn_paired_conn;
 static bool is_bonded = false;
 static bool is_maintained = false;
 static bool unpair_pending = false;
@@ -108,6 +108,11 @@ static void advertise_restart_on_no_state_change(void)
 {
 	int err;
 
+	if (!fmna_conn_limit_check()) {
+		LOG_WRN("Trying to restart advertising on maximum connection limit");
+		return;
+	}
+
 	switch (state) {
 	case FMNA_STATE_UNPAIRED:
 		err = fmna_adv_start_unpaired(false);
@@ -117,8 +122,6 @@ static void advertise_restart_on_no_state_change(void)
 		}
 		break;
 	case FMNA_STATE_CONNECTED:
-		/* No action is necessary. */
-		break;
 	case FMNA_STATE_NEARBY:
 		err = nearby_adv_start();
 		if (err) {
@@ -165,6 +168,8 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 
 	if (prev_state == new_state) {
 		LOG_DBG("FMN state: Unchanged");
+		advertise_restart_on_no_state_change();
+
 		return 0;
 	}
 
@@ -200,8 +205,6 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
 			return err;
 		}
-
-		fmn_paired_conn = NULL;
 	} else if (new_state == FMNA_STATE_CONNECTED) {
 		/* Handle Connected state transition. */
 
@@ -209,16 +212,21 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 			k_timer_stop(&nearby_separated_timer);
 		}
 
-		fmn_paired_conn = conn;
 		is_maintained = true;
+
+		if (fmna_conn_limit_check()) {
+			err = nearby_adv_start();
+			if (err) {
+				LOG_ERR("nearby_adv_start returned error: %d", err);
+				return err;
+			}
+		}
 	} else if (new_state == FMNA_STATE_NEARBY) {
 		/* Handle Nearby state transition. */
 
 		if (prev_state == FMNA_STATE_CONNECTED) {
 			fmna_conn_multi_status_bit_clear(
-				fmn_paired_conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
-
-			fmn_paired_conn = NULL;
+				conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
 
 			if (fmna_conn_multi_status_bit_check(conn,
 				FMNA_CONN_MULTI_STATUS_BIT_PERSISTENT_CONNECTION)) {
@@ -244,8 +252,6 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 				LOG_ERR("nearby_adv_start returned error: %d", err);
 				return err;
 			}
-
-			LOG_DBG("FMN State: Nearby");
 		} else {
 			err = state_set(NULL, FMNA_STATE_SEPARATED);
 			if (err) {
@@ -305,6 +311,35 @@ static void persistent_conn_work_handle(struct k_work *item)
 	advertise_restart_on_no_state_change();
 }
 
+static bool all_owners_disconnected(struct bt_conn *conn)
+{
+	int err;
+	struct bt_conn *owners[CONFIG_BT_MAX_CONN];
+	uint8_t owners_num = ARRAY_SIZE(owners);
+
+	if (state == FMNA_STATE_CONNECTED) {
+		err = fmna_conn_owner_find(owners, &owners_num);
+		if (err) {
+			LOG_ERR("fmna_conn_owner_find returned error: %d", err);
+		}
+
+		for (size_t i = 0; i < owners_num; i++) {
+			if (owners[i] != conn) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+static void connected_work_handle(struct k_work *item)
+{
+	advertise_restart_on_no_state_change();
+}
+
 static void disconnected_work_handle(struct k_work *item)
 {
 	struct disconnected_work *disconnect =
@@ -312,8 +347,8 @@ static void disconnected_work_handle(struct k_work *item)
 	struct bt_conn *conn = disconnect->conn;
 	uint8_t reason = disconnect->reason;
 
-	if ((state == FMNA_STATE_CONNECTED) && (fmn_paired_conn == conn)) {
-		LOG_DBG("Disconnected from the Owner (reason %u)", reason);
+	if (all_owners_disconnected(conn)) {
+		LOG_DBG("Disconnected from the last connected Owner (reason %u)", reason);
 
 		state_set(conn, (unpair_pending ? FMNA_STATE_UNPAIRED : FMNA_STATE_NEARBY));
 
@@ -323,6 +358,11 @@ static void disconnected_work_handle(struct k_work *item)
 	LOG_DBG("Disconnected (reason %u)", reason);
 
 	advertise_restart_on_no_state_change();
+}
+
+static void connected(struct bt_conn *conn, uint8_t err)
+{
+	k_work_submit(&connected_work);
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -373,10 +413,12 @@ int fmna_state_init(uint8_t bt_id)
 	int err;
 	enum fmna_state state;
 	static struct bt_conn_cb conn_callbacks = {
-		.disconnected     = disconnected,
+		.connected = connected,
+		.disconnected = disconnected,
 	};
 
 	k_work_init(&disconnected_work.work, disconnected_work_handle);
+	k_work_init(&connected_work, connected_work_handle);
 
 	bt_conn_cb_register(&conn_callbacks);
 
@@ -548,6 +590,9 @@ static bool event_handler(const struct event_header *eh)
 		switch (event->id) {
 		case FMNA_EVENT_BONDED:
 			is_bonded = true;
+			break;
+		case FMNA_EVENT_MAX_CONN_CHANGED:
+			advertise_restart_on_no_state_change();
 			break;
 		case FMNA_EVENT_PAIRING_COMPLETED:
 		case FMNA_EVENT_OWNER_CONNECTED:
