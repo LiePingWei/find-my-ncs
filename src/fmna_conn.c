@@ -13,6 +13,8 @@
 #include <logging/log.h>
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
+#define MAX_CONN_WORK_CHECK_PERIOD K_MSEC(100)
+
 struct conn_owner_finder {
 	struct bt_conn ** const owners;
 	uint8_t * const owner_cnt;
@@ -28,13 +30,26 @@ struct conn_status_finder {
 	} out;
 };
 
+struct conn_disconnecter {
+	int disconnect_num;
+	struct bt_conn *req_conn;
+};
+
 struct fmna_conn {
 	uint32_t multi_status;
 	bool is_valid;
 };
 
 static struct fmna_conn conns[CONFIG_BT_MAX_CONN];
-static uint8_t max_connections = 1;
+static uint8_t max_connections = CONFIG_FMNA_MAX_CONN;
+
+static void max_conn_work_handle(struct k_work *item);
+
+static struct max_conn_work {
+	struct k_work_delayable item;
+	struct bt_conn *conn;
+	struct bt_conn *disconnecting_conns[CONFIG_BT_MAX_CONN];
+} max_conn_work;
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -168,6 +183,8 @@ int fmna_conn_init(void)
 
 	bt_conn_cb_register(&conn_callbacks);
 
+	k_work_init_delayable(&max_conn_work.item, max_conn_work_handle);
+
 	memset(conns, 0, sizeof(conns));
 
 	return 0;
@@ -203,10 +220,70 @@ static void persistent_conn_request_handle(struct bt_conn *conn, uint8_t persist
 	}
 }
 
+static void conn_disconnecter_iterator(struct bt_conn *conn, void *user_data)
+{
+	int err;
+	struct conn_disconnecter *conn_disconnecter =
+		(struct conn_disconnecter *) user_data;
+
+	if (conn_disconnecter->disconnect_num <= 0) {
+		return;
+	}
+
+	if (conn_disconnecter->req_conn == conn) {
+		return;
+	}
+
+	err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+	if (err) {
+		LOG_ERR("fmna_conn: bt_conn_disconnect returned error: %d", err);
+		return;
+	}
+
+	conn_disconnecter->disconnect_num--;
+	max_conn_work.disconnecting_conns[bt_conn_index(conn)] = conn;
+}
+
+static void max_conn_work_handle(struct k_work *item)
+{
+	struct bt_conn *conn;
+	bool disconnects_done = true;
+
+	for (size_t i = 0; i < ARRAY_SIZE(max_conn_work.disconnecting_conns); i++) {
+		conn = max_conn_work.disconnecting_conns[i];
+		if (conn) {
+			if (conns[bt_conn_index(conn)].is_valid) {
+				disconnects_done = false;
+				break;
+			}
+		}
+	}
+
+	if (disconnects_done) {
+		int err;
+		uint16_t opcode;
+
+		opcode = fmna_config_event_to_gatt_cmd_opcode(
+			FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS);
+		FMNA_GATT_COMMAND_RESPONSE_BUILD(
+			cmd_buf, opcode, FMNA_GATT_RESPONSE_STATUS_SUCCESS);
+		err = fmna_gatt_config_cp_indicate(
+			max_conn_work.conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &cmd_buf);
+		if (err) {
+			LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
+		}
+
+		max_conn_work.conn = NULL;
+	} else {
+		k_work_reschedule(&max_conn_work.item, MAX_CONN_WORK_CHECK_PERIOD);
+	}
+}
+
 static void max_connections_request_handle(struct bt_conn *conn, uint8_t max_conns)
 {
 	int err;
 	uint16_t opcode;
+	struct conn_disconnecter conn_disconnecter;
 
 	LOG_INF("FMN Config CP: responding to max connections settings request: %d",
 		max_conns);
@@ -216,20 +293,39 @@ static void max_connections_request_handle(struct bt_conn *conn, uint8_t max_con
 		return;
 	}
 
-	if (max_conns > CONFIG_BT_MAX_CONN) {
+	if (max_conns > CONFIG_FMNA_MAX_CONN) {
 		LOG_WRN("Cannot support max connections value due to the limit: %d",
-			CONFIG_BT_MAX_CONN);
-		max_conns = CONFIG_BT_MAX_CONN;
+			CONFIG_FMNA_MAX_CONN);
+		max_conns = CONFIG_FMNA_MAX_CONN;
 	}
+
+	conn_disconnecter.disconnect_num = (fmna_conn_connection_num_get() - max_conns);
+	conn_disconnecter.req_conn = conn;
 
 	max_connections = max_conns;
 
-	opcode = fmna_config_event_to_gatt_cmd_opcode(
-		FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS);
-	FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, opcode, FMNA_GATT_RESPONSE_STATUS_SUCCESS);
-	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &cmd_buf);
-	if (err) {
-		LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
+	if (conn_disconnecter.disconnect_num > 0) {
+		/* Disconnect excessive links. */
+		bt_conn_foreach(BT_CONN_TYPE_ALL, conn_disconnecter_iterator, &conn_disconnecter);
+
+		if (!max_conn_work.conn) {
+			max_conn_work.conn = conn;
+			memset(max_conn_work.disconnecting_conns, 0,
+			       sizeof(max_conn_work.disconnecting_conns));
+
+			k_work_reschedule(&max_conn_work.item, MAX_CONN_WORK_CHECK_PERIOD);
+
+			LOG_DBG("Delaying Set Max Connections response");
+		}
+	} else {
+		/* Respond to the command. */
+		opcode = fmna_config_event_to_gatt_cmd_opcode(
+			FMNA_CONFIG_EVENT_SET_MAX_CONNECTIONS);
+		FMNA_GATT_COMMAND_RESPONSE_BUILD(cmd_buf, opcode, FMNA_GATT_RESPONSE_STATUS_SUCCESS);
+		err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_COMMAND_RESPONSE_IND, &cmd_buf);
+		if (err) {
+			LOG_ERR("fmna_gatt_config_cp_indicate returned error: %d", err);
+		}
 	}
 }
 
