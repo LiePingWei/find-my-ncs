@@ -32,6 +32,11 @@ if FMNA
 config FMNA_QUALIFICATION
 	bool "Enable qualification capabilities used by the FMCA app"
 
+config FMNA_MAX_CONN
+	int "Maximum number of FMN connections"
+	default 2
+	range 2 BT_MAX_CONN
+
 # Product Plan configuration
 config FMNA_NORDIC_PRODUCT_PLAN
 	bool "Use Nordic Product Plan"
@@ -142,6 +147,12 @@ config BT_CTLR_DATA_LENGTH_MAX
 
 config BT_ID_MAX
 	default 2
+
+config BT_MAX_CONN
+	default 2
+
+config BT_MAX_PAIRED
+	default FMNA_MAX_CONN
 
 # Override default kernel configuration
 
