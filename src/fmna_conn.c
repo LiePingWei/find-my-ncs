@@ -33,14 +33,12 @@ struct fmna_conn {
 	bool is_valid;
 };
 
-struct fmna_conn conns[CONFIG_BT_MAX_CONN];
+static struct fmna_conn conns[CONFIG_BT_MAX_CONN];
 static uint8_t max_connections = 1;
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
-
-	memset(fmna_conn, 0, sizeof(*fmna_conn));
 
 	fmna_conn->is_valid = true;
 }
@@ -49,7 +47,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
 
-	fmna_conn->is_valid = false;
+	memset(fmna_conn, 0, sizeof(*fmna_conn));
 }
 
 static void conn_owner_iterator(struct bt_conn *conn, void *user_data)
@@ -124,6 +122,10 @@ bool fmna_conn_multi_status_bit_check(struct bt_conn *conn,
 	__ASSERT(status_bit < (sizeof(fmna_conn->multi_status) * __CHAR_BIT__),
 		 "FMNA Status bit is invalid: %d", status_bit);
 
+	if (!fmna_conn->is_valid) {
+		return false;
+	}
+
 	return (fmna_conn->multi_status & BIT(status_bit));
 }
 
@@ -131,6 +133,10 @@ void fmna_conn_multi_status_bit_set(struct bt_conn *conn,
 				    enum fmna_conn_multi_status_bit status_bit)
 {
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
+
+	if (!fmna_conn->is_valid) {
+		return;
+	}
 
 	__ASSERT(status_bit < (sizeof(fmna_conn->multi_status) * __CHAR_BIT__),
 		 "FMNA Status bit is invalid: %d", status_bit);
@@ -142,6 +148,10 @@ void fmna_conn_multi_status_bit_clear(struct bt_conn *conn,
 				      enum fmna_conn_multi_status_bit status_bit)
 {
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
+
+	if (!fmna_conn->is_valid) {
+		return;
+	}
 
 	__ASSERT(status_bit < (sizeof(fmna_conn->multi_status) * __CHAR_BIT__),
 		 "FMNA Status bit is invalid: %d", status_bit);
