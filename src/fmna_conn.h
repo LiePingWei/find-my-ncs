@@ -19,6 +19,7 @@ enum fmna_conn_multi_status_bit {
 	FMNA_CONN_MULTI_STATUS_BIT_PLAYING_SOUND         = 2,
 	FMNA_CONN_MULTI_STATUS_BIT_UPDATING_FIRMWARE     = 3,
 	FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED       = 5,
+	FMNA_CONN_MULTI_STATUS_BIT_MULTIPLE_OWNERS       = 6,
 };
 
 uint8_t fmna_conn_connection_num_get(void);

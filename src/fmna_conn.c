@@ -341,13 +341,27 @@ static void max_connections_request_handle(struct bt_conn *conn, uint8_t max_con
 static void multi_status_request_handle(struct bt_conn *conn)
 {
 	int err;
-	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
-	NET_BUF_SIMPLE_DEFINE(status_buf, sizeof(fmna_conn->multi_status));
+	uint32_t multi_status;
+	uint8_t req_author_index = bt_conn_index(conn);
+	NET_BUF_SIMPLE_DEFINE(status_buf, sizeof(multi_status));
+
+	multi_status = conns[req_author_index].multi_status;
+	for (size_t i = 0; i < ARRAY_SIZE(conns); i++) {
+		if ((!conns[i].is_valid) || (i == req_author_index)) {
+			continue;
+		}
+
+		if (fmna_conn_multi_status_bit_check(conn,
+			FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED)) {
+			WRITE_BIT(multi_status, FMNA_CONN_MULTI_STATUS_BIT_MULTIPLE_OWNERS, 1);
+			break;
+		}
+	}
 
 	LOG_INF("FMN Config CP: responding to connection multi status: 0x%02X",
-		fmna_conn->multi_status);
+		multi_status);
 
-	net_buf_simple_add_le32(&status_buf, fmna_conn->multi_status);
+	net_buf_simple_add_le32(&status_buf, multi_status);
 
 	err = fmna_gatt_config_cp_indicate(conn, FMNA_GATT_CONFIG_MULTI_STATUS_IND, &status_buf);
 	if (err) {
