@@ -144,7 +144,7 @@ static const struct bt_le_ext_adv_cb unpaired_adv_callbacks = {
 	.connected = ext_adv_connected,
 };
 
-static void bt_ext_advertising_stop_tx_power_set(uint16_t handle)
+static void bt_ext_advertising_tx_power_set(uint16_t handle)
 {
 	int err;
 	struct bt_hci_cp_vs_write_tx_power_level *cp;
@@ -235,7 +235,7 @@ static int bt_ext_advertising_start(const struct adv_start_config *config)
 	 *       it is added and implemented.
 	 */
 	adv_handle = bt_le_ext_adv_get_index(adv_set);
-	bt_ext_advertising_stop_tx_power_set(adv_handle);
+	bt_ext_advertising_tx_power_set(adv_handle);
 
 	err = bt_le_ext_adv_start(adv_set, &ext_adv_start_param);
 	if (err) {
