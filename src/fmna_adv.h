@@ -30,6 +30,8 @@ struct fmna_adv_separated_config {
 
 typedef void (*fmna_adv_timeout_cb_t)(void);
 
+int fmna_adv_stop(void);
+
 int fmna_adv_start_unpaired(bool change_address);
 
 int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config);

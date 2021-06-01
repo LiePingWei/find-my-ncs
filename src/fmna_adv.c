@@ -175,7 +175,7 @@ static void bt_ext_advertising_tx_power_set(uint16_t handle)
 	net_buf_unref(rsp);
 }
 
-static int bt_ext_advertising_stop(void)
+int fmna_adv_stop(void)
 {
 	int err;
 
@@ -193,8 +193,6 @@ static int bt_ext_advertising_stop(void)
 		}
 
 		adv_set = NULL;
-	} else {
-		LOG_WRN("Trying to stop advertising without storing the advertising set");
 	}
 
 	return 0;
@@ -293,9 +291,9 @@ int fmna_adv_start_unpaired(bool change_address)
 	struct adv_start_config start_config = {0};
 
 	/* Stop any ongoing advertising. */
-	err = bt_ext_advertising_stop();
+	err = fmna_adv_stop();
 	if (err) {
-		LOG_ERR("bt_ext_advertising_stop returned error: %d", err);
+		LOG_ERR("fmna_adv_stop returned error: %d", err);
 		return err;
 	}
 
@@ -387,9 +385,9 @@ int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config)
 	struct adv_start_config start_config = {0};
 
 	/* Stop any ongoing advertising. */
-	err = bt_ext_advertising_stop();
+	err = fmna_adv_stop();
 	if (err) {
-		LOG_ERR("bt_ext_advertising_stop returned error: %d", err);
+		LOG_ERR("fmna_adv_stop returned error: %d", err);
 		return err;
 	}
 
@@ -465,9 +463,9 @@ int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 	struct adv_start_config start_config = {0};
 
 	/* Stop any ongoing advertising. */
-	err = bt_ext_advertising_stop();
+	err = fmna_adv_stop();
 	if (err) {
-		LOG_ERR("bt_ext_advertising_stop returned error: %d", err);
+		LOG_ERR("fmna_adv_stop returned error: %d", err);
 		return err;
 	}
 

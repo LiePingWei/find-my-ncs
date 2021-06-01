@@ -110,6 +110,12 @@ static void advertise_restart_on_no_state_change(void)
 
 	if (!fmna_conn_limit_check()) {
 		LOG_WRN("Trying to restart advertising on maximum connection limit");
+
+		err = fmna_adv_stop();
+		if (err) {
+			LOG_ERR("fmna_adv_stop returned error: %d", err);
+		}
+
 		return;
 	}
 
