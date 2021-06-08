@@ -31,3 +31,8 @@ add_subdirectory(crypto)
 add_subdirectory(events)
 
 add_subdirectory_ifdef(CONFIG_FMNA_UARP uarp)
+
+# As long as Zephyr uses CMP0079 OLD, then libraries must be linked in the
+# directory where they are defined, therefore we cannot link to
+# mbedcrypto_oberon_imported in the crypto/CMakeLists.txt file.
+zephyr_library_link_libraries(mbedcrypto_oberon_imported)
