@@ -213,7 +213,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 
 		is_maintained = true;
 
-		if (fmna_conn_limit_check()) {
+		if ((prev_state != FMNA_STATE_UNPAIRED) && fmna_conn_limit_check()) {
 			err = nearby_adv_start();
 			if (err) {
 				LOG_ERR("nearby_adv_start returned error: %d", err);
