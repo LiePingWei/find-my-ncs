@@ -243,7 +243,7 @@ static void persistent_conn_request_handle(struct bt_conn *conn, uint8_t persist
 		.out.is_found = false,
 	};
 
-	LOG_INF("FMN Config CP: responding to pesistant connection request: %d",
+	LOG_INF("FMN Config CP: responding to persistent connection request: %d",
 		persistent_conn_status);
 
 	bt_conn_foreach(BT_CONN_TYPE_ALL, conn_status_iterator, &conn_status_finder);
