@@ -39,6 +39,7 @@ struct conn_disconnecter {
 struct fmna_conn {
 	uint32_t multi_status;
 	bool is_valid;
+	bool is_disconnecting;
 };
 
 static struct fmna_conn conns[CONFIG_BT_MAX_CONN];
@@ -54,16 +55,57 @@ static struct max_conn_work {
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
+	char addr[BT_ADDR_LE_STR_LEN];
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
 
+	if (err) {
+		LOG_ERR("FMN connection establishment error: %d", err);
+		return;
+	}
+
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+	LOG_DBG("FMN Peer connected: %s", addr);
+
 	fmna_conn->is_valid = true;
+	bt_conn_ref(conn);
+
+	FMNA_EVENT_CREATE(event, FMNA_EVENT_PEER_CONNECTED, conn);
+	EVENT_SUBMIT(event);
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
+	char addr[BT_ADDR_LE_STR_LEN];
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
 
-	memset(fmna_conn, 0, sizeof(*fmna_conn));
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+	LOG_DBG("FMN Peer disconnected (reason %u): %s", reason, addr);
+
+	fmna_conn->is_disconnecting = true;
+
+	bt_conn_unref(conn);
+
+	FMNA_EVENT_CREATE(event, FMNA_EVENT_PEER_DISCONNECTED, conn);
+	EVENT_SUBMIT(event);
+}
+
+static void security_changed(struct bt_conn *conn, bt_security_t level,
+			     enum bt_security_err err)
+{
+	char addr[BT_ADDR_LE_STR_LEN];
+
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+	if (err) {
+		LOG_ERR("FMN Peer security failed: %s level %u err %d\n",
+			addr, level, err);
+	} else {
+		LOG_DBG("FMN Peer security changed: %s level %u", addr, level);
+	}
+
+	FMNA_EVENT_CREATE(event, FMNA_EVENT_PEER_SECURITY_CHANGED, conn);
+	event->peer_security_changed.err = err;
+	event->peer_security_changed.level = level;
+	EVENT_SUBMIT(event);
 }
 
 static void conn_owner_iterator(struct bt_conn *conn, void *user_data)
@@ -95,7 +137,7 @@ uint8_t fmna_conn_connection_num_get(void)
 	uint8_t cnt = 0;
 
 	for (size_t i = 0; i < ARRAY_SIZE(conns); i++) {
-		if (conns[i].is_valid) {
+		if (conns[i].is_valid && !conns[i].is_disconnecting) {
 			cnt++;
 		}
 	}
@@ -180,6 +222,7 @@ int fmna_conn_init(void)
 	static struct bt_conn_cb conn_callbacks = {
 		.connected = connected,
 		.disconnected = disconnected,
+		.security_changed = security_changed,
 	};
 
 	bt_conn_cb_register(&conn_callbacks);
@@ -371,6 +414,19 @@ static void multi_status_request_handle(struct bt_conn *conn)
 
 static bool event_handler(const struct event_header *eh)
 {
+	if (is_fmna_event(eh)) {
+		struct fmna_event *event = cast_fmna_event(eh);
+
+		/* Clean up the connection status flags. */
+		if (event->id == FMNA_EVENT_PEER_DISCONNECTED) {
+			struct fmna_conn *fmna_conn = &conns[bt_conn_index(event->conn)];
+
+			memset(fmna_conn, 0, sizeof(*fmna_conn));
+		}
+
+		return true;
+	}
+
 	if (is_fmna_config_event(eh)) {
 		struct fmna_config_event *event = cast_fmna_config_event(eh);
 
@@ -397,4 +453,5 @@ static bool event_handler(const struct event_header *eh)
 }
 
 EVENT_LISTENER(fmna_conn, event_handler);
+EVENT_SUBSCRIBE_FINAL(fmna_conn, fmna_event);
 EVENT_SUBSCRIBE(fmna_conn, fmna_config_event);

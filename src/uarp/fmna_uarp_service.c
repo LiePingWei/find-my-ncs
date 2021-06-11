@@ -17,6 +17,8 @@
 #include <logging/log.h>
 #define LOG_MODULE_NAME fmna_uarp
 
+#include "events/fmna_event.h"
+
 #include "CoreUARPProtocolDefines.h"
 #include "fmna_gatt_pkt_manager.h"
 
@@ -61,7 +63,6 @@ static struct bt_conn *active_conn = NULL;
 static struct net_buf_simple *sending_buf = NULL;
 static K_FIFO_DEFINE(rx_buf_fifo);
 
-static bool submit_event_disconnect(struct bt_conn *conn);
 static bool submit_event_indication_ack(struct bt_conn *conn, uint8_t err);
 static bool submit_event_write(struct bt_conn *conn, const uint8_t *buf, uint16_t len);
 
@@ -114,12 +115,6 @@ static void indication_ack_cb(struct bt_conn *conn,
 	submit_event_indication_ack(conn, err);
 }
 
-static void disconnected(struct bt_conn *conn, uint8_t reason)
-{
-	LOG_INF("Disconnected 0x%08X (reason 0x%02x)", (int) conn, reason);
-	submit_event_disconnect(conn);
-}
-
 static uint32_t uarp_send_message(struct net_buf_simple *buf)
 {
 	uint8_t err = 0;
@@ -136,13 +131,8 @@ static uint32_t uarp_send_message(struct net_buf_simple *buf)
 static bool uarp_init(void)
 {
 	static bool initialized = false;
-	static struct bt_conn_cb conn_callbacks = {
-		.connected = NULL,
-		.disconnected = disconnected,
-	};
 
 	if (!initialized) {
-		bt_conn_cb_register(&conn_callbacks);
 		if (fmna_uarp_init(uarp_send_message)) {
 			initialized = true;
 		} else {
@@ -365,3 +355,25 @@ static bool submit_event_write(struct bt_conn *conn, const uint8_t *buf, uint16_
 #endif
 	return true;
 }
+
+static bool event_handler(const struct event_header *eh)
+{
+	if (is_fmna_event(eh)) {
+		struct fmna_event *event = cast_fmna_event(eh);
+
+		switch (event->id) {
+		case FMNA_EVENT_PEER_DISCONNECTED:
+			submit_event_disconnect(event->conn);
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
+	return false;
+}
+
+EVENT_LISTENER(fmna_uarp_service, event_handler);
+EVENT_SUBSCRIBE(fmna_uarp_service, fmna_event);

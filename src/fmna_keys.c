@@ -487,47 +487,27 @@ int fmna_keys_service_start(const struct fmna_keys_init *init_keys)
 	return 0;
 }
 
-static void connected(struct bt_conn *conn, uint8_t err)
+static void fmna_peer_connected(struct bt_conn *conn)
 {
-	char addr[BT_ADDR_LE_STR_LEN];
-
-	if (err) {
-		LOG_ERR("fmna_keys: connection failed (err %u)", err);
-		return;
-	}
-
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
-	LOG_INF("fmna_keys: connected %s", addr);
-
 	if (is_paired) {
-		/* TODO: Filter out non-FMN peers. */
 		bt_ltk_set(bt_conn_get_dst(conn));
 	}
 }
 
-static void security_changed(struct bt_conn *conn, bt_security_t level,
-			     enum bt_security_err err)
+static void fmna_peer_security_changed(struct bt_conn *conn, bt_security_t level,
+				       enum bt_security_err err)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
 	if (is_paired) {
-		/* TODO: Filter out non-FMN peers. */
 		if (bt_keys && (bt_addr_le_cmp(&bt_keys->addr, bt_conn_get_dst(conn)) == 0)) {
-
 			/* Reset BLE LTK key. */
 			bt_keys_clear(bt_keys);
 			bt_keys = NULL;
 
-			if (err) {
-				LOG_ERR("fmna_keys: security failed: %s level %u err %d\n",
-					addr, level, err);
-			} else {
-				LOG_INF("fmna_keys: security changed: %s level %u",
-					addr, level);
-
+			if (!err) {
 				fmna_conn_multi_status_bit_set(
 					conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
 
@@ -546,7 +526,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 	}
 }
 
-static void disconnected(struct bt_conn *conn, uint8_t reason)
+static void fmna_peer_disconnected(struct bt_conn *conn)
 {
 	if (is_paired) {
 		if (bt_keys && (bt_addr_le_cmp(&bt_keys->addr, bt_conn_get_dst(conn)) == 0)) {
@@ -689,14 +669,6 @@ static int paired_state_restore(void)
 
 int fmna_keys_init(uint8_t id)
 {
-	static struct bt_conn_cb conn_callbacks = {
-		.connected = connected,
-		.disconnected = disconnected,
-		.security_changed = security_changed,
-	};
-
-	bt_conn_cb_register(&conn_callbacks);
-
 	bt_id = id;
 	key_rotation_timer_period = KEY_ROTATION_TIMER_PERIOD;
 
@@ -864,6 +836,17 @@ static bool event_handler(const struct event_header *eh)
 		case FMNA_EVENT_PAIRING_COMPLETED:
 			is_paired = true;
 			break;
+		case FMNA_EVENT_PEER_CONNECTED:
+			fmna_peer_connected(event->conn);
+			break;
+		case FMNA_EVENT_PEER_DISCONNECTED:
+			fmna_peer_disconnected(event->conn);
+			break;
+		case FMNA_EVENT_PEER_SECURITY_CHANGED:
+			fmna_peer_security_changed(event->conn,
+						   event->peer_security_changed.level,
+						   event->peer_security_changed.err);
+			break;
 		default:
 			break;
 		}
@@ -926,7 +909,7 @@ static bool event_handler(const struct event_header *eh)
 }
 
 EVENT_LISTENER(fmna_keys, event_handler);
-EVENT_SUBSCRIBE(fmna_keys, fmna_event);
+EVENT_SUBSCRIBE_EARLY(fmna_keys, fmna_event);
 EVENT_SUBSCRIBE(fmna_keys, fmna_config_event);
 EVENT_SUBSCRIBE(fmna_keys, fmna_owner_event);
 

@@ -24,13 +24,6 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define NEARBY_SEPARATED_TIMEOUT_MAX     3600
 #define PERSISTENT_CONN_ADV_TIMEOUT      180
 
-static struct disconnected_work {
-	struct k_work work;
-	struct bt_conn *conn;
-	uint8_t reason;
-} disconnected_work;
-static struct k_work connected_work;
-
 static enum fmna_state state = FMNA_STATE_UNDEFINED;
 static bool is_bonded = false;
 static bool is_maintained = false;
@@ -341,46 +334,22 @@ static bool all_owners_disconnected(struct bt_conn *conn)
 	return false;
 }
 
-static void connected_work_handle(struct k_work *item)
+static void fmna_peer_connected(struct bt_conn *conn)
 {
 	advertise_restart_on_no_state_change();
 }
 
-static void disconnected_work_handle(struct k_work *item)
+static void fmna_peer_disconnected(struct bt_conn *conn)
 {
-	struct disconnected_work *disconnect =
-		CONTAINER_OF(item, struct disconnected_work, work);
-	struct bt_conn *conn = disconnect->conn;
-	uint8_t reason = disconnect->reason;
-
 	if (all_owners_disconnected(conn)) {
-		LOG_DBG("Disconnected from the last connected Owner (reason %u)", reason);
+		LOG_DBG("Disconnected from the last connected Owner");
 
 		state_set(conn, (unpair_pending ? FMNA_STATE_UNPAIRED : FMNA_STATE_NEARBY));
 
 		return;
 	}
 
-	LOG_DBG("Disconnected (reason %u)", reason);
-
 	advertise_restart_on_no_state_change();
-}
-
-static void connected(struct bt_conn *conn, uint8_t err)
-{
-	k_work_submit(&connected_work);
-}
-
-static void disconnected(struct bt_conn *conn, uint8_t reason)
-{
-	/*
-	 * Process the disconnect logic in the workqueue so that
-	 * the BLE stack is finished with the connection bookkeeping
-	 * logic and advertising is possible.
-	 */
-	disconnected_work.conn = conn;
-	disconnected_work.reason = reason;
-	k_work_submit(&disconnected_work.work);
 }
 
 int fmna_resume(void)
@@ -418,15 +387,6 @@ int fmna_state_init(uint8_t bt_id)
 {
 	int err;
 	enum fmna_state state;
-	static struct bt_conn_cb conn_callbacks = {
-		.connected = connected,
-		.disconnected = disconnected,
-	};
-
-	k_work_init(&disconnected_work.work, disconnected_work_handle);
-	k_work_init(&connected_work, connected_work_handle);
-
-	bt_conn_cb_register(&conn_callbacks);
 
 	err = fmna_adv_init(bt_id);
 	if (err) {
@@ -603,6 +563,12 @@ static bool event_handler(const struct event_header *eh)
 		case FMNA_EVENT_PAIRING_COMPLETED:
 		case FMNA_EVENT_OWNER_CONNECTED:
 			state_set(event->conn, FMNA_STATE_CONNECTED);
+			break;
+		case FMNA_EVENT_PEER_CONNECTED:
+			fmna_peer_connected(event->conn);
+			break;
+		case FMNA_EVENT_PEER_DISCONNECTED:
+			fmna_peer_disconnected(event->conn);
 			break;
 		case FMNA_EVENT_PUBLIC_KEYS_CHANGED:
 			fmna_public_keys_changed(&event->public_keys_changed);

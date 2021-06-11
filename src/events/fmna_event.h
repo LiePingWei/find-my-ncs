@@ -21,6 +21,9 @@ enum fmna_event_id {
 	FMNA_EVENT_MAX_CONN_CHANGED,
 	FMNA_EVENT_OWNER_CONNECTED,
 	FMNA_EVENT_PAIRING_COMPLETED,
+	FMNA_EVENT_PEER_CONNECTED,
+	FMNA_EVENT_PEER_DISCONNECTED,
+	FMNA_EVENT_PEER_SECURITY_CHANGED,
 	FMNA_EVENT_PUBLIC_KEYS_CHANGED,
 	FMNA_EVENT_SOUND_COMPLETED,
 	FMNA_EVENT_SEPARATED,
@@ -30,6 +33,11 @@ struct fmna_public_keys_changed {
 	bool separated_key_changed;
 };
 
+struct fmna_peer_security_changed {
+	enum bt_security_err err;
+	bt_security_t level;
+};
+
 struct fmna_event {
 	struct event_header header;
 
@@ -37,6 +45,7 @@ struct fmna_event {
 	struct bt_conn *conn;
 	union {
 		struct fmna_public_keys_changed public_keys_changed;
+		struct fmna_peer_security_changed peer_security_changed;
 	};
 };
 
