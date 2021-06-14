@@ -11,7 +11,6 @@ config FMNA
 	select BT_SMP
 	select BT_EXT_ADV
 	select BT_TPS
-	select BT_CTLR_TX_PWR_DYNAMIC_CONTROL
 
 	select BT_SETTINGS
 	select FLASH
@@ -144,6 +143,9 @@ config BT_BUF_ACL_TX_SIZE
 
 config BT_CTLR_DATA_LENGTH_MAX
 	default 251
+
+config BT_CTLR_TX_PWR_DYNAMIC_CONTROL
+	default y
 
 config BT_ID_MAX
 	default 2
