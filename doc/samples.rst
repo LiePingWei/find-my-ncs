@@ -47,14 +47,15 @@ For the Release configuration, it would look like this:
 
    The Release configuration disables logging in the sample.
 
-.. _samples_buidling:
+.. _samples_building:
 
 Building and running a sample
 =============================
 
 .. note::
-   Provision your development kit with a HEX file containing the MFi tokens before running any Find My samples.
-   See :ref:`provision` to learn how to generate the HEX file.
+   Configure your MFi product plan in a Find My sample before building and running it.
+   Then, provision your development kit with a HEX file containing the MFi tokens that belong to your plan.
+   See :ref:`find_my_pairing` for more details.
 
 To build a Find My sample, complete the following steps:
 

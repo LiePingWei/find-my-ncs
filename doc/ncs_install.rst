@@ -21,4 +21,4 @@ The required version of west is 0.10.0 or higher.
       // find-my repository is downloaded
       // your github access will be checked
 
-For more information about how west groups work, see `west groups documentation <https://docs.zephyrproject.org/latest/guides/west/manifest.html#project-groups>`_.
+For more information about how west groups work, see `west groups documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/west/manifest.html#project-groups>`_.

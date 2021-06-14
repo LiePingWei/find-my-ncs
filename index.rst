@@ -14,5 +14,6 @@ Sections
    doc/overview
    doc/ncs_install
    doc/samples
+   doc/app_dev
    tools/README
    doc/release_notes

@@ -62,7 +62,7 @@ LED 2:
 Building and running
 ********************
 
-To build and run this sample, refer to generic instructions in the :ref:`samples_buidling` section.
+To build and run this sample, refer to generic instructions in the :ref:`samples_building` section.
 
 Testing
 =======
