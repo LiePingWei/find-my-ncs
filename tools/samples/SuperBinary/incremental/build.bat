@@ -7,7 +7,7 @@ if not exist intermediate_update.bin^
           && echo in the documentation.                                 ^
           && exit /b 1
 
-if not exist ..\..\..\..\apps\fmn\build\zephyr\app_update.bin^
+if not exist ..\..\..\..\samples\simple\build\zephyr\app_update.bin^
           echo The '../../../../samples/simple/build/zephyr/app_update.bin' file   ^
           && echo does not exists. Prepare an application image as described ^
           && echo in the documentation.                                      ^
@@ -15,7 +15,7 @@ if not exist ..\..\..\..\apps\fmn\build\zephyr\app_update.bin^
 
 if not exist build mkdir build                                       || exit /b
 copy /y intermediate_update.bin build\                               || exit /b
-copy /y ..\..\..\..\apps\fmn\build\zephyr\app_update.bin build\      || exit /b
+copy /y ..\..\..\..\samples\simple\build\zephyr\app_update.bin build\      || exit /b
 
 python ..\..\..\ncsfmntools SuperBinary     ^
 	SuperBinary.plist                   ^
