@@ -541,10 +541,7 @@ static void reset_request_handle(struct bt_conn *conn)
 		LOG_ERR("fmna_gatt_debug_cp_indicate returned error: %d", err);
 	}
 
-	err = k_work_reschedule(&reset_work, K_MSEC(100));
-	if (err) {
-		LOG_ERR("fmna_state: k_work_reschedule returned error: %d", err);
-	}
+	k_work_reschedule(&reset_work, K_MSEC(100));
 }
 #endif
 
