@@ -11,7 +11,6 @@
 
 #include "fmna_battery.h"
 
-#define BATTERY_LEVEL_UNDEFINED (UINT8_MAX)
 #define BATTERY_LEVEL_MAX       100
 
 BUILD_ASSERT((CONFIG_FMNA_BATTERY_STATE_MEDIUM_THR < BATTERY_LEVEL_MAX) &&
@@ -24,7 +23,9 @@ static fmna_battery_level_request_cb_t battery_level_request_cb;
 
 enum fmna_battery_state fmna_battery_state_get(void)
 {
-	battery_level_request_cb();
+	if (battery_level_request_cb) {
+		battery_level_request_cb();
+	}
 
 	if (battery_level > CONFIG_FMNA_BATTERY_STATE_MEDIUM_THR) {
 		return FMNA_BATTERY_STATE_FULL;
@@ -48,19 +49,15 @@ int fmna_battery_level_set(uint8_t percentage_level)
 	return 0;
 }
 
-int fmna_battery_init(fmna_battery_level_request_cb_t cb)
+int fmna_battery_init(uint8_t init_battery_level, fmna_battery_level_request_cb_t cb)
 {
-	if (!cb) {
-		return -EINVAL;
-	}
+	int err;
 
 	battery_level_request_cb = cb;
-	battery_level = BATTERY_LEVEL_UNDEFINED;
 
-	battery_level_request_cb();
-
-	if (battery_level == BATTERY_LEVEL_UNDEFINED) {
-		return -ENODATA;
+	err = fmna_battery_level_set(init_battery_level);
+	if (err) {
+		return err;
 	}
 
 	return 0;

@@ -99,7 +99,7 @@ int fmna_enable(const struct fmna_enable_param *param,
 	}
 
 	/* Initialize FMN modules. */
-	err = fmna_battery_init(cb->battery_level_request);
+	err = fmna_battery_init(param->init_battery_level, cb->battery_level_request);
 	if (err) {
 		LOG_ERR("fmna_battery_init returned error: %d", err);
 		return err;

@@ -157,9 +157,17 @@ struct fmna_enable_param {
 	uint8_t bt_id;
 
 	/**
+	 * @brief The initial battery level of the accessory.
+	 *
+	 *  The battery level is a percentage value set within the inclusive
+	 *  range of 0 - 100 %.
+	 */
+	uint8_t init_battery_level;
+
+	/**
 	 * @brief Reset the FMN accessory to default factory settings.
 	 *
-	 *  This function resets the device to default factory settings as
+	 *  This flag option resets the device to default factory settings as
 	 *  defined by the FMN specification. If the accessory is paired, it
 	 *  removes all persistent data that are associated with the owner
 	 *  device and the accessory starts to advertise in the unpaired mode.
@@ -177,9 +185,10 @@ struct fmna_enable_cb {
 	 *  callback. If not provided, the previously set level of the battery
 	 *  is used for the current request.
 	 *
-	 *  @note It is necessary to provide the initial battery level during
-	 *  the FMN enabling process (@ref fmna_enable API). This process will
-	 *  be aborted with an error if this callback is ignored.
+	 *  This callback is optional and can be used to optimize the battery
+	 *  level setting operations in the FMN stack. Alternatively, the user
+	 *  can ignore this callback and update the battery level periodically
+	 *  using @ref fmna_battery_level_set API.
 	 */
 	void (*battery_level_request)(void);
 

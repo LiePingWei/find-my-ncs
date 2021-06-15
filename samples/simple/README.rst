@@ -51,6 +51,7 @@ Button 3:
    Simulates the motion detection (used with the UT Detection feature). 
 
 Button 4:
+   Decrements the battery level.
    Resets the accessory to default factory settings when pressed during the application boot-up.
 
 LED 1:
