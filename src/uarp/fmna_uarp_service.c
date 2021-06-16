@@ -151,7 +151,6 @@ static void handle_disconnect(struct bt_conn *conn)
 
 	sending_buf = NULL;
 	fmna_uarp_controller_remove();
-	bt_conn_unref(active_conn);
 	active_conn = NULL;
 }
 
@@ -206,7 +205,6 @@ static void handle_write(struct bt_conn *conn, uint8_t *buf, uint16_t len)
 			LOG_INF("Active UARP connection is 0x%08X", (int)conn);
 
 			active_conn = conn;
-			bt_conn_ref(active_conn);
 			fmna_uarp_controller_add();
 			net_buf_simple_reset(&rx_buf);
 		} else {
@@ -239,7 +237,6 @@ static void handle_rx_event(struct rx_event *event)
 	} else {
 		handle_write(event->conn, event->write_data.buf, event->write_data.len);
 	}
-	bt_conn_unref(event->conn);
 	k_free(event);
 }
 
@@ -302,7 +299,6 @@ static bool submit_event_disconnect(struct bt_conn *conn)
 
 	event->id = RX_EVENT_DISCONNECT;
 	event->conn = conn;
-	bt_conn_ref(event->conn);
 
 	k_fifo_put(&rx_buf_fifo, event);
 
@@ -322,7 +318,7 @@ static bool submit_event_indication_ack(struct bt_conn *conn, uint8_t err)
 	}
 
 	event->id = RX_EVENT_INDICATION_ACK;
-	event->conn = bt_conn_ref(conn);
+	event->conn = conn;
 	event->indication_ack_data.err = err;
 
 	k_fifo_put(&rx_buf_fifo, event);
@@ -345,7 +341,6 @@ static bool submit_event_write(struct bt_conn *conn, const uint8_t *buf, uint16_
 	event->id = RX_EVENT_WRITE;
 	event->conn = conn;
 	event->write_data.len = len;
-	bt_conn_ref(event->conn);
 	memcpy(event->write_data.buf, buf, len);
 
 	k_fifo_put(&rx_buf_fifo, event);

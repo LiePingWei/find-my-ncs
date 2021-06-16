@@ -95,7 +95,6 @@ bool sound_start(struct bt_conn *conn)
 	if (conn) {
 		fmna_conn_multi_status_bit_set(
 			conn, FMNA_CONN_MULTI_STATUS_BIT_PLAYING_SOUND);
-		bt_conn_ref(conn);
 
 		if (fmna_conn_multi_status_bit_check(
 			conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED)) {
@@ -142,8 +141,6 @@ static void sound_completed_indication_send(struct bt_conn *conn)
 			LOG_ERR("fmna_gatt_non_owner_cp_indicate returned error: %d", err);
 		}
 	}
-
-	bt_conn_unref(conn);
 }
 
 static void sound_timeout_work_handle(struct k_work *item)
