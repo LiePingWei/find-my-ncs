@@ -7,6 +7,8 @@
 #ifndef FMNA_H_
 #define FMNA_H_
 
+#include <bluetooth/conn.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -214,6 +216,15 @@ struct fmna_enable_cb {
  *  @return Zero on success or negative error code otherwise
  */
 int fmna_battery_level_set(uint8_t percentage_level);
+
+/** @brief Checks if this is an FMN connection.
+ *
+ *  This function checks if a passed connection handle belongs to the
+ *  FMN stack.
+ *
+ *  @return true to indicate an FMN connection or false otherwise.
+ */
+bool fmna_conn_check(struct bt_conn *conn);
 
 /** @brief Resume the activity of the FMN stack.
  *

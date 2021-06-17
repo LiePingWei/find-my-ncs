@@ -44,6 +44,7 @@ struct fmna_conn {
 
 static struct fmna_conn conns[CONFIG_BT_MAX_CONN];
 static uint8_t max_connections = CONFIG_FMNA_MAX_CONN;
+static uint8_t fmna_bt_id;
 
 static void max_conn_work_handle(struct k_work *item);
 
@@ -53,10 +54,23 @@ static struct max_conn_work {
 	struct bt_conn *disconnecting_conns[CONFIG_BT_MAX_CONN];
 } max_conn_work;
 
+bool fmna_conn_check(struct bt_conn *conn)
+{
+	struct bt_conn_info conn_info;
+
+	bt_conn_get_info(conn, &conn_info);
+
+	return (conn_info.id == fmna_bt_id);
+}
+
 static void connected(struct bt_conn *conn, uint8_t err)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
+
+	if (!fmna_conn_check(conn)) {
+		return;
+	}
 
 	if (err) {
 		LOG_ERR("FMN connection establishment error: %d", err);
@@ -78,6 +92,10 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	char addr[BT_ADDR_LE_STR_LEN];
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
 
+	if (!fmna_conn_check(conn)) {
+		return;
+	}
+
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	LOG_DBG("FMN Peer disconnected (reason %u): %s", reason, addr);
 
@@ -93,6 +111,10 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 			     enum bt_security_err err)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
+
+	if (!fmna_conn_check(conn)) {
+		return;
+	}
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	if (err) {
@@ -217,7 +239,7 @@ void fmna_conn_multi_status_bit_clear(struct bt_conn *conn,
 	WRITE_BIT(fmna_conn->multi_status, status_bit, 0);
 }
 
-int fmna_conn_init(void)
+int fmna_conn_init(uint8_t bt_id)
 {
 	static struct bt_conn_cb conn_callbacks = {
 		.connected = connected,
@@ -225,6 +247,7 @@ int fmna_conn_init(void)
 		.security_changed = security_changed,
 	};
 
+	fmna_bt_id = bt_id;
 	bt_conn_cb_register(&conn_callbacks);
 
 	k_work_init_delayable(&max_conn_work.item, max_conn_work_handle);
