@@ -211,7 +211,7 @@ static int bt_ext_advertising_start(const struct adv_start_config *config)
 	}
 
 	param.id = bt_id;
-	param.options = BT_LE_ADV_OPT_CONNECTABLE;
+	param.options = BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_USE_IDENTITY;
 	param.interval_min = config->interval;
 	param.interval_max = config->interval;
 
