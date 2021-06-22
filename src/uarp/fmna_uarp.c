@@ -656,7 +656,7 @@ static void dfu_target_callback(enum dfu_target_evt_id evt_id)
 
 static void payload_meta_data_complete(void *accessory_delegate, void *asset_delegate)
 {
-	static uint8_t mcuboot_buf[CONFIG_FMNA_UARP_MCUBOOT_BUF_SIZE];
+	static uint8_t mcuboot_buf[CONFIG_FMNA_UARP_MCUBOOT_BUF_SIZE] __aligned(4);
 	int ret;
 	uint32_t status;
 	struct fmna_uarp_accessory *accessory = (struct fmna_uarp_accessory *) accessory_delegate;
