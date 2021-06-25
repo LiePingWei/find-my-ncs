@@ -22,6 +22,16 @@ Release tag
 The release tag for the Find My add-on for nRF Connect SDK repository is **v1.6.99**.
 This release is compatible with nRF Connect SDK **v1.6.99** tag.
 
+Installing
+**********
+
+Follow the instructions in the :ref:`ncs_install` document.
+Run the following command to install this specific release version:
+
+.. code-block:: console
+
+    west init -m https://github.com/nrfconnect/sdk-nrf --mr v1.6.99
+
 Supported development kits
 **************************
 
