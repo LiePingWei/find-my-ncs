@@ -16,6 +16,9 @@ This release covers the following features:
 
 * Support for *pair before use* accessories, also called coexistence feature.
 
+* Providing a version information is optional for a SuperBinary tool,
+  because it can read the version from the source MCUBoot image.
+
 Release tag
 ***********
 

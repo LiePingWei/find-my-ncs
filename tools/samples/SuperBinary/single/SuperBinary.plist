@@ -5,7 +5,7 @@
 	<key>SuperBinary Format Version</key>
 	<integer>2</integer>
 	<key>SuperBinary Firmware Version</key>
-	<string>0.0.1</string>
+	<string></string>
 	<key>SuperBinary Payloads</key>
 	<array>
 		<dict>
@@ -16,7 +16,7 @@
 			<key>Payload Filepath</key>
 			<string>app_update.bin</string>
 			<key>Payload Version</key>
-			<string>0.0.1</string>
+			<string></string>
 			<key>Payload MetaData</key>
 			<dict>
 				<key>Apply Flags</key>

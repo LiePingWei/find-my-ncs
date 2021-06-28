@@ -57,6 +57,8 @@ The following arguments are optional:
 * ``--mfigr2 path`` - Custom path to the mfigr2 tool.
   By default, mfigr2 from the PATH environment variable is used.
   Setting it to "skip" only shows the commands without executing them.
+ 
+* ``--skip-version-checks`` - If specified, the script does not check if the versions in the plist file matches the versions in the MCUBoot images.
 
 * ``--debug`` - Show details in case of an exception (for debugging purpose).
 

@@ -14,6 +14,7 @@ import base64
 import hashlib
 import xml.etree.ElementTree as ET
 import shutil
+import struct
 
 info_file = io.StringIO()
 
@@ -203,14 +204,15 @@ def xml_assert(condition, text):
 
 
 def update_payload(payload):
-    global payloads_dir
+    global payloads_dir, args
+    MCU_BOOT_IMAGE_VERSION_OFFSET = 20
     xml_assert(payload.tag == 'dict', 'Expecting array of dict in "SuperBinary Payloads"')
     # Create initial payload info
     info = NS()
     info.fourcc = '[invalid 4CC]'
     info.name = '[no name]'
     info.file = None
-    info.version = '[version missing]'
+    info.version_item = None
     info.metadata_item = None
     info.hash_item = None
     info.apply_flags = '[default]'
@@ -231,7 +233,7 @@ def update_payload(payload):
             info.file = value.text
         elif key == 'payload version':
             xml_assert(value.tag == 'string', 'Expecting string in "Payload Version"')
-            info.version = value.text
+            info.version_item = value
         elif key == 'payload metadata':
             xml_assert(value.tag == 'dict', 'Expecting dict in "Payload MetaData"')
             info.metadata_item = value
@@ -273,6 +275,15 @@ def update_payload(payload):
     # Read payload file
     payload_file = os.path.join(payloads_dir, info.file)
     payload_content = file_io(payload_file, 'rb')
+    # Read payload file version
+    file_ver = struct.unpack_from('<BBHL', payload_content, MCU_BOOT_IMAGE_VERSION_OFFSET)
+    file_ver = f'{file_ver[0]}.{file_ver[1]}.{file_ver[2]}'
+    xml_assert(info.version_item is not None, 'Payload version not provided in the plist file.')
+    if not info.version_item.text:
+        info.version_item.text = file_ver
+    if file_ver != info.version_item.text and not args.skip_version_checks:
+        raise Exception(f'Version "{file_ver}" contained in the MCUBoot image "{info.file}" ' +
+                        f'does not match version in the plist file "{info.version_item.text}".')
     # Calculate hash
     sha256 = hashlib.sha256(payload_content)
     sha256_bin = sha256.digest()
@@ -281,16 +292,18 @@ def update_payload(payload):
     info.hash_item.text = sha256_b64
     # Print payload information in final summary
     iprint(f'\n{info.fourcc} payload')
-    iprint(f'        version:     {info.version}')
+    iprint(f'        version:     {info.version_item.text}')
+    iprint(f'        file ver:    {file_ver}')
     iprint(f'        name:        {info.name}')
     iprint(f'        file:        {payload_file}')
     iprint(f'        size:        {kb(len(payload_content))}')
     iprint(f'        SHA-256:     {sha256_hex}')
     iprint(f'        apply flags: {info.apply_flags}')
+    return file_ver
 
 
 def update_superbinary():
-    global output_superbinary_plist
+    global output_superbinary_plist, args
     # Read input
     xml_text = file_io(args.input, 'r')
     # Cut header (document type declarations and optionally comments)
@@ -308,18 +321,33 @@ def update_superbinary():
     xml_assert(xml.tag == 'plist', 'Expecting plist tag at xml root')
     xml_assert(len(xml) == 1 and xml[0].tag == 'dict', 'Expecting dict inside plist tag')
     xml_superbinary = xml[0]
+    payloads_versions = set()
+    super_binary_version = None
     for i in range(0, len(xml_superbinary), 2):
         key = xml_superbinary[i]
         value = xml_superbinary[i + 1]
         xml_assert(key.tag == 'key', 'Expecting key-value content in dict')
         if key.text.lower() == 'superbinary firmware version':
-            iprint('\nSuperBinary')
-            iprint(f'        version:     {value.text}')
+            super_binary_version = value
         if key.text.lower() != 'superbinary payloads':
             continue
         xml_assert(value.tag == 'array', 'Expecting array in "SuperBinary Payloads"')
         for payload in value:
-            update_payload(payload)
+            ver = update_payload(payload)
+            payloads_versions.add(ver)
+    # Check super binary version
+    xml_assert(super_binary_version is not None, 'SuperBinary version not provided in the plist file.')
+    if not super_binary_version.text:
+        max_ver = (0, 0, 0)
+        for ver in payloads_versions:
+            payload_ver = tuple(int(x) for x in ver.split('.'))
+            if payload_ver >= max_ver:
+                max_ver = payload_ver
+        super_binary_version.text = '.'.join(str(x) for x in max_ver)
+    if super_binary_version.text not in payloads_versions and not args.skip_version_checks:
+        separator = '", "'
+        raise Exception(f'Version "{super_binary_version.text}" contained in the plist file ' +
+                        f'does not match version of any of the payloads: "{separator.join(payloads_versions)}".')
     # Get modified XML
     xml_file = io.StringIO()
     ET.ElementTree(xml).write(xml_file,
@@ -334,6 +362,8 @@ def update_superbinary():
     else:
         output_superbinary_plist = args.input
     file_io(output_superbinary_plist, 'w', xml_text)
+    iprint('\nSuperBinary')
+    iprint(f'        version:     {super_binary_version.text}')
 
 
 def create_metadata():
@@ -377,6 +407,8 @@ def cli_protected(cmd, argv):
                         help='Custom path to "mfigr2" tool. By default, "mfigr2" from PATH '
                              'environment variable will be used. Setting it to "skip" will '
                              'only show the commands without executing them.')
+    parser.add_argument('--skip-version-checks', action='store_true',
+                        help='Does not check if plist versions matches MCUBoot images versions.')
     parser.add_argument('--debug', action='store_true',
                         help='Show details in case of exception (for debugging purpose).')
     parser.add_argument('--help', action='help',
