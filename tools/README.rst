@@ -29,6 +29,7 @@ SuperBinary samples
 
    /tools/samples/SuperBinary/single/README
    /tools/samples/SuperBinary/incremental/README
+   /tools/samples/SuperBinary/github_action/README
 
 Requirements
 ============

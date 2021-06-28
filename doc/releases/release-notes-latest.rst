@@ -16,8 +16,8 @@ This release covers the following features:
 
 * Support for *pair before use* accessories, also called coexistence feature.
 
-* Providing a version information is optional for a SuperBinary tool,
-  because it can read the version from the source MCUBoot image.
+* A new sample for the SuperBinary tool that can create a SuperBinary file
+  remotely using GitHub Actions.
 
 Release tag
 ***********
@@ -55,6 +55,9 @@ Changelog
 * Fixed the advertising timeout after disconnect in the persistent connection mode.
 
 * Increased the MCUboot partition size for the release variant in affected samples to support nRF52840 target.
+
+* Providing version information is optional for a SuperBinary tool,
+  because it can read the version from the source MCUBoot image.
 
 Limitations
 ***********

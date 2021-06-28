@@ -6,16 +6,13 @@
 
 import sys
 import argparse
-
-from .cmd_provision import cli as provision_cli
-from .cmd_superbinary import cli as superbinary_cli
-from .cmd_extract import cli as extract_cli
+import importlib
 
 
 commands = [
-    ('Provision', provision_cli, 'FMN Accessory Setup Provisioning Tool'),
-    ('Extract', extract_cli, 'FMN Accessory MFi Token Extractor Tool'),
-    ('SuperBinary', superbinary_cli, 'FMN SuperBinary Helper Tool')
+    ('Provision', '.cmd_provision', 'FMN Accessory Setup Provisioning Tool'),
+    ('Extract', '.cmd_extract', 'FMN Accessory MFi Token Extractor Tool'),
+    ('SuperBinary', '.cmd_superbinary', 'FMN SuperBinary Helper Tool')
 ]
 
 
@@ -27,7 +24,8 @@ def cli():
         argv = argv[2:]
         for command in commands:
             if cmd == command[0].lower():
-                return (command[1])(command[0], argv)
+                mod = importlib.import_module(command[1], 'scripts')
+                return (mod.cli)(command[0], argv)
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('command [--help]')

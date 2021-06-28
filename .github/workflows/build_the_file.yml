@@ -1,0 +1,28 @@
+name: Compose SuperBinary
+
+on:
+  push:
+    branches: [ temp-compose-superbinary-** ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compose SuperBinary
+    runs-on: macos-latest
+    
+    steps:
+    
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Compose SuperBinary
+        working-directory: ${{ github.workspace }}/tools/samples/SuperBinary/github_action
+        run: python3 trigger_action.py exec_action
+
+      - name: Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: results
+          path: ${{ github.workspace }}/tools/samples/SuperBinary/github_action/output
+          retention-days: 2
