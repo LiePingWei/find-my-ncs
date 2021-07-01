@@ -194,6 +194,24 @@ struct fmna_enable_cb {
 	 */
 	void (*battery_level_request)(void);
 
+	/** @brief Indicate the location availability of this accessory to the
+	 *         other Find My Network devices.
+	 *
+	 *  This callback will be called to indicate whether or not the location
+	 *  of the accessory is available to non-owner devices from the Find My
+	 *  Network. This API is intended only for "pair before use" accessories.
+	 *  It is used to determine if the "Find My" suffix should be appended to
+	 *  the device name for their primary purpose Bluetooth activity
+	 *  (for example advertising or device name GATT characteristic).
+	 *
+	 *  @note When the accessory is not Find My paired or is connected with
+	 *        the Owner device, it is considered Find My Network disabled.
+	 *
+	 *  @param available True if the accessory is Find My Network enabled.
+	 *                   False if the accessory is Find My Network disabled.
+	 */
+	void (*location_availability_changed)(bool available);
+
 	/** @brief Notify the user about the exit from the pairing mode.
 	 *
 	 *  This callback will be called to notify the user about the

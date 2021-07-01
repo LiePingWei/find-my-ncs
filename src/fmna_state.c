@@ -30,6 +30,9 @@ static bool is_maintained = false;
 static bool unpair_pending = false;
 static bool persistent_conn_adv = false;
 
+static bool location_available;
+static fmna_state_location_availability_changed_t location_availability_changed_cb;
+
 static uint16_t nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
 
 static void nearby_separated_work_handle(struct k_work *item);
@@ -284,6 +287,17 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 		LOG_DBG("Changing FMN State to: %s", state_str);
 	}
 
+	if (location_availability_changed_cb) {
+		bool is_location_available =
+			(new_state == FMNA_STATE_NEARBY) ||
+			(new_state == FMNA_STATE_SEPARATED);
+
+		if (location_available != is_location_available) {
+			location_available = is_location_available;
+			location_availability_changed_cb(is_location_available);
+		}
+	}
+
 	return 0;
 }
 
@@ -394,6 +408,11 @@ int fmna_state_init(uint8_t bt_id)
 		return err;
 	}
 
+	/* Set the location available variable so that the first callback
+	 * is triggered during the initialization.
+	 */
+	location_available = !is_bonded;
+
 	/* Initialize state. */
 	state = is_bonded ? FMNA_STATE_SEPARATED : FMNA_STATE_UNPAIRED;
 	err   = state_set(NULL, state);
@@ -401,6 +420,14 @@ int fmna_state_init(uint8_t bt_id)
 		LOG_ERR("state_set returned error: %d", err);
 		return err;
 	}
+
+	return 0;
+}
+
+int fmna_state_location_availability_cb_register(
+	fmna_state_location_availability_changed_t cb)
+{
+	location_availability_changed_cb = cb;
 
 	return 0;
 }

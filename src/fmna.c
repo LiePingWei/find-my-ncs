@@ -98,6 +98,12 @@ int fmna_enable(const struct fmna_enable_param *param,
 		return err;
 	}
 
+	err = fmna_state_location_availability_cb_register(cb->location_availability_changed);
+	if (err) {
+		LOG_ERR("fmna_state_location_availability_cb_register returned error: %d", err);
+		return err;
+	}
+
 	/* Initialize FMN modules. */
 	err = fmna_battery_init(param->init_battery_level, cb->battery_level_request);
 	if (err) {
