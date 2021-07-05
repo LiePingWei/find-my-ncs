@@ -28,6 +28,10 @@ enum fmna_state fmna_state_get(void);
 
 bool fmna_state_is_paired(void);
 
+int fmna_state_pause(void);
+
+int fmna_state_resume(void);
+
 int fmna_state_init(uint8_t bt_id);
 
 int fmna_state_location_availability_cb_register(

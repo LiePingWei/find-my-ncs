@@ -7,6 +7,7 @@
 #include "events/fmna_config_event.h"
 #include "events/fmna_event.h"
 #include "fmna_conn.h"
+#include "fmna_state.h"
 #include "fmna_gatt_fmns.h"
 
 #include <sys/util.h>
@@ -49,6 +50,7 @@ extern const struct bt_conn_auth_cb *bt_auth;
 
 static struct fmna_conn conns[CONFIG_BT_MAX_CONN];
 static uint8_t max_connections = CONFIG_FMNA_MAX_CONN;
+static uint8_t non_fmna_conns = 0;
 static uint8_t fmna_bt_id;
 static const struct bt_conn_auth_cb *bt_auth_ctx;
 
@@ -69,17 +71,30 @@ bool fmna_conn_check(struct bt_conn *conn)
 	return (conn_info.id == fmna_bt_id);
 }
 
-static void connected(struct bt_conn *conn, uint8_t err)
+static void connected(struct bt_conn *conn, uint8_t conn_err)
 {
+	int err;
 	char addr[BT_ADDR_LE_STR_LEN];
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
 
-	if (!fmna_conn_check(conn)) {
+	if (conn_err) {
+		LOG_ERR("Connection establishment error: %d", conn_err);
 		return;
 	}
 
-	if (err) {
-		LOG_ERR("FMN connection establishment error: %d", err);
+	if (!fmna_conn_check(conn)) {
+		/* A peer has connected to the accessory for its primary purpose
+		* (HR Sensor). Pause the FMN stack activity.
+		*/
+		if (non_fmna_conns == 0) {
+			err = fmna_state_pause();
+			if (err) {
+				LOG_ERR("fmna_state_pause returned error: %d", err);
+			}
+		}
+
+		non_fmna_conns++;
+
 		return;
 	}
 
@@ -99,10 +114,27 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
+	int err;
 	char addr[BT_ADDR_LE_STR_LEN];
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
 
 	if (!fmna_conn_check(conn)) {
+		__ASSERT(non_fmna_conns > 0,
+			"non_fmna_conns is invalid: %d", non_fmna_conns);
+
+		non_fmna_conns--;
+
+		/* A peer, that previously connected to the accessory its primary
+		* purpose (HR Sensor), has disconnected. Resume the FMN stack
+		* activity.
+		*/
+		if (non_fmna_conns == 0) {
+			err = fmna_state_resume();
+			if (err) {
+				LOG_ERR("fmna_state_resume returned error: %d", err);
+			}
+		}
+
 		return;
 	}
 

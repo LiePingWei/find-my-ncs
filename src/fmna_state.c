@@ -25,6 +25,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define PERSISTENT_CONN_ADV_TIMEOUT      3
 
 static enum fmna_state state = FMNA_STATE_UNDEFINED;
+static bool is_adv_paused = false;
 static bool is_bonded = false;
 static bool is_maintained = false;
 static bool unpair_pending = false;
@@ -53,6 +54,12 @@ static int nearby_adv_start(void)
 	int err;
 	struct fmna_adv_nearby_config config;
 
+	if (is_adv_paused) {
+		LOG_DBG("Nearby advertising is still paused");
+
+		return 0;
+	}
+
 	fmna_keys_primary_key_get(config.primary_key);
 
 	config.fast_mode = persistent_conn_adv;
@@ -73,6 +80,12 @@ static int separated_adv_start(void)
 {
 	int err;
 	struct fmna_adv_separated_config config;
+
+	if (is_adv_paused) {
+		LOG_DBG("Separated advertising is still paused");
+
+		return 0;
+	}
 
 	err = fmna_keys_primary_key_get(config.primary_key);
 	if (err) {
@@ -100,7 +113,7 @@ static int separated_adv_start(void)
 	return err;
 }
 
-static void advertise_restart_on_no_state_change(void)
+static int advertise_restart_on_no_state_change(void)
 {
 	int err;
 
@@ -110,9 +123,10 @@ static void advertise_restart_on_no_state_change(void)
 		err = fmna_adv_stop();
 		if (err) {
 			LOG_ERR("fmna_adv_stop returned error: %d", err);
+			return err;
 		}
 
-		return;
+		return 0;
 	}
 
 	switch (state) {
@@ -120,7 +134,7 @@ static void advertise_restart_on_no_state_change(void)
 		err = fmna_adv_start_unpaired(false);
 		if (err) {
 			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
-			return;
+			return err;
 		}
 		break;
 	case FMNA_STATE_CONNECTED:
@@ -128,20 +142,22 @@ static void advertise_restart_on_no_state_change(void)
 		err = nearby_adv_start();
 		if (err) {
 			LOG_ERR("nearby_adv_start returned error: %d", err);
-			return;
+			return err;
 		}
 		break;
 	case FMNA_STATE_SEPARATED:
 		err = separated_adv_start();
 		if (err) {
 			LOG_ERR("separated_adv_start returned error: %d", err);
-			return;
+			return err;
 		}
 		break;
 	case FMNA_STATE_UNDEFINED:
 		__ASSERT(0, "FMN state must be defined at this point");
 		break;
 	}
+
+	return 0;
 }
 
 static const char *state_name_get(enum fmna_state state)
@@ -366,7 +382,7 @@ static void fmna_peer_disconnected(struct bt_conn *conn)
 	advertise_restart_on_no_state_change();
 }
 
-int fmna_resume(void)
+int fmna_state_pause(void)
 {
 	int err;
 
@@ -374,17 +390,35 @@ int fmna_resume(void)
 		return -EINVAL;
 	}
 
-	if (state == FMNA_STATE_UNPAIRED) {
-		err = fmna_adv_start_unpaired(false);
-		if (err) {
-			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
-			return err;
-		}
+	is_adv_paused = true;
 
-		return 0;
-	} else {
-		return -EALREADY;
+	err = fmna_adv_stop();
+	if (err) {
+		LOG_ERR("fmna_adv_stop returned error: %d", err);
+		return err;
 	}
+
+	return 0;
+}
+
+int fmna_state_resume(void)
+{
+	if (state == FMNA_STATE_UNDEFINED) {
+		return -EINVAL;
+	}
+
+	is_adv_paused = false;
+
+	return advertise_restart_on_no_state_change();
+}
+
+int fmna_resume(void)
+{
+	if (state != FMNA_STATE_UNPAIRED) {
+		return -EINVAL;
+	}
+
+	return advertise_restart_on_no_state_change();
 }
 
 enum fmna_state fmna_state_get(void)

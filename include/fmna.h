@@ -244,11 +244,11 @@ int fmna_battery_level_set(uint8_t percentage_level);
  */
 bool fmna_conn_check(struct bt_conn *conn);
 
-/** @brief Resume the activity of the FMN stack.
+/** @brief Resume advertising in the unpaired mode.
  *
- *  This function resumes the activity of the FMN stack based on its own
- *  internal state from the last pause. For example, such a pause could occur
- *  after @ref pairing_mode_exited callback from @ref fmna_enable_cb structure.
+ *  This function resumes advertising in the unpaired mode after a timeout.
+ *  Such a timeout is indicated by the @ref pairing_mode_exited callback from
+ *  @ref fmna_enable_cb structure.
  *
  *  @return Zero on success or negative error code otherwise
  */
