@@ -8,5 +8,6 @@ The following user guides introduce important concepts that you should be famili
 .. toctree::
    :maxdepth: 2
    :caption: Subpages:
+   :glob:
 
-   app_dev/find_my_pairing
+   app_dev/*
