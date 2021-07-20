@@ -14,7 +14,7 @@ Highlights
 
 This release covers the following features:
 
-There are no entries for this section yet.
+* Support for *pair before use* accessories, also called coexistence feature.
 
 Release tag
 ***********
@@ -41,6 +41,11 @@ Supported development kits
 
 Changelog
 *********
+
+* Added the Coexistence sample that demonstrates how to create firmware for *pair before use* accessories.
+* Added support for *pair before use* accessories in the Find My stack.
+* Added new API in the Find My header file for *pair before use* accessories.
+* Added conceptual docs for *pair before use* accessories.
 
 * Added logic for removing Bluetooth LE bond information of a peer that does not finish the Find My pairing procedure.
 
