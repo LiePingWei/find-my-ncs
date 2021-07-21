@@ -42,6 +42,8 @@ Supported development kits
 Changelog
 *********
 
+* Added logic for removing Bluetooth LE bond information of a peer that does not finish the Find My pairing procedure.
+
 * Fixed the advertising timeout after disconnect in the persistent connection mode.
 
 Limitations

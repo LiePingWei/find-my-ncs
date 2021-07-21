@@ -13,7 +13,7 @@ extern "C" {
 
 #include <zephyr.h>
 
-int fmna_pair_init(void);
+int fmna_pair_init(uint8_t bt_id);
 
 #ifdef __cplusplus
 }

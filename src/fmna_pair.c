@@ -8,6 +8,7 @@
 #include "fmna_gatt_fmns.h"
 #include "fmna_product_plan.h"
 #include "fmna_serial_number.h"
+#include "fmna_state.h"
 #include "fmna_storage.h"
 #include "fmna_version.h"
 #include "crypto/fm_crypto.h"
@@ -95,7 +96,10 @@ static uint8_t e1[E1_BLEN];
 static uint8_t seedk1[FMNA_SYMMETRIC_KEY_LEN];
 static struct fm_crypto_ckg_context ckg_ctx;
 
-int fmna_pair_init(void)
+static struct bt_conn *pairing_conn;
+static uint8_t fmna_bt_id;
+
+int fmna_pair_init(uint8_t bt_id)
 {
 	int err;
 
@@ -103,6 +107,8 @@ int fmna_pair_init(void)
 	if (err) {
 		LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
 	}
+
+	fmna_bt_id = bt_id;
 
 	return err;
 }
@@ -399,14 +405,21 @@ static void initiate_pairing_cmd_handle(struct bt_conn *conn,
 
 	LOG_INF("FMNA: RX: Initiate pairing command");
 
+	if (pairing_conn != conn) {
+		LOG_WRN("Rejecting initiate pairing command from the invalid peer");
+		LOG_WRN("pairing_conn: %p != conn: %p", (void *) pairing_conn, (void *) conn);
+
+		pairing_peer_disconnect(conn);
+		return;
+	}
+
 	/* Initialize buffer descriptor */
 	net_buf_simple_init_with_data(&buf_desc, buf->data, sizeof(buf->data));
 	net_buf_simple_reset(&buf_desc);
 
 	err = pairing_data_generate(&buf_desc);
 	if (err) {
-		LOG_ERR("pairing_data_generate returned error: %d",
-			err);
+		LOG_ERR("pairing_data_generate returned error: %d", err);
 
 		pairing_peer_disconnect(conn);
 		return;
@@ -425,6 +438,14 @@ static void finalize_pairing_cmd_handle(struct bt_conn *conn,
 	struct net_buf_simple buf_desc;
 
 	LOG_INF("FMNA: RX: Finalize pairing command");
+
+	if (pairing_conn != conn) {
+		LOG_WRN("Rejecting finalize pairing command from the invalid peer");
+		LOG_WRN("pairing_conn: %p != conn: %p", (void *) pairing_conn, (void *) conn);
+
+		pairing_peer_disconnect(conn);
+		return;
+	}
 
 	/* Initialize buffer descriptor */
 	net_buf_simple_init_with_data(&buf_desc, buf->data, sizeof(buf->data));
@@ -454,6 +475,14 @@ static void pairing_complete_cmd_handle(struct bt_conn *conn,
 
 	LOG_INF("FMNA: RX: Pairing complete command");
 
+	if (pairing_conn != conn) {
+		LOG_WRN("Rejecting pairing complete command from the invalid peer");
+		LOG_WRN("pairing_conn: %p != conn: %p", (void *) pairing_conn, (void *) conn);
+
+		pairing_peer_disconnect(conn);
+		return;
+	}
+
 	err = fm_crypto_ckg_finish(&ckg_ctx,
 					init_keys.master_pk,
 					init_keys.primary_sk,
@@ -475,12 +504,80 @@ static void pairing_complete_cmd_handle(struct bt_conn *conn,
 		LOG_ERR("fmna_keys_service_start: %d", err);
 	}
 
+	/* Find My pairing has completed. */
+	pairing_conn = NULL;
+
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_PAIRING_COMPLETED, conn);
 	EVENT_SUBMIT(event);
 }
 
+static void fmna_peer_disconnected(struct bt_conn *conn)
+{
+	int err;
+
+	/* Find My pairing has failed. */
+	if (pairing_conn == conn) {
+		pairing_conn = NULL;
+
+		LOG_WRN("FMN pairing has failed");
+
+		err = bt_unpair(fmna_bt_id, bt_conn_get_dst(conn));
+		if (err) {
+			LOG_ERR("fmna_pair: bt_unpair returned error: %d", err);
+		}
+	}
+}
+
+static void fmna_peer_security_changed(struct bt_conn *conn, bt_security_t level,
+				       enum bt_security_err sec_err)
+{
+	int err;
+
+	if (fmna_state_is_paired()) {
+		return;
+	}
+
+	if (sec_err) {
+		pairing_peer_disconnect(conn);
+
+		return;
+	}
+
+	/* Find My pairing has started. */
+	if (!pairing_conn) {
+		pairing_conn = conn;
+	} else {
+		LOG_WRN("fmna_pair: rejecting simultaneous pairing attempt");
+
+		/* Remove bonds and disconnect the second peer. */
+		err = bt_unpair(fmna_bt_id, bt_conn_get_dst(conn));
+		if (err) {
+			LOG_ERR("fmna_pair: bt_unpair returned error: %d", err);
+		}
+	}
+}
+
 static bool event_handler(const struct event_header *eh)
 {
+	if (is_fmna_event(eh)) {
+		struct fmna_event *event = cast_fmna_event(eh);
+
+		switch (event->id) {
+		case FMNA_EVENT_PEER_DISCONNECTED:
+			fmna_peer_disconnected(event->conn);
+			break;
+		case FMNA_EVENT_PEER_SECURITY_CHANGED:
+			fmna_peer_security_changed(event->conn,
+						   event->peer_security_changed.level,
+						   event->peer_security_changed.err);
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
 	if (is_fmna_pair_event(eh)) {
 		struct fmna_pair_event *event = cast_fmna_pair_event(eh);
 
@@ -506,4 +603,5 @@ static bool event_handler(const struct event_header *eh)
 }
 
 EVENT_LISTENER(fmna_pair, event_handler);
+EVENT_SUBSCRIBE(fmna_pair, fmna_event);
 EVENT_SUBSCRIBE(fmna_pair, fmna_pair_event);

@@ -117,7 +117,7 @@ int fmna_enable(const struct fmna_enable_param *param,
 		return err;
 	}
 
-	err = fmna_pair_init();
+	err = fmna_pair_init(param->bt_id);
 	if (err) {
 		LOG_ERR("fmna_pair_init returned error: %d", err);
 		return err;
