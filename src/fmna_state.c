@@ -22,7 +22,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 /* Timeout values in seconds */
 #define NEARBY_SEPARATED_TIMEOUT_DEFAULT 30
 #define NEARBY_SEPARATED_TIMEOUT_MAX     3600
-#define PERSISTENT_CONN_ADV_TIMEOUT      180
+#define PERSISTENT_CONN_ADV_TIMEOUT      3
 
 static enum fmna_state state = FMNA_STATE_UNDEFINED;
 static bool is_bonded = false;

@@ -42,7 +42,7 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* Fixed the advertising timeout after disconnect in the persistent connection mode.
 
 Limitations
 ***********
