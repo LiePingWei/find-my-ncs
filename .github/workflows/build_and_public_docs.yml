@@ -1,0 +1,227 @@
+name: Publish documentation
+
+on:
+  push:
+    branches: [ master ]
+
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Documentation version name:'
+        required: true
+        default: 'latest'
+      tag:
+        description: 'Use sources from tag:'
+        required: false
+      skip_publishing:
+        description: 'Skip documentation publishing:'
+        required: true
+        default: 'false'
+
+jobs:
+  build:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    env:
+      PATCH_FORK: "https://github.com/kapi-no/fw-nrfconnect-nrf.git"
+      PATCH_FORK_BRANCH_NAME: "find_my_doc_fork"
+
+    steps:
+
+      - name: Process workflow input parameters
+        run: |
+          # Find source ref
+          export SOURCE_REF=${{ github.event.inputs.tag }}
+          if [ -z "$SOURCE_REF" ]; then
+            export SOURCE_REF=$GITHUB_REF
+          fi
+          echo "SOURCE_REF=$SOURCE_REF" >> $GITHUB_ENV
+
+          # Check if documentation should be published
+          SKIP_PUBLISHING=${{ github.event.inputs.skip_publishing }}
+          SKIP_PUBLISHING=`echo $SKIP_PUBLISHING | sed -E -e 's/^(on|true|yes|y|t)\$/t/gI'`
+          SKIP_PUBLISHING=`echo $SKIP_PUBLISHING | sed -E -e 's/^(off|false|no|n|f|)\$/f/gI'`
+          if [ "$SKIP_PUBLISHING" == "t" ]; then
+            echo "PUBLISH_DOCS=false" >> $GITHUB_ENV
+          elif [ "$SKIP_PUBLISHING" == "f" ]; then
+            echo "PUBLISH_DOCS=true" >> $GITHUB_ENV
+          else
+            echo "Invalid value in 'Skip documentation publishing' workflow parameter!"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.SOURCE_REF }}
+
+      - name: Prepare
+        run: |
+          # Save git information for later
+          export GIT_ORIGIN=`git config --get remote.origin.url`
+          export GIT_COMMIT=`git rev-parse HEAD`
+          echo "GIT_COMMIT=$GIT_COMMIT" >> $GITHUB_ENV
+
+          # Set git credentials
+          git config --global credential.helper ""
+          git config --global --add credential.helper store
+          echo "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com" >> ~/.git-credentials
+
+          # Move current commit to temporary directory
+          mkdir /tmp/my-dir-tmp
+          mv * /tmp/my-dir-tmp/
+          mv .* /tmp/my-dir-tmp/ || true
+
+          # Clone required NRF branch
+          git clone --depth 1 $PATCH_FORK --branch $PATCH_FORK_BRANCH_NAME nrf
+          echo `cd nrf && git rev-parse HEAD` > cache_key.txt
+
+          # Patch west.yml to avoid credentials issues
+          sed -i "s~repo-path: sdk-find-my~url: $GIT_ORIGIN~g" nrf/west.yml
+          sed -i "s~mbed-cloud-client-zephyr~mbed-cloud-client~g" nrf/west.yml
+          echo ----------------- PATCHED west.yml -----------------
+          cat nrf/west.yml
+          echo ----------------------------------------------------
+          cat nrf/west.yml >> cache_key.txt
+
+      - name: Cache west update
+        id: cache-west
+        uses: actions/cache@v2
+        with:
+          path: _west_cached
+          key: _west_cached-${{ hashFiles('cache_key.txt') }}
+
+      - name: West (if not cached)
+        if: steps.cache-west.outputs.cache-hit != 'true'
+        run: |
+          # West init and update
+          pip3 install --user -U west
+          west init -l nrf
+          west config manifest.group-filter +find-my
+          west update
+
+          # Create cache directory
+          mkdir /tmp/my-dir-west
+          cp -a ./. /tmp/my-dir-west/
+          mkdir _west_cached
+          mv /tmp/my-dir-west/* _west_cached/
+
+          # Reduce cache size
+          find _west_cached/ -type d -name ".git" -exec rm -R {} \; || echo ok
+
+      - name: Restore west downloads (if cached)
+        if: steps.cache-west.outputs.cache-hit == 'true'
+        run: |
+          cp -af _west_cached/. ./
+          ls -la
+
+      - name: Prepare (next step)
+        run: |
+          # Restore current commit
+          rm -Rf find-my/*
+          mv /tmp/my-dir-tmp/* find-my/
+          mv /tmp/my-dir-tmp/.* find-my/ | true
+
+          # Make pip cache dependent on python version and invalidate cache once a week
+          python3 --version > requirements-add-to-cache-hash.txt
+          date +%g%V >> requirements-add-to-cache-hash.txt
+
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y ninja-build
+          sudo apt-get install -y doxygen
+          pip3 install --user -r nrf/scripts/requirements-fixed.txt
+          pip3 install --user -r nrf/scripts/requirements.txt
+          pip3 install --user -r bootloader/mcuboot/scripts/requirements.txt
+          pip3 install --user -r zephyr/scripts/requirements.txt
+          pip3 install --user -r find-my/doc/requirements.txt
+
+      - name: Build documentation
+        run: |
+          . zephyr/zephyr-env.sh
+          cd find-my/doc
+          python3 generate_doc.py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: results
+          path: ${{ github.workspace }}/find-my/doc/_build/latest.zip
+
+      - name: Checkout doc_artifacts
+        if: env.PUBLISH_DOCS == 'true'
+        uses: actions/checkout@v2
+        with:
+          ref: doc_artifacts
+          path: doc_artifacts
+
+      - name: Publish ZIP
+        if: env.PUBLISH_DOCS == 'true'
+        run: |
+          export ARTIFACT_NAME=${{ github.event.inputs.name }}
+          if [ -z "$ARTIFACT_NAME" ]; then
+            export ARTIFACT_NAME=latest
+          fi
+          echo Documentation version name: $ARTIFACT_NAME
+          cp find-my/doc/_build/latest.zip doc_artifacts/$ARTIFACT_NAME.zip
+          cd doc_artifacts
+          git add $ARTIFACT_NAME.zip
+          echo "artifacts: updated $ARTIFACT_NAME doc package for Find My" > /tmp/_my_message.txt
+          echo >> /tmp/_my_message.txt
+          echo "Updated the documentation package for the ${{ env.SOURCE_REF }} branch." >> /tmp/_my_message.txt
+          echo >> /tmp/_my_message.txt
+          echo "Source commit hash of the sdk-find-my repository:" >> /tmp/_my_message.txt
+          echo ${{ env.GIT_COMMIT }} >> /tmp/_my_message.txt
+          echo >> /tmp/_my_message.txt
+          echo "Signed-off-by: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>" >> /tmp/_my_message.txt
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config user.name "${{ github.actor }}"
+          git commit -F /tmp/_my_message.txt || true
+          git push || true
+
+      - name: Checkout doc_pages
+        if: false
+        uses: actions/checkout@v2
+        with:
+          ref: doc_pages
+          path: doc_pages
+
+      - name: Publish HTML
+        if: false
+        run: |
+          export ARTIFACT_NAME=${{ github.event.inputs.name }}
+          if [ -z "$ARTIFACT_NAME" ]; then
+            export ARTIFACT_NAME=latest
+          fi
+          echo Documentation version name: $ARTIFACT_NAME
+          rm -Rf doc_pages/docs/$ARTIFACT_NAME || true
+          mkdir -p doc_pages/docs/$ARTIFACT_NAME
+          cp -a find-my/doc/_build/html/* doc_pages/docs/$ARTIFACT_NAME/
+          rm -Rf doc_pages/docs/$ARTIFACT_NAME/.doctrees || true
+          cd doc_pages/docs
+          find * -maxdepth 0 -type d -exec echo {} \; > versions.txt
+          node -e 'console.log("var doc_vers="+JSON.stringify(require("fs").readFileSync("versions.txt","UTF-8").split(/\s*\n\s*/).filter(x=>x).sort(),null,4)+";")' > versions.js
+          rm -f versions.txt
+          cd ..
+          git add docs/$ARTIFACT_NAME
+          git add docs/versions.js
+          echo "artifacts: updated $ARTIFACT_NAME on-line doc for Find My" > /tmp/_my_message.txt
+          echo >> /tmp/_my_message.txt
+          echo "Updated the on-line documentation for the ${{ env.SOURCE_REF }} branch." >> /tmp/_my_message.txt
+          echo >> /tmp/_my_message.txt
+          echo "Source commit hash of the sdk-find-my repository:" >> /tmp/_my_message.txt
+          echo ${{ env.GIT_COMMIT }} >> /tmp/_my_message.txt
+          echo >> /tmp/_my_message.txt
+          echo "Signed-off-by: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>" >> /tmp/_my_message.txt
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config user.name "${{ github.actor }}"
+          git commit -F /tmp/_my_message.txt || true
+          # TODO: exit code from git commit may be used to check if anything was changed and skip ZIP publish if not
+          git push || true
+
