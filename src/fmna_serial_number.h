@@ -14,8 +14,19 @@ extern "C" {
 #include <zephyr.h>
 
 #define FMNA_SERIAL_NUMBER_BLEN 16
+#define FMNA_SERIAL_NUMBER_ENC_BLEN 141
+
+enum fmna_serial_number_enc_query_type {
+	FMNA_SERIAL_NUMBER_ENC_QUERY_TYPE_TAP,
+	FMNA_SERIAL_NUMBER_ENC_QUERY_TYPE_BT,
+};
 
 void fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN]);
+
+void fmna_serial_number_enc_get(
+	enum fmna_serial_number_enc_query_type query_type,
+	uint8_t serial_number_enc[FMNA_SERIAL_NUMBER_ENC_BLEN]);
+
 
 #ifdef __cplusplus
 }

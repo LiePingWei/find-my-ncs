@@ -18,14 +18,8 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 #define SN_LOOKUP_INTERVAL        K_MINUTES(5)
 
-#define SN_ENCRYPTED_RESPONSE_LEN 141
 #define SN_PAYLOAD_HMAC_LEN       32
 #define SN_PAYLOAD_OP_LEN         4
-
-enum sn_query_type {
-	SN_QUERY_TYPE_TAP,
-	SN_QUERY_TYPE_BT,
-};
 
 struct __packed sn_hmac_payload {
 	uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN];
@@ -89,8 +83,8 @@ void fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 	}
 }
 
-static void encrypted_sn_response_build(enum sn_query_type query_type,
-					uint8_t sn_response[SN_ENCRYPTED_RESPONSE_LEN])
+static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type query_type,
+					uint8_t sn_response[FMNA_SERIAL_NUMBER_ENC_BLEN])
 {
 	int err;
 	struct sn_hmac_payload sn_hmac_payload;
@@ -98,7 +92,7 @@ static void encrypted_sn_response_build(enum sn_query_type query_type,
 	uint8_t server_shared_secret[FMNA_SERVER_SHARED_SECRET_LEN];
 
 	/* Clear the encrypted serial number initially in case of error. */
-	memset(sn_response, 0, SN_ENCRYPTED_RESPONSE_LEN);
+	memset(sn_response, 0, FMNA_SERIAL_NUMBER_ENC_BLEN);
 
 	err = fmna_storage_pairing_item_load(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
 					     (uint8_t *) &sn_payload.counter,
@@ -128,11 +122,11 @@ static void encrypted_sn_response_build(enum sn_query_type query_type,
 	       sizeof(sn_hmac_payload.serial_number));
 
 	switch (query_type) {
-	case SN_QUERY_TYPE_TAP:
+	case FMNA_SERIAL_NUMBER_ENC_QUERY_TYPE_TAP:
 		strcpy(sn_hmac_payload.op, "tap");
 		strcpy(sn_payload.op, "tap");
 		break;
-	case SN_QUERY_TYPE_BT:
+	case FMNA_SERIAL_NUMBER_ENC_QUERY_TYPE_BT:
 		strcpy(sn_hmac_payload.op, "bt");
 		strcpy(sn_payload.op, "bt");
 		break;
@@ -158,7 +152,7 @@ static void encrypted_sn_response_build(enum sn_query_type query_type,
 		return;
 	}
 
-	uint32_t sn_response_len = SN_ENCRYPTED_RESPONSE_LEN;
+	uint32_t sn_response_len = FMNA_SERIAL_NUMBER_ENC_BLEN;
 	err = fm_crypto_encrypt_to_server(fmna_pp_server_encryption_key,
 					  sizeof(sn_payload),
 					  (const uint8_t *) &sn_payload,
@@ -170,9 +164,16 @@ static void encrypted_sn_response_build(enum sn_query_type query_type,
 		/* Clear the encrypted serial number in case of fm_crypto_encrypt_to_server
 		 * error.
 		 */
-		memset(sn_response, 0, SN_ENCRYPTED_RESPONSE_LEN);
+		memset(sn_response, 0, FMNA_SERIAL_NUMBER_ENC_BLEN);
 		return;
 	}
+}
+
+void fmna_serial_number_enc_get(
+	enum fmna_serial_number_enc_query_type query_type,
+	uint8_t serial_number_enc[FMNA_SERIAL_NUMBER_ENC_BLEN])
+{
+	encrypted_sn_response_build(query_type, serial_number_enc);
 }
 
 static void pairing_completed_handle(struct bt_conn *conn)
@@ -188,9 +189,9 @@ static void serial_number_request_handle(struct bt_conn *conn)
 
 	if (is_paired && is_lookup_enabled) {
 		struct net_buf_simple sn_rsp_buf;
-		uint8_t encrypted_sn_rsp[SN_ENCRYPTED_RESPONSE_LEN];
+		uint8_t encrypted_sn_rsp[FMNA_SERIAL_NUMBER_ENC_BLEN];
 
-		encrypted_sn_response_build(SN_QUERY_TYPE_BT, encrypted_sn_rsp);
+		encrypted_sn_response_build(FMNA_SERIAL_NUMBER_ENC_QUERY_TYPE_BT, encrypted_sn_rsp);
 
 		net_buf_simple_init_with_data(&sn_rsp_buf,
 					      encrypted_sn_rsp,
