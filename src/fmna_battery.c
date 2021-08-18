@@ -9,6 +9,8 @@
 #include <string.h>
 #include <sys/byteorder.h>
 
+#include "events/fmna_event.h"
+
 #include "fmna_battery.h"
 
 #define BATTERY_LEVEL_MAX       100
@@ -21,12 +23,8 @@ BUILD_ASSERT((CONFIG_FMNA_BATTERY_STATE_MEDIUM_THR < BATTERY_LEVEL_MAX) &&
 static uint8_t battery_level;
 static fmna_battery_level_request_cb_t battery_level_request_cb;
 
-enum fmna_battery_state fmna_battery_state_get(void)
+enum fmna_battery_state fmna_battery_state_get_no_cb(void)
 {
-	if (battery_level_request_cb) {
-		battery_level_request_cb();
-	}
-
 	if (battery_level > CONFIG_FMNA_BATTERY_STATE_MEDIUM_THR) {
 		return FMNA_BATTERY_STATE_FULL;
 	} else if (battery_level > CONFIG_FMNA_BATTERY_STATE_LOW_THR) {
@@ -38,6 +36,15 @@ enum fmna_battery_state fmna_battery_state_get(void)
 	}
 }
 
+enum fmna_battery_state fmna_battery_state_get(void)
+{
+	if (battery_level_request_cb) {
+		battery_level_request_cb();
+	}
+
+	return fmna_battery_state_get_no_cb();
+}
+
 int fmna_battery_level_set(uint8_t percentage_level)
 {
 	if (percentage_level > BATTERY_LEVEL_MAX) {
@@ -45,6 +52,9 @@ int fmna_battery_level_set(uint8_t percentage_level)
 	}
 
 	battery_level = percentage_level;
+
+	FMNA_EVENT_CREATE(event, FMNA_EVENT_BATTERY_LEVEL_CHANGED, NULL);
+	EVENT_SUBMIT(event);
 
 	return 0;
 }

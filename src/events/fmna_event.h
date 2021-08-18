@@ -17,6 +17,7 @@ extern "C" {
 	_name->conn = _conn;
 
 enum fmna_event_id {
+	FMNA_EVENT_BATTERY_LEVEL_CHANGED,
 	FMNA_EVENT_BONDED,
 	FMNA_EVENT_MAX_CONN_CHANGED,
 	FMNA_EVENT_OWNER_CONNECTED,
