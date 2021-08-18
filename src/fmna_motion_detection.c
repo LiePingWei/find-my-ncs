@@ -11,6 +11,7 @@
 #include "events/fmna_event.h"
 #include "fmna_gatt_fmns.h"
 #include "fmna_sound.h"
+#include "fmna_state.h"
 
 #include <fmna.h>
 
@@ -280,8 +281,10 @@ static bool event_handler(const struct event_header *eh)
 		case FMNA_EVENT_SOUND_COMPLETED:
 			sound_completed_handle();
 			break;
-		case FMNA_EVENT_SEPARATED:
-			separated_state_transition_handle();
+		case FMNA_EVENT_STATE_CHANGED:
+			if (fmna_state_get() == FMNA_STATE_SEPARATED) {
+				separated_state_transition_handle();
+			}
 			break;
 		default:
 			break;
