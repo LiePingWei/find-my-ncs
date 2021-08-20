@@ -143,7 +143,11 @@ static int e2_msg_populate(struct fmna_initiate_pairing *init_pairing,
 		return err;
 	}
 
-	fmna_serial_number_get(e2_encr_msg->serial_number);
+	err = fmna_serial_number_get(e2_encr_msg->serial_number);
+	if (err) {
+		LOG_ERR("FMNA Pair: Serial Number read failed");
+		memset(e2_encr_msg->serial_number, 0, sizeof(e2_encr_msg->serial_number));
+	}
 
 	memcpy(e2_encr_msg->e1, init_pairing->e1, sizeof(e2_encr_msg->e1));
 
@@ -175,7 +179,11 @@ static int e4_msg_populate(struct e4_encr_msg *e4_encr_msg)
 		return err;
 	}
 
-	fmna_serial_number_get(e4_encr_msg->serial_number);
+	err = fmna_serial_number_get(e4_encr_msg->serial_number);
+	if (err) {
+		LOG_ERR("FMNA Pair: Serial Number read failed");
+		memset(e4_encr_msg->serial_number, 0, sizeof(e4_encr_msg->serial_number));
+	}
 
 	memcpy(e4_encr_msg->e1, e1, sizeof(e4_encr_msg->e1));
 

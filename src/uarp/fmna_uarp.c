@@ -873,9 +873,14 @@ static uint32_t query_serial_number(void *accessory_delegate,
 				    uint8_t *option_string,
 				    uint32_t *length)
 {
+	int err;
 	char serial_number[FMNA_SERIAL_NUMBER_BLEN];
 
-	fmna_serial_number_get(serial_number);
+	err = fmna_serial_number_get(serial_number);
+	if (err) {
+		LOG_ERR("UARP Serial Number read failed");
+		memset(serial_number, 0, sizeof(serial_number));
+	}
 
 	return query_string(serial_number, option_string, length);
 }

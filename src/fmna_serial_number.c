@@ -62,8 +62,17 @@ int fmna_serial_number_lookup_enable(void)
 	return 0;
 }
 
-void fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
+int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 {
+#if CONFIG_FMNA_CUSTOM_SERIAL_NUMBER
+	int err;
+
+	err = fmna_storage_serial_number_load(serial_number);
+	if (err) {
+		LOG_ERR("fmna_serial_number: cannot load custom Serial Number: %d", err);
+		return err;
+	}
+#else
 	uint8_t temp[8];
 	size_t index;
 
@@ -81,6 +90,9 @@ void fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 	while (index < FMNA_SERIAL_NUMBER_BLEN) {
 		serial_number[index++] = 'f';
 	}
+#endif
+
+	return 0;
 }
 
 static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type query_type,
@@ -110,13 +122,17 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					      (uint8_t *) &sn_payload.counter,
 					      sizeof(sn_payload.counter));
 	if (err) {
-		LOG_ERR("fmna_serial_number: cannot load Serial Number counter");
+		LOG_ERR("fmna_serial_number: cannot store Serial Number counter");
 		return;
 	}
 
 	LOG_INF("Serial Number query count: %llu", sn_payload.counter);
 
-	fmna_serial_number_get(sn_payload.serial_number);
+	err = fmna_serial_number_get(sn_payload.serial_number);
+	if (err) {
+		LOG_ERR("fmna_serial_number: cannot fetch Serial Number");
+		return;
+	}
 	memcpy(sn_hmac_payload.serial_number,
 	       sn_payload.serial_number,
 	       sizeof(sn_hmac_payload.serial_number));

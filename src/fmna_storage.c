@@ -23,8 +23,9 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define FMNA_STORAGE_BRANCH_PROVISIONING "provisioning"
 #define FMNA_STORAGE_BRANCH_PAIRING      "pairing"
 
-#define FMNA_STORAGE_PROVISIONING_UUID_KEY       998
-#define FMNA_STORAGE_PROVISIONING_AUTH_TOKEN_KEY 999
+#define FMNA_STORAGE_PROVISIONING_SERIAL_NUMBER_KEY 997
+#define FMNA_STORAGE_PROVISIONING_UUID_KEY          998
+#define FMNA_STORAGE_PROVISIONING_AUTH_TOKEN_KEY    999
 
 #define FMNA_STORAGE_PAIRING_ITEM_KEY_DIGIT_LEN 2
 #define FMNA_STORAGE_PAIRING_ITEM_KEY_FMT \
@@ -128,6 +129,21 @@ static int fmna_storage_direct_load(char *key, struct settings_item *item)
 
 	return err;
 }
+
+#if CONFIG_FMNA_CUSTOM_SERIAL_NUMBER
+int fmna_storage_serial_number_load(uint8_t sn_buf[FMNA_SERIAL_NUMBER_BLEN])
+{
+	char *sn_node = FMNA_STORAGE_LEAF_NODE_BUILD(
+		FMNA_STORAGE_BRANCH_PROVISIONING,
+		STRINGIFY(FMNA_STORAGE_PROVISIONING_SERIAL_NUMBER_KEY));
+	struct settings_item sn_item = {
+		.buf = sn_buf,
+		.len = FMNA_SERIAL_NUMBER_BLEN,
+	};
+
+	return fmna_storage_direct_load(sn_node, &sn_item);
+}
+#endif
 
 int fmna_storage_uuid_load(uint8_t uuid_buf[FMNA_SW_AUTH_UUID_BLEN])
 {

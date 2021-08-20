@@ -36,6 +36,9 @@ config FMNA_MAX_CONN
 	default 2
 	range 2 BT_MAX_CONN
 
+config FMNA_CUSTOM_SERIAL_NUMBER
+	bool "Use custom serial number from provisioned data"
+
 # Product Plan configuration
 config FMNA_NORDIC_PRODUCT_PLAN
 	bool "Use Nordic Product Plan"

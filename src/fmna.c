@@ -56,9 +56,17 @@ static void basic_display_work_handler(struct k_work *work)
 		LOG_INF("(... %d more bytes ...)", FMNA_SW_AUTH_TOKEN_BLEN - 16);
 	}
 
-	fmna_serial_number_get(serial_number);
-	LOG_HEXDUMP_INF(serial_number, sizeof(serial_number),
-			"Serial Number:");
+	err = fmna_serial_number_get(serial_number);
+	if (err == -ENOENT) {
+		LOG_WRN("Serial number not found: "
+			"please provsion a serial number to the device");
+	} else if (err) {
+		LOG_ERR("fmna_serial_number_get returned error: %d",
+			err);
+	} else {
+		LOG_HEXDUMP_INF(serial_number, sizeof(serial_number),
+				"Serial Number:");
+	}
 
 	err = fmna_version_fw_get(&ver);
 	if (err) {

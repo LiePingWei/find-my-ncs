@@ -13,6 +13,8 @@ extern "C" {
 
 #include <zephyr.h>
 
+#include "fmna_serial_number.h"
+
 #define FMNA_SW_AUTH_TOKEN_BLEN 1024
 #define FMNA_SW_AUTH_UUID_BLEN  16
 
@@ -47,6 +49,8 @@ enum fmna_storage_pairing_item_id {
 int fmna_storage_init(bool delete_pairing_data);
 
 /* API for accessing and manipulating provisioned data. */
+
+int fmna_storage_serial_number_load(uint8_t sn_buf[FMNA_SERIAL_NUMBER_BLEN]);
 
 int fmna_storage_uuid_load(uint8_t uuid_buf[FMNA_SW_AUTH_UUID_BLEN]);
 
