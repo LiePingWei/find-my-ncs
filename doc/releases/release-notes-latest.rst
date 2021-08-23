@@ -51,6 +51,8 @@ Changelog
 
 * Fixed the advertising timeout after disconnect in the persistent connection mode.
 
+* Increased the MCUboot partition size for the release variant in affected samples to support nRF52840 target.
+
 Limitations
 ***********
 
