@@ -37,7 +37,7 @@ static void basic_display_work_handler(struct k_work *work)
 	err = fmna_storage_uuid_load(uuid);
 	if (err == -ENOENT) {
 		LOG_WRN("MFi Token UUID not found: "
-			"please provsion a token to the device");
+			"please provision a token to the device");
 	} else if (err) {
 		LOG_ERR("fmna_storage_uuid_load returned error: %d", err);
 	} else {
@@ -47,7 +47,7 @@ static void basic_display_work_handler(struct k_work *work)
 	err = fmna_storage_auth_token_load(auth_token);
 	if (err == -ENOENT) {
 		LOG_WRN("MFi Authentication Token not found: "
-			"please provsion a token to the device");
+			"please provision a token to the device");
 	} else if (err) {
 		LOG_ERR("fmna_storage_auth_token_load returned error: %d",
 			err);
@@ -59,7 +59,7 @@ static void basic_display_work_handler(struct k_work *work)
 	err = fmna_serial_number_get(serial_number);
 	if (err == -ENOENT) {
 		LOG_WRN("Serial number not found: "
-			"please provsion a serial number to the device");
+			"please provision a serial number to the device");
 	} else if (err) {
 		LOG_ERR("fmna_serial_number_get returned error: %d",
 			err);
