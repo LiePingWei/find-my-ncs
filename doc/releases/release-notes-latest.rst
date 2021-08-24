@@ -49,18 +49,13 @@ Changelog
 * Added support for *pair before use* accessories in the Find My stack.
 * Added new API in the Find My header file for *pair before use* accessories.
 * Added conceptual docs for *pair before use* accessories.
-
+* Added conceptual docs for firmware update with UARP.
 * Added NFC support to the Find My stack using the NFC-A Type 2 Tag library.
 * Enabled NFC support in the Find My Simple and Qualification samples.
-
 * Added logic for removing Bluetooth LE bond information of a peer that does not finish the Find My pairing procedure.
-
 * Added support for custom serial numbers from provisioned data.
-
 * Fixed the advertising timeout after disconnect in the persistent connection mode.
-
 * Increased the MCUboot partition size for the release variant in affected samples to support nRF52840 target.
-
 * Providing version information is optional for a SuperBinary tool,
   because it can read the version from the source MCUBoot image.
 
