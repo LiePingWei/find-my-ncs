@@ -69,7 +69,7 @@ int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 
 	err = fmna_storage_serial_number_load(serial_number);
 	if (err) {
-		LOG_ERR("fmna_serial_number: cannot load custom Serial Number: %d", err);
+		LOG_ERR("fmna_serial_number: fmna_storage_serial_number_load err %d", err);
 		return err;
 	}
 #else
@@ -110,7 +110,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					     (uint8_t *) &sn_payload.counter,
 					     sizeof(sn_payload.counter));
 	if (err) {
-		LOG_ERR("fmna_serial_number: cannot load Serial Number counter");
+		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_load err %d", err);
 		return;
 	}
 
@@ -122,7 +122,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					      (uint8_t *) &sn_payload.counter,
 					      sizeof(sn_payload.counter));
 	if (err) {
-		LOG_ERR("fmna_serial_number: cannot store Serial Number counter");
+		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_store err %d", err);
 		return;
 	}
 
@@ -130,7 +130,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 
 	err = fmna_serial_number_get(sn_payload.serial_number);
 	if (err) {
-		LOG_ERR("fmna_serial_number: cannot fetch Serial Number");
+		LOG_ERR("fmna_serial_number: fmna_serial_number_get err %d", err);
 		return;
 	}
 	memcpy(sn_hmac_payload.serial_number,
@@ -155,7 +155,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					     server_shared_secret,
 					     sizeof(server_shared_secret));
 	if (err) {
-		LOG_ERR("fmna_serial_number: cannot load Server Shared Secret");
+		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_load err %d", err);
 		return;
 	}
 
@@ -164,7 +164,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					      (const uint8_t *) &sn_hmac_payload,
 					      sn_payload.hmac);
 	if (err) {
-		LOG_ERR("Serial Nuber: fm_crypto_authenticate_with_ksn err %d", err);
+		LOG_ERR("fmna_serial_number: fm_crypto_authenticate_with_ksn err %d", err);
 		return;
 	}
 
@@ -175,7 +175,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					  &sn_response_len,
 					  sn_response);
 	if (err) {
-		LOG_ERR("Serial Number: fm_crypto_encrypt_to_server err %d", err);
+		LOG_ERR("fmna_serial_number: fm_crypto_encrypt_to_server err %d", err);
 
 		/* Clear the encrypted serial number in case of fm_crypto_encrypt_to_server
 		 * error.
@@ -217,7 +217,7 @@ static void serial_number_request_handle(struct bt_conn *conn)
 						  FMNA_GATT_OWNER_SERIAL_NUMBER_IND,
 						  &sn_rsp_buf);
 		if (err) {
-			LOG_ERR("FMNA SN: fmna_gatt_owner_cp_indicate returned error: %d", err);
+			LOG_ERR("fmna_serial_number: fmna_gatt_owner_cp_indicate returned error: %d", err);
 			return;
 		}
 
@@ -232,7 +232,7 @@ static void serial_number_request_handle(struct bt_conn *conn)
 						  FMNA_GATT_OWNER_COMMAND_RESPONSE_IND,
 						  &invalid_state_cmd_rsp);
 		if (err) {
-			LOG_ERR("FMNA SN: fmna_gatt_owner_cp_indicate returned error: %d", err);
+			LOG_ERR("fmna_serial_number: fmna_gatt_owner_cp_indicate returned error: %d", err);
 			return;
 		}
 
