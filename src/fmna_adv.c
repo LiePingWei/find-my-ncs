@@ -10,6 +10,7 @@
 
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/conn.h>
+#include <bluetooth/hci.h>
 #include <bluetooth/hci_vs.h>
 #include <sys/byteorder.h>
 #include <logging/log.h>
@@ -203,7 +204,7 @@ static int bt_ext_advertising_start(const struct adv_start_config *config)
 	int err;
 	struct bt_le_adv_param param = {0};
 	struct bt_le_ext_adv_start_param ext_adv_start_param = {0};
-	uint16_t adv_handle;
+	uint8_t adv_handle;
 
 	if (adv_set) {
 		LOG_ERR("Advertising set is already claimed");
@@ -229,10 +230,11 @@ static int bt_ext_advertising_start(const struct adv_start_config *config)
 		return err;
 	}
 
-	/* TODO: Migrate to the proper BLE API for retrieving advertising handle once
-	 *       it is added and implemented.
-	 */
-	adv_handle = bt_le_ext_adv_get_index(adv_set);
+	err = bt_hci_get_adv_handle(adv_set, &adv_handle);
+	if (err) {
+		LOG_ERR("bt_hci_get_adv_handle returned error: %d", err);
+		return err;
+	}
 	bt_ext_advertising_tx_power_set(adv_handle);
 
 	err = bt_le_ext_adv_start(adv_set, &ext_adv_start_param);
