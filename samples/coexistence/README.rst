@@ -97,8 +97,8 @@ After provisioning the MFi tokens to your development kit and programming it, co
 #. Open the nRF Connect iOS application.
 #. Connect to the "HR Sensor - Find My" device.
 
-.. note::
-   If the Find My owner has already connected to the accessory, the " - Find My" suffix will be missing.
+   .. note::
+      If the Find My owner has already connected to the accessory, the " - Find My" suffix will be missing.
 
 #. Select the :guilabel:`Client` tab and scroll down to find Heart Rate service characteristics.
 #. Try reading the Body Sensor Location characteristic and observe that the pairing window pops up.
