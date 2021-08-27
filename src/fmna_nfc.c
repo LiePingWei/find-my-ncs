@@ -23,18 +23,17 @@
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
-#define FMNA_PID 0xCAFE
-
 #define NDEF_MSG_BUF_SIZE	512
 #define FMNA_URL_MAX_SIZE	512
-#define BT_ADDR_STRING_LEN	(6*2 + 1)
 
 /* Every byte requires two character encoding in ASCII.
  * One additional character for NULL terminator.
  */
+#define BT_ADDR_STRING_LEN             (6*2 + 1)
+#define PRODUCT_DATA_STRING_LEN        (FMNA_PP_PRODUCT_DATA_LEN * 2 + 1)
 #define FMNA_SERIAL_NUMBER_ENC_STR_LEN (2 * FMNA_SERIAL_NUMBER_ENC_BLEN + 1)
 
-static const char *base_url = "found.apple.com/accessory?pid=%04x&b=%02x&fv=%08x";
+static const char *base_url = "found.apple.com/accessory?pid=%s&b=%02x&fv=%08x";
 static const char *unpaired_url_suffix = "&bt=%s&sr=%s";
 static const char *paired_url_suffix = "&e=%s&op=tap";
 
@@ -59,6 +58,21 @@ static int fmna_nfc_url_prepare(char *url, size_t url_max_size)
 	size_t suffix_max_size;
 	struct fmna_version ver;
 	uint32_t fw_version_le;
+	char product_plan_str[PRODUCT_DATA_STRING_LEN];
+
+	/* Convert Product Data binary array to a string. */
+	ret = snprintk(
+		product_plan_str,
+		sizeof(product_plan_str),
+		"%02x%02x%02x%02x%02x%02x%02x%02x",
+		fmna_pp_product_data[0], fmna_pp_product_data[1],
+		fmna_pp_product_data[2], fmna_pp_product_data[3],
+		fmna_pp_product_data[4], fmna_pp_product_data[5],
+		fmna_pp_product_data[6], fmna_pp_product_data[7]);
+	if (!((ret > 0) && (ret < sizeof(product_plan_str)))) {
+		LOG_ERR("FMN NFC: snprintk product_plan_str err %d", ret);
+		return -EINVAL;
+	}
 
 	/* Get the firmware version and encode it in little endian. */
 	ret = fmna_version_fw_get(&ver);
@@ -71,7 +85,7 @@ static int fmna_nfc_url_prepare(char *url, size_t url_max_size)
 
 	/* Encode common values in the URL. */
 	ret = snprintk((char *) url, url_max_size, base_url,
-		FMNA_PID, battery_state, fw_version_le);
+		product_plan_str, battery_state, fw_version_le);
 	if (!((ret > 0) && (ret < url_max_size))) {
 		LOG_ERR("FMN NFC: snprintk base url err %d", ret);
 		return -EINVAL;
