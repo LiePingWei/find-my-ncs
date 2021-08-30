@@ -54,6 +54,7 @@ Changelog
 * Enabled NFC support in the Find My Simple and Qualification samples.
 * Added logic for removing Bluetooth LE bond information of a peer that does not finish the Find My pairing procedure.
 * Added support for custom serial numbers from provisioned data.
+* Added option to configure transmit power used in Find My advertising and connections.
 * Fixed the advertising timeout after disconnect in the persistent connection mode.
 * Increased the MCUboot partition size for the release variant in affected samples to support nRF52840 target.
 * Providing version information is optional for a SuperBinary tool,

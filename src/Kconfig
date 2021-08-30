@@ -36,6 +36,14 @@ config FMNA_MAX_CONN
 	default 2
 	range 2 BT_MAX_CONN
 
+config FMNA_TX_POWER
+	int "TX power"
+	help
+	  TX power configuration in dBm used in advertising and connections.
+	default 4
+	range 4 4 if SOC_NRF52832
+	range 4 8
+
 config FMNA_CUSTOM_SERIAL_NUMBER
 	bool "Use custom serial number from provisioned data"
 

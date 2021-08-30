@@ -17,7 +17,15 @@
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
-#define ADV_TX_POWER 4 /* 4dBm */
+/* Validation of TX power configuration from Kconfig */
+#if   defined(RADIO_TXPOWER_TXPOWER_Pos4dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos4dBm)
+#elif defined(RADIO_TXPOWER_TXPOWER_Pos5dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos5dBm)
+#elif defined(RADIO_TXPOWER_TXPOWER_Pos6dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos6dBm)
+#elif defined(RADIO_TXPOWER_TXPOWER_Pos7dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos7dBm)
+#elif defined(RADIO_TXPOWER_TXPOWER_Pos8dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos8dBm)
+#else
+	#error "TX power configuration not supported on a chosen Find My target"
+#endif
 
 #define UNPAIRED_ADV_INTERVAL    0x0030 /* 30 ms */
 #define PAIRED_ADV_INTERVAL      0x0C80 /* 2 s */
@@ -162,7 +170,7 @@ static void bt_ext_advertising_tx_power_set(uint16_t handle)
 	cp = net_buf_add(buf, sizeof(*cp));
 	cp->handle = sys_cpu_to_le16(handle);
 	cp->handle_type = BT_HCI_VS_LL_HANDLE_TYPE_ADV;
-	cp->tx_power_level = ADV_TX_POWER;
+	cp->tx_power_level = CONFIG_FMNA_TX_POWER;
 
 	err = bt_hci_cmd_send_sync(BT_HCI_OP_VS_WRITE_TX_POWER_LEVEL, buf, &rsp);
 	if (err) {
