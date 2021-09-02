@@ -53,6 +53,7 @@ Changelog
 * Added NFC support to the Find My stack using the NFC-A Type 2 Tag library.
 * Enabled NFC support in the Find My Simple and Qualification samples.
 * Added logic for removing Bluetooth LE bond information of a peer that does not finish the Find My pairing procedure.
+* Added queue mechanism to the Find My Network service to handle simultaneous requests for sending indications.
 * Added support for custom serial numbers from provisioned data.
 * Added option to configure transmit power used in Find My advertising and connections.
 * Fixed the advertising timeout after disconnect in the persistent connection mode.

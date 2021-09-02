@@ -106,8 +106,17 @@ enum debug_cp_opcode {
 	DEBUG_CP_OPCODE_UT_MOTION_TIMERS_CONFIG  = 0x0505,
 };
 
+struct ind_packet {
+	void *fifo_reserved;
+	struct bt_conn *conn;
+	const struct bt_gatt_attr *attr;
+	uint16_t opcode;
+	uint8_t data[FMNA_GATT_PKT_MAX_LEN];
+	uint16_t len;
+};
+
+static K_FIFO_DEFINE(fifo_ind_data);
 NET_BUF_SIMPLE_DEFINE_STATIC(cp_ind_buf, FMNA_GATT_PKT_MAX_LEN);
-static K_SEM_DEFINE(cp_tx_sem, 1, 1);
 
 static void pairing_cp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 				       uint16_t value)
@@ -788,6 +797,11 @@ BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),
 #endif
 );
 
+static int cp_indicate(struct bt_conn *conn,
+		       const struct bt_gatt_attr *attr,
+		       uint16_t opcode,
+		       struct net_buf_simple *buf);
+
 static void cp_ind_cb(struct bt_conn *conn, struct bt_gatt_indicate_params *params, uint8_t err)
 {
 	uint8_t *ind_data;
@@ -797,22 +811,38 @@ static void cp_ind_cb(struct bt_conn *conn, struct bt_gatt_indicate_params *para
 
 	ind_data = fmna_gatt_pkt_manager_chunk_prepare(conn, &cp_ind_buf, &ind_data_len);
 	if (!ind_data) {
-		/* Release the semaphore when there is not more data
+		/* Release the buffer when there is not more data
 		 * to be sent for the whole packet transmission.
 		 */
-		k_sem_give(&cp_tx_sem);
+		struct ind_packet *ind_packet;
 
-		return;
-	}
+		net_buf_simple_reset(&cp_ind_buf);
 
-	params->data = ind_data;
-	params->len = ind_data_len;
+		ind_packet = k_fifo_get(&fifo_ind_data, K_NO_WAIT);
+		if (ind_packet) {
+			LOG_INF("FMN GATT: Processing indication queue");
 
-	err = bt_gatt_indicate(conn, params);
-	if (err) {
-		LOG_ERR("bt_gatt_indicate returned error: %d", err);
+			NET_BUF_SIMPLE_DEFINE(data_buf, FMNA_GATT_PKT_MAX_LEN);
+			net_buf_simple_add_mem(&data_buf, ind_packet->data, ind_packet->len);
 
-		k_sem_give(&cp_tx_sem);
+			err = cp_indicate(ind_packet->conn,
+					  ind_packet->attr,
+					  ind_packet->opcode,
+					  &data_buf);
+			if (err) {
+				LOG_ERR("FMN GATT: cp_indicate returned error: %d", err);
+			}
+
+			k_free(ind_packet);
+		}
+	} else {
+		params->data = ind_data;
+		params->len = ind_data_len;
+
+		err = bt_gatt_indicate(conn, params);
+		if (err) {
+			LOG_ERR("bt_gatt_indicate returned error: %d", err);
+		}
 	}
 }
 
@@ -821,46 +851,65 @@ static int cp_indicate(struct bt_conn *conn,
 		       uint16_t opcode,
 		       struct net_buf_simple *buf)
 {
-	int err;
-	uint8_t *ind_data;
-	uint16_t ind_data_len;
+	if (net_buf_simple_headroom(&cp_ind_buf) != 0) {
+		/* Indication sending in progress. Queue the next item. */
+		struct ind_packet *ind_packet;
 
-	static struct bt_gatt_indicate_params indicate_params;
+		if (buf->len > sizeof(ind_packet->data)) {
+			return -ENOMEM;
+		}
 
-	err = k_sem_take(&cp_tx_sem, K_MSEC(50));
-	if (err) {
-		LOG_ERR("FMN CP indication sending in progress");
+		ind_packet = k_malloc(sizeof(*ind_packet));
+		if (!ind_packet) {
+			return -ENOMEM;
+		}
 
-		return err;
+		ind_packet->conn = conn;
+		ind_packet->attr = attr;
+		ind_packet->opcode = opcode;
+		ind_packet->len = buf->len;
+		memcpy(ind_packet->data, buf->data, buf->len);
+
+		k_fifo_put(&fifo_ind_data, ind_packet);
+
+		LOG_INF("FMN GATT: Adding indication to the queue");
+
+		return 0;
+	} else {
+		int err;
+		uint8_t *ind_data;
+		uint16_t ind_data_len;
+
+		static struct bt_gatt_indicate_params indicate_params;
+
+		/* Initialize buffer for sending. */
+		net_buf_simple_reset(&cp_ind_buf);
+		net_buf_simple_reserve(&cp_ind_buf, FMNA_GATT_PKT_HEADER_LEN);
+		net_buf_simple_add_le16(&cp_ind_buf, opcode);
+		net_buf_simple_add_mem(&cp_ind_buf, buf->data, buf->len);
+
+		ind_data = fmna_gatt_pkt_manager_chunk_prepare(conn, &cp_ind_buf, &ind_data_len);
+		if (!ind_data) {
+			LOG_ERR("fmna_gatt_pkt_manager_chunk_prepare failed");
+
+			return -EINVAL;
+		}
+
+		memset(&indicate_params, 0, sizeof(indicate_params));
+		indicate_params.attr = attr;
+		indicate_params.func = cp_ind_cb;
+		indicate_params.data = ind_data;
+		indicate_params.len = ind_data_len;
+
+		err = bt_gatt_indicate(conn, &indicate_params);
+		if (err) {
+			LOG_ERR("bt_gatt_indicate returned error: %d", err);
+
+			return err;
+		}
+
+		return 0;
 	}
-
-	/* Initialize buffer for sending. */
-	net_buf_simple_reset(&cp_ind_buf);
-	net_buf_simple_reserve(&cp_ind_buf, FMNA_GATT_PKT_HEADER_LEN);
-	net_buf_simple_add_le16(&cp_ind_buf, opcode);
-	net_buf_simple_add_mem(&cp_ind_buf, buf->data, buf->len);
-
-	ind_data = fmna_gatt_pkt_manager_chunk_prepare(conn, &cp_ind_buf, &ind_data_len);
-	if (!ind_data) {
-		k_sem_give(&cp_tx_sem);
-
-		return -EINVAL;
-	}
-
-	memset(&indicate_params, 0, sizeof(indicate_params));
-	indicate_params.attr = attr;
-	indicate_params.func = cp_ind_cb;
-	indicate_params.data = ind_data;
-	indicate_params.len = ind_data_len;
-
-	err = bt_gatt_indicate(conn, &indicate_params);
-	if (err) {
-		LOG_ERR("bt_gatt_indicate returned error: %d", err);
-
-		k_sem_give(&cp_tx_sem);
-	}
-
-	return err;
 }
 
 int fmna_gatt_pairing_cp_indicate(struct bt_conn *conn,
