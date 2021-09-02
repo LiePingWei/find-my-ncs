@@ -8,8 +8,10 @@ import base64
 import re
 import argparse
 import six
+import sys
+from contextlib import contextmanager
 
-from pynrfjprog import API
+from pynrfjprog import LowLevel as API
 from . import settings_nvs_utils as nvs
 
 DEVICE_NRF52832 = 'NRF52832'
@@ -43,6 +45,7 @@ FMN_MAX_RECORD_ID = 999
 FMN_MFI_AUTH_TOKEN_LEN = 1024
 FMN_MFI_AUTH_UUID_LEN = 16
 
+
 def SETTINGS_BASE(value):
     if value[:2].lower() == '0x':
         value = value[2:]
@@ -51,25 +54,59 @@ def SETTINGS_BASE(value):
         raise ValueError('%s is a malformed FDS base address' % value)
     return value
 
+@contextmanager
 def open_nrf(snr=None):
+    # Read the serial numbers of conected devices
     with API.API(API.DeviceFamily.UNKNOWN) as api:
-        if snr is not None:
-            api.connect_to_emu_with_snr(snr)
+        serial_numbers = api.enum_emu_snr()
+
+    # Determine which device shall be used
+    if not snr:
+        if not serial_numbers:
+            print("Extract error: No devices connected!")
+            sys.exit(1)
+        elif len(serial_numbers) == 1:
+            snr = serial_numbers[0]
         else:
-            api.connect_to_emu_without_snr()
+            # User input required
+            serial_numbers = {idx+1: serial_number for idx, serial_number in enumerate(serial_numbers)}
+            print('Choose the device:')
+            for idx, snr in serial_numbers.items():
+                print(f"{idx}. {snr}")
+            decision = input()
+
+            try:
+                decision = int(decision)
+            except ValueError:
+                print(f"Please choose the option: {list(serial_numbers.keys())}")
+                sys.exit(1)
+
+            if decision in serial_numbers.keys():
+                snr = serial_numbers[decision]
+            elif decision in serial_numbers.values():
+                # Option to provide serial number instead of index, for automation purpose.
+                # Usage: "echo 123456789 | ncsfmntools extract -e NRF52840"
+                snr = decision
+            else:
+                print(f"Please choose the option: {list(serial_numbers.keys())}")
+                sys.exit(1)
+    elif snr not in serial_numbers:
+        print(f"Extract error: Device with serial number {snr} not found!")
+        sys.exit(1)
+
+    # Determine the DeviceFamily for the chosen device
+    with API.API(API.DeviceFamily.UNKNOWN) as api:
+        api.connect_to_emu_with_snr(snr)
         device_family = api.read_device_family()
-        snr = api.read_connected_emu_snr()
 
-    api = API.API(device_family)
-    api.open()
-
-    api.connect_to_emu_with_snr(snr)
-
-    return api
-
-def close_nrf(api):
-    api.close()
-
+    # Open the connection
+    try:
+        api = API.API(device_family)
+        api.open()
+        api.connect_to_emu_with_snr(snr)
+        yield api
+    finally:
+        api.close()
 
 def find_settings_value(bin_str, settings_key):
     offset = bin_str.find(settings_key)
@@ -136,9 +173,8 @@ def extract(device, settings_base):
     print('Using %s as settings base.' % hex(settings_base))
 
     # Open connection to the device and read the NVS data.
-    api = open_nrf(None)
-    bin_data = api.read(settings_base, device_flash_size[device] - settings_base)
-    close_nrf(api)
+    with open_nrf(None) as api:
+        bin_data = api.read(settings_base, device_flash_size[device] - settings_base)
 
     if six.PY3:
         bin_str = bytes(bin_data)
