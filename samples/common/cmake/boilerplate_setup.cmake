@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
 #
 
-cmake_minimum_required(VERSION 3.13.1)
+cmake_minimum_required(VERSION 3.20.0)
 
 set(FIND_MY_COMMON_CONFIG_DIR
     "${CMAKE_CURRENT_LIST_DIR}/../configuration/"
