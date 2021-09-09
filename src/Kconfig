@@ -181,6 +181,9 @@ config BT_MAX_CONN
 config BT_MAX_PAIRED
 	default FMNA_MAX_CONN
 
+config BT_GATT_SERVICE_CHANGED
+	default n
+
 # Override default kernel configuration
 
 config HEAP_MEM_POOL_SIZE
