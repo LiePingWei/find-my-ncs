@@ -802,6 +802,35 @@ static int cp_indicate(struct bt_conn *conn,
 		       uint16_t opcode,
 		       struct net_buf_simple *buf);
 
+static void cp_ind_queue_process(void)
+{
+	int err;
+	struct ind_packet *ind_packet;
+	NET_BUF_SIMPLE_DEFINE(data_buf, FMNA_GATT_PKT_MAX_LEN);
+
+	ind_packet = k_fifo_get(&fifo_ind_data, K_NO_WAIT);
+	while (ind_packet) {
+		LOG_INF("FMN GATT: Processing indication queue");
+
+		net_buf_simple_reset(&data_buf);
+		net_buf_simple_add_mem(&data_buf, ind_packet->data, ind_packet->len);
+
+		err = cp_indicate(ind_packet->conn,
+				  ind_packet->attr,
+				  ind_packet->opcode,
+				  &data_buf);
+		k_free(ind_packet);
+
+		if (err) {
+			LOG_ERR("FMN GATT: cp_indicate returned error: %d", err);
+
+			ind_packet = k_fifo_get(&fifo_ind_data, K_NO_WAIT);
+		} else {
+			return;
+		}
+	}
+}
+
 static void cp_ind_cb(struct bt_conn *conn, struct bt_gatt_indicate_params *params, uint8_t err)
 {
 	uint8_t *ind_data;
@@ -814,27 +843,9 @@ static void cp_ind_cb(struct bt_conn *conn, struct bt_gatt_indicate_params *para
 		/* Release the buffer when there is not more data
 		 * to be sent for the whole packet transmission.
 		 */
-		struct ind_packet *ind_packet;
-
 		net_buf_simple_reset(&cp_ind_buf);
 
-		ind_packet = k_fifo_get(&fifo_ind_data, K_NO_WAIT);
-		if (ind_packet) {
-			LOG_INF("FMN GATT: Processing indication queue");
-
-			NET_BUF_SIMPLE_DEFINE(data_buf, FMNA_GATT_PKT_MAX_LEN);
-			net_buf_simple_add_mem(&data_buf, ind_packet->data, ind_packet->len);
-
-			err = cp_indicate(ind_packet->conn,
-					  ind_packet->attr,
-					  ind_packet->opcode,
-					  &data_buf);
-			if (err) {
-				LOG_ERR("FMN GATT: cp_indicate returned error: %d", err);
-			}
-
-			k_free(ind_packet);
-		}
+		cp_ind_queue_process();
 	} else {
 		params->data = ind_data;
 		params->len = ind_data_len;
@@ -892,6 +903,7 @@ static int cp_indicate(struct bt_conn *conn,
 		if (!ind_data) {
 			LOG_ERR("fmna_gatt_pkt_manager_chunk_prepare failed");
 
+			net_buf_simple_reset(&cp_ind_buf);
 			return -EINVAL;
 		}
 
@@ -905,6 +917,7 @@ static int cp_indicate(struct bt_conn *conn,
 		if (err) {
 			LOG_ERR("bt_gatt_indicate returned error: %d", err);
 
+			net_buf_simple_reset(&cp_ind_buf);
 			return err;
 		}
 
