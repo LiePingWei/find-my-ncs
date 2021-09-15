@@ -57,7 +57,7 @@ def get_content():
             release_notes_file = f
         elif re.search(r'^mfigr2$', f, re.IGNORECASE):
             mfigr2_file = f
-        elif re.search(r'README\.rst|\.py[a-z]?$', f, re.IGNORECASE):
+        elif re.search(r'README\.rst|\.py[a-z]?|\.tmpl$', f, re.IGNORECASE):
             continue
         else:
             raise Exception(f'Don\'t know what to do with: {f}')
