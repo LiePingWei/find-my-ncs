@@ -55,6 +55,9 @@ jobs:
         with:
           ref: ${{ env.SOURCE_REF }}
 
+      - name: Install OS dependencies
+        run: sudo apt-get install -y ninja-build libclang-9-dev libclang-cpp9
+
       - name: Prepare
         run: |
           # Save git information for later
@@ -74,7 +77,6 @@ jobs:
 
           # Clone required NRF branch
           git clone --depth 1 $PATCH_FORK --branch $PATCH_FORK_BRANCH_NAME nrf
-          echo `cd nrf && git rev-parse HEAD` > cache_key.txt
 
           # Patch west.yml to avoid credentials issues
           sed -i "s~repo-path: sdk-find-my~url: $GIT_ORIGIN~g" nrf/west.yml
@@ -82,41 +84,13 @@ jobs:
           echo ----------------- PATCHED west.yml -----------------
           cat nrf/west.yml
           echo ----------------------------------------------------
-          cat nrf/west.yml >> cache_key.txt
 
-      - name: Cache west update
-        id: cache-west
-        uses: actions/cache@v2
-        with:
-          path: _west_cached
-          key: _west_cached-${{ hashFiles('cache_key.txt') }}
-
-      - name: West (if not cached)
-        if: steps.cache-west.outputs.cache-hit != 'true'
-        run: |
           # West init and update
           pip3 install --user -U west
           west init -l nrf
           west config manifest.group-filter +find-my
           west update
 
-          # Create cache directory
-          mkdir /tmp/my-dir-west
-          cp -a ./. /tmp/my-dir-west/
-          mkdir _west_cached
-          mv /tmp/my-dir-west/* _west_cached/
-
-          # Reduce cache size
-          find _west_cached/ -type d -name ".git" -exec rm -R {} \; || echo ok
-
-      - name: Restore west downloads (if cached)
-        if: steps.cache-west.outputs.cache-hit == 'true'
-        run: |
-          cp -af _west_cached/. ./
-          ls -la
-
-      - name: Prepare (next step)
-        run: |
           # Restore current commit
           rm -Rf find-my/*
           mv /tmp/my-dir-tmp/* find-my/
@@ -126,16 +100,30 @@ jobs:
           python3 --version > requirements-add-to-cache-hash.txt
           date +%g%V >> requirements-add-to-cache-hash.txt
 
+      - name: Cache doxygen binaries
+        uses: actions/cache@v2
+        with:
+          path: doxygen-1.9.2.linux.bin.tar.*
+          key: doxygen-1.9.2.linux.bin.tar.
+
+      - name: Download and install newer doxygen
+        run: |
+          if [ ! -f doxygen-1.9.2.linux.bin.tar.* ]; then wget https://github.com/doki-nordic/test-actions-playground/raw/doxygen-ubuntu-bins/doxygen-1.9.2.linux.bin.tar.xz || true; fi
+          if [ ! -f doxygen-1.9.2.linux.bin.tar.* ]; then wget https://www.doxygen.nl/files/doxygen-1.9.2.linux.bin.tar.gz || true; fi
+          tar -xf doxygen-1.9.2.linux.bin.tar.*
+          echo `pwd`/doxygen-1.9.2/bin >> $GITHUB_PATH
+          export PATH=$PATH:`pwd`/doxygen-1.9.2/bin
+          which doxygen
+          doxygen --version
+
       - name: Cache pip
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
-          sudo apt-get install -y ninja-build
-          sudo apt-get install -y doxygen
           pip3 install --user -r nrf/scripts/requirements-fixed.txt
           pip3 install --user -r nrf/scripts/requirements.txt
           pip3 install --user -r bootloader/mcuboot/scripts/requirements.txt

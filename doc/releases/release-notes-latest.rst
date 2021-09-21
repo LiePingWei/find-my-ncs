@@ -54,7 +54,7 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* Added the API Reference to the documentation.
 
 Known issues and limitations
 ****************************

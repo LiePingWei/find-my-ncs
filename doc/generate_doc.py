@@ -18,6 +18,7 @@ If the html directory does not exist, it will be created.
 '''
 
 import os
+import re
 import shutil
 from git import Repo
 import subprocess
@@ -27,7 +28,8 @@ PATCH_FORK = 'https://github.com/kapi-no/fw-nrfconnect-nrf.git'
 PATCH_FORK_BRANCH_NAME = 'find_my_doc_fork'
 
 BUILD_DIR = "../../nrf/doc/build"
-FMN_BUILD_DIR = BUILD_DIR + "/html/find-my"
+FMN_BUILD_DIR = BUILD_DIR + "/html"
+STATIC_DIR = "_static"
 TARGET_DIR = "_build"
 TARGET_HTML_DIR = TARGET_DIR + '/html'
 TARGET_ZIP_NAME = "latest"
@@ -80,9 +82,24 @@ def build_find_my_doc():
     cmake_result = subprocess.run(['cmake', '-GNinja', '../'], cwd=BUILD_DIR)
     if (cmake_result.returncode != 0):
         exit(-1)
-    build_result = subprocess.run(['ninja', 'find-my-html'], cwd=BUILD_DIR)
+    build_result = subprocess.run(['ninja', 'find-my-html', 'kconfig-html'], cwd=BUILD_DIR)
     if (build_result.returncode != 0):
         exit(-2)
+
+def optimize_artifacts_size():
+    allowed_list = ['.html', '.js', '.css', '.json']
+    for dirpath, _, filenames in os.walk(TARGET_HTML_DIR + "/kconfig"):
+        for filename in filenames:
+            if os.path.splitext(filename)[1] not in allowed_list:
+                continue
+            filepath = os.path.join(dirpath, filename)
+            with open(filepath, 'r') as f:
+                text = f.read()
+            new_text = re.sub(r"([\"'/\\\s])(_static[/\\])", r"\1../find-my/\2", text)
+            if text != new_text:
+                with open(filepath, 'w') as f:
+                    f.write(new_text)
+    shutil.rmtree(TARGET_HTML_DIR + "/kconfig/_static")
 
 
 def prepare_doc_artifacts():
@@ -93,8 +110,11 @@ def prepare_doc_artifacts():
     if os.path.isdir(TARGET_DIR):
         shutil.rmtree(TARGET_DIR)
     shutil.copytree(FMN_BUILD_DIR, TARGET_HTML_DIR)
+    shutil.copyfile(STATIC_DIR + "/html/index-main.html", TARGET_HTML_DIR + "/index.html")
+    shutil.copyfile(STATIC_DIR + "/html/index-kconfig.html", TARGET_HTML_DIR + "/kconfig/index.html")
+    optimize_artifacts_size()
     shutil.make_archive(os.path.join(".", TARGET_DIR, TARGET_ZIP_NAME),
-                        format='zip', root_dir=FMN_BUILD_DIR)
+                        format='zip', root_dir=TARGET_HTML_DIR)
 
 def main():
     '''

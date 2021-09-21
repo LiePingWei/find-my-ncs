@@ -13,6 +13,11 @@
 extern "C" {
 #endif
 
+/**
+ * @defgroup fmna Find My
+ * @{
+ */
+
 /** @brief Trigger types for a play sound action. */
 enum fmna_sound_trigger {
 	/** Play sound action is triggered by the Unwatned Tracking Detection
@@ -268,6 +273,10 @@ int fmna_resume(void);
  */
 int fmna_enable(const struct fmna_enable_param *param,
 		const struct fmna_enable_cb *cb);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
