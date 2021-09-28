@@ -7,13 +7,19 @@
 cmake_minimum_required(VERSION 3.20.0)
 
 set(CONF_FILE prj.conf)
-include(${CMAKE_CURRENT_LIST_DIR}/../common/cmake/boilerplate_setup.cmake NO_POLICY_SCOPE)
+set(FIND_MY_SAMPLES_DIR
+    "$ENV{ZEPHYR_BASE}/../find-my/samples/"
+    CACHE PATH "Common configuration directory")
+set(FIND_MY_COMMON_CMAKE_DIR
+    "${FIND_MY_SAMPLES_DIR}/common/cmake/"
+    CACHE PATH "Common configuration directory")
+include(${FIND_MY_COMMON_CMAKE_DIR}/boilerplate_setup.cmake NO_POLICY_SCOPE)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project("FMNA qualification")
 target_sources(app PRIVATE
-  ../simple/src/main.c
+  ${FIND_MY_SAMPLES_DIR}/simple/src/main.c
 )
 zephyr_library_include_directories(.)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../common/cmake/mcuboot_validation.cmake NO_POLICY_SCOPE)
+include(${FIND_MY_COMMON_CMAKE_DIR}/mcuboot_validation.cmake NO_POLICY_SCOPE)

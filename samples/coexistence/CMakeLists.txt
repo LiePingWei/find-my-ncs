@@ -7,7 +7,10 @@
 cmake_minimum_required(VERSION 3.20.0)
 
 set(CONF_FILE prj.conf)
-include(${CMAKE_CURRENT_LIST_DIR}/../common/cmake/boilerplate_setup.cmake NO_POLICY_SCOPE)
+set(FIND_MY_COMMON_CMAKE_DIR
+    "$ENV{ZEPHYR_BASE}/../find-my/samples/common/cmake/"
+    CACHE PATH "Common configuration directory")
+include(${FIND_MY_COMMON_CMAKE_DIR}/boilerplate_setup.cmake NO_POLICY_SCOPE)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project("FMNA coexistence")
