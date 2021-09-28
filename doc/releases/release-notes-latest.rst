@@ -22,7 +22,7 @@ Highlights
 
 This release covers the following features:
 
-There are no entries for this section yet.
+* Support for nRF Connect extension for Visual Studio Code.
 
 .. TODO: Uncomment following section and change version numbers
   Release tag
