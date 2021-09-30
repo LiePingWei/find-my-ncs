@@ -22,6 +22,7 @@ Highlights
 
 This release covers the following features:
 
+* Significant optimization of the Flash memory footprint in Find My samples.
 * Support for nRF Connect extension for Visual Studio Code.
 
 .. TODO: Uncomment following section and change version numbers
@@ -54,6 +55,11 @@ Supported development kits
 Changelog
 *********
 
+* Ported minimal MCUboot configuration to the release MCUBoot configuration for Find My.
+* Reduced MCUboot partition size to 24 kB in the release MCUBoot configuration for Find My.
+* Disabled GATT Service Changed and Server Caching features in the Bluetooth configuration for Find My.
+* Optimized Mbed TLS configuration for all Find My samples.
+* Optimized general release configuration for all Find My samples.
 * Added the API Reference to the documentation.
 
 Known issues and limitations
