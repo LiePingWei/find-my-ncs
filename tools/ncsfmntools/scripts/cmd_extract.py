@@ -181,6 +181,18 @@ def extract(device, settings_base):
     else:
         bin_str = ''.join([chr(byte) for byte in bin_data])
 
+    # Get the UUID Value
+    auth_uuid_key = nvs.get_kvs_name(FMN_PROVISIONING_MFI_TOKEN_UUID)
+    auth_uuid = find_settings_value(bin_str, auth_uuid_key)
+
+    auth_uuid = auth_uuid.hex()
+    print("SW Authentication UUID: %s-%s-%s-%s-%s" % (
+        auth_uuid[:8],
+        auth_uuid[8:12],
+        auth_uuid[12:16],
+        auth_uuid[16:20],
+        auth_uuid[20:]))
+
     # Get the Authentication Token Value
     auth_token_key = nvs.get_kvs_name(FMN_PROVISIONING_MFI_AUTH_TOKEN)
     auth_token = find_settings_value(bin_str, auth_token_key)
@@ -191,6 +203,15 @@ def extract(device, settings_base):
     auth_token_base64 = base64.encodebytes(auth_token).replace(six.binary_type(b'\n'), six.binary_type(b'')).decode()
 
     print("SW Authentication Token: %s" % auth_token_base64)
+
+    # Get the Serial Number Value
+    try:
+        # The serial number is optional, so reading it may raise an exception.
+        serial_number_key = nvs.get_kvs_name(FMN_PROVISIONING_SN)
+        serial_number = find_settings_value(bin_str, serial_number_key)
+        print("Serial Number: %s" % serial_number.hex().upper())
+    except:
+        print("Serial Number: not found in the provisioned data")
 
 if __name__ == '__main__':
     cli()

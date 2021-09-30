@@ -3,9 +3,14 @@
 Extract
 #######
 
-The **Extract** tool extracts the MFi authentication token information from the accessory.
+The **Extract** tool extracts the following information from the accessory:
+
+* MFi authentication token value
+* MFi authentication token UUID
+* Serial number
 
 The token is displayed in the Base64 format.
+The UUID and the serial number are displayed in the HEX format.
 
 See :ref:`cli_tools` for details on how to use ncsfmntools.
 

@@ -61,6 +61,7 @@ Changelog
 * Optimized Mbed TLS configuration for all Find My samples.
 * Optimized general release configuration for all Find My samples.
 * Added the API Reference to the documentation.
+* Added the serial number and UUID extraction to the ``ncsfmntools extract`` command.
 
 Known issues and limitations
 ****************************
