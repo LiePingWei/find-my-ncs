@@ -137,10 +137,12 @@ jobs:
           python3 generate_doc.py
 
       - name: Upload artifacts
+        continue-on-error: true
         uses: actions/upload-artifact@v2
         with:
           name: results
           path: ${{ github.workspace }}/find-my/doc/_build/latest.zip
+          retention-days: 7
 
       - name: Checkout doc_artifacts
         if: env.PUBLISH_DOCS == 'true'
@@ -159,7 +161,7 @@ jobs:
           echo Documentation version name: $ARTIFACT_NAME
           cp find-my/doc/_build/latest.zip doc_artifacts/$ARTIFACT_NAME.zip
           cd doc_artifacts
-          git add $ARTIFACT_NAME.zip
+          git add --all
           echo "artifacts: updated $ARTIFACT_NAME doc package for Find My" > /tmp/_my_message.txt
           echo >> /tmp/_my_message.txt
           echo "Updated the documentation package for the ${{ env.SOURCE_REF }} branch." >> /tmp/_my_message.txt
@@ -170,8 +172,9 @@ jobs:
           echo "Signed-off-by: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>" >> /tmp/_my_message.txt
           git config user.email "${{ github.actor }}@users.noreply.github.com"
           git config user.name "${{ github.actor }}"
+          git checkout --orphan=temp-branch
           git commit -F /tmp/_my_message.txt || true
-          git push || true
+          git push --force origin temp-branch:doc_artifacts || true
 
       - name: Checkout doc_pages
         if: false
