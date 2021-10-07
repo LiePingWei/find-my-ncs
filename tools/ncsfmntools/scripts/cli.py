@@ -27,6 +27,8 @@ def cli():
                 mod = importlib.import_module(command[1], __name__)
                 return (mod.cli)(command[0], argv)
 
+    print('Find My CLI Tools for nRF Connect SDK')
+    print('')
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('command [--help]')
     parser.add_argument('parameter', nargs='*')
