@@ -15,22 +15,9 @@ from hashlib import md5
 
 import six
 
+from . import device as DEVICE
 from . import settings_nvs_utils as nvs
 
-DEVICE_NRF52832 = 'NRF52832'
-DEVICE_NRF52840 = 'NRF52840'
-DEVICE_NRF52833 = 'NRF52833'
-NRF52840_FLASH_SIZE = 0x100000
-NRF52832_FLASH_SIZE = 0x80000
-NRF52833_FLASH_SIZE = 0x80000
-SETTINGS_SIZE = 0x2000
-SETTINGS_ADDR_840_WITHOUT_BL = NRF52840_FLASH_SIZE - SETTINGS_SIZE
-SETTINGS_ADDR_832_WITHOUT_BL = NRF52832_FLASH_SIZE - SETTINGS_SIZE
-SETTINGS_ADDR_833_WITHOUT_BL = NRF52833_FLASH_SIZE - SETTINGS_SIZE
-
-settings_bases_without_bl = {DEVICE_NRF52840: SETTINGS_ADDR_840_WITHOUT_BL,
-                        DEVICE_NRF52832: SETTINGS_ADDR_832_WITHOUT_BL,
-                        DEVICE_NRF52833: SETTINGS_ADDR_833_WITHOUT_BL}
 
 # Record IDs
 FMN_PROVISIONING_SN = 997
@@ -105,8 +92,8 @@ def cli(cmd, argv):
               help='Path to store the result of the provisioning. '
                    'Unique identifiers will be appended to any specified file name.')
     parser.add_argument('-e', '--device', help='Device of accessory to provision',
-              metavar='['+'|'.join(settings_bases_without_bl.keys())+']',
-              choices=settings_bases_without_bl.keys(), required=True)
+              metavar='['+'|'.join(DEVICE.FLASH_SIZE.keys())+']',
+              choices=DEVICE.FLASH_SIZE.keys(), required=True)
     parser.add_argument('-f', '--settings-base', type=SETTINGS_BASE, metavar='ADDRESS',
               help='Settings base address given in hex format. This only needs to be specified if the default values in the '
                    'NCS has been changed.')
@@ -125,7 +112,7 @@ def provision(mfi_uuid, mfi_token, serial_number, output_path, device, settings_
     if settings_base:
         settings_base = int(settings_base, 16)
     else:
-        settings_base = settings_bases_without_bl[device]
+        settings_base = DEVICE.FLASH_SIZE[device] - DEVICE.SETTINGS_PARTITION_SIZE_DEFAULT
 
     print('Using %s as settings base.' % hex(settings_base))
 

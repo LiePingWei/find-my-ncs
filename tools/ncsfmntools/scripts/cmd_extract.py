@@ -12,27 +12,10 @@ import sys
 from contextlib import contextmanager
 
 from pynrfjprog import LowLevel as API
+from . import device as DEVICE
 from . import settings_nvs_utils as nvs
 
-DEVICE_NRF52832 = 'NRF52832'
-DEVICE_NRF52840 = 'NRF52840'
-DEVICE_NRF52833 = 'NRF52833'
-SETTINGS_SIZE = 0x2000
-
-NVS_SECTOR_SIZE = 0x1000
 NVS_UNPOPULATED_ATE = b'\xff\xff\xff\xff\xff\xff\xff\xff'
-
-device_flash_size = {
-    DEVICE_NRF52840: 0x100000,
-    DEVICE_NRF52832: 0x80000,
-    DEVICE_NRF52833: 0x80000,
-}
-
-settings_bases_without_bl = {
-    DEVICE_NRF52840: (device_flash_size[DEVICE_NRF52840] - SETTINGS_SIZE),
-    DEVICE_NRF52832: (device_flash_size[DEVICE_NRF52832] - SETTINGS_SIZE),
-    DEVICE_NRF52833: (device_flash_size[DEVICE_NRF52833] - SETTINGS_SIZE)
-}
 
 # Record IDs
 FMN_PROVISIONING_SN = 997
@@ -111,11 +94,12 @@ def open_nrf(snr=None):
 def find_settings_value(bin_str, settings_key):
     offset = bin_str.find(settings_key)
 
-    sector_num = int(offset / NVS_SECTOR_SIZE)
-    sector_base_addr = sector_num * NVS_SECTOR_SIZE
+    sector_size = DEVICE.SETTINGS_SECTOR_SIZE
+    sector_num = int(offset / sector_size)
+    sector_base_addr = sector_num * sector_size
 
     # The ATE at the end of sector marks closed sectors
-    ate_offset = sector_base_addr + NVS_SECTOR_SIZE - nvs.NVS_ATE_LEN
+    ate_offset = sector_base_addr + sector_size - nvs.NVS_ATE_LEN
     ate = bin_str[ate_offset : (ate_offset + nvs.NVS_ATE_LEN)]
     # closed_sector = ate != NVS_UNPOPULATED_ATE
 
@@ -127,7 +111,7 @@ def find_settings_value(bin_str, settings_key):
     while ate != NVS_UNPOPULATED_ATE:
         record_id = ate[:2]
         data_offset = ate[2:4]
-        target_offset = (offset % NVS_SECTOR_SIZE)
+        target_offset = (offset % sector_size)
         if data_offset == bytes(target_offset.to_bytes(2, byteorder='little')):
             break
         ate_offset -= nvs.NVS_ATE_LEN
@@ -137,8 +121,8 @@ def find_settings_value(bin_str, settings_key):
     value_record_id = bytes([record_id[0], record_id[1] | 0x40])
     value_ate_offset = int(bin_str.find(value_record_id))
 
-    sector_num = int(value_ate_offset / NVS_SECTOR_SIZE)
-    sector_base_addr = sector_num * NVS_SECTOR_SIZE
+    sector_num = int(value_ate_offset / sector_size)
+    sector_base_addr = sector_num * sector_size
     value_data_offset = sector_base_addr + int.from_bytes(bin_str[(value_ate_offset + 2) : (value_ate_offset + 4)], byteorder='little')
     value_data_len = int.from_bytes(bin_str[(value_ate_offset + 4) : (value_ate_offset + 6)], byteorder='little')
 
@@ -153,8 +137,8 @@ def remove_zeros(items):
 def cli(cmd, argv):
     parser = argparse.ArgumentParser(description='FMN Accessory MFi Token Extractor Tool', prog=cmd, add_help=False)
     parser.add_argument('-e', '--device', help='Device of accessory to use',
-              metavar='['+'|'.join(settings_bases_without_bl.keys())+']',
-              choices=settings_bases_without_bl.keys(), required=True)
+              metavar='['+'|'.join(DEVICE.FLASH_SIZE.keys())+']',
+              choices=DEVICE.FLASH_SIZE.keys(), required=True)
     parser.add_argument('-f', '--settings-base', type=SETTINGS_BASE, metavar='ADDRESS',
               help='Settings base address given in hex format. This only needs to be specified if the default values in the '
                    'NCS has been changed.')
@@ -168,13 +152,14 @@ def extract(device, settings_base):
     if settings_base:
         settings_base = int(settings_base, 16)
     else:
-        settings_base = settings_bases_without_bl[device]
+        settings_base = DEVICE.FLASH_SIZE[device] - DEVICE.SETTINGS_PARTITION_SIZE_DEFAULT
 
     print('Using %s as settings base.' % hex(settings_base))
 
     # Open connection to the device and read the NVS data.
     with open_nrf(None) as api:
-        bin_data = api.read(settings_base, device_flash_size[device] - settings_base)
+        settings_size = DEVICE.FLASH_SIZE[device] - settings_base
+        bin_data = api.read(settings_base, settings_size)
 
     if six.PY3:
         bin_str = bytes(bin_data)
