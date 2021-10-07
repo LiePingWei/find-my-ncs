@@ -10,9 +10,9 @@ import importlib
 
 
 commands = [
-    ('Provision', '..cmd_provision', 'FMN Accessory Setup Provisioning Tool'),
-    ('Extract', '..cmd_extract', 'FMN Accessory MFi Token Extractor Tool'),
-    ('SuperBinary', '..cmd_superbinary', 'FMN SuperBinary Helper Tool')
+    ('provision', '..cmd_provision', 'FMN Accessory Setup Provisioning Tool'),
+    ('extract', '..cmd_extract', 'FMN Accessory MFi Token Extractor Tool'),
+    ('superbinary', '..cmd_superbinary', 'FMN SuperBinary Helper Tool')
 ]
 
 
