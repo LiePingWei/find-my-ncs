@@ -78,7 +78,7 @@ def generic_except(text):
     if (args is not None and args.debug):
         raise
     print(f'    {str(ex)}', file=sys.stderr)
-    sys.exit(5)
+    sys.exit(1)
 
 def cmd_path(path):
     return path.replace('\\', '/').replace('//', '/')

@@ -15,7 +15,7 @@ if sys.version_info < required_version:
     print('Minimum required version is %s.%s.%s.' % (required_version[0],
                                                      required_version[1],
                                                      required_version[2]))
-    exit(2)
+    exit(1)
 
 import scripts.cli
 
