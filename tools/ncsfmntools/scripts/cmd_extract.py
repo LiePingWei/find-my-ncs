@@ -13,21 +13,10 @@ from contextlib import contextmanager
 
 from pynrfjprog import LowLevel as API
 from . import device as DEVICE
+from . import provisioned_metadata as PROVISIONED_METADATA
 from . import settings_nvs_utils as nvs
 
 NVS_UNPOPULATED_ATE = b'\xff\xff\xff\xff\xff\xff\xff\xff'
-
-# Record IDs
-FMN_PROVISIONING_SN = 997
-FMN_PROVISIONING_MFI_TOKEN_UUID = 998
-FMN_PROVISIONING_MFI_AUTH_TOKEN = 999
-
-FMN_MAX_RECORD_ID = 999
-
-# MFi Token lengths
-FMN_MFI_AUTH_TOKEN_LEN = 1024
-FMN_MFI_AUTH_UUID_LEN = 16
-
 
 def SETTINGS_BASE(value):
     if value[:2].lower() == '0x':
@@ -179,7 +168,7 @@ def extract(device, settings_base):
         auth_uuid[20:]))
 
     # Get the Authentication Token Value
-    auth_token_key = nvs.get_kvs_name(FMN_PROVISIONING_MFI_AUTH_TOKEN)
+    auth_token_key = nvs.get_kvs_name(PROVISIONED_METADATA.MFI_AUTH_TOKEN.ID)
     auth_token = find_settings_value(bin_str, auth_token_key)
 
     # Trim zeroes at the end and covert to base64 format

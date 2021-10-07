@@ -16,19 +16,8 @@ from hashlib import md5
 import six
 
 from . import device as DEVICE
+from . import provisioned_metadata as PROVISIONED_METADATA
 from . import settings_nvs_utils as nvs
-
-
-# Record IDs
-FMN_PROVISIONING_SN = 997
-FMN_PROVISIONING_MFI_TOKEN_UUID = 998
-FMN_PROVISIONING_MFI_AUTH_TOKEN = 999
-
-FMN_MAX_RECORD_ID = 999
-
-# MFi Token lengths
-FMN_MFI_AUTH_TOKEN_LEN = 1024
-FMN_MFI_AUTH_UUID_LEN = 16
 
 def MFI_UUID(value):
     pattern = re.compile('[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}')
@@ -51,8 +40,7 @@ def MFI_TOKEN(value):
 
 def SERIAL_NUMBER(value):
     CHARS_PER_BYTE = 2
-    SERIAL_NUMBER_BLEN = 16
-    expected_len = SERIAL_NUMBER_BLEN * CHARS_PER_BYTE
+    expected_len = PROVISIONED_METADATA.SERIAL_NUMBER.LEN * CHARS_PER_BYTE
     pattern = re.compile('^[\\dA-Fa-f]*$')
     if not pattern.match(value) or len(value) != expected_len:
         raise ValueError('%s is a malformed serial number' % value)
@@ -123,18 +111,18 @@ def provision(mfi_uuid, mfi_token, serial_number, output_path, device, settings_
 
     if mfi_uuid and mfi_token:
         mfi_token_len = len(mfi_token)
-        if mfi_token_len <= FMN_MFI_AUTH_TOKEN_LEN:
-            mfi_token += (bytes(FMN_MFI_AUTH_TOKEN_LEN - mfi_token_len))
+        if mfi_token_len <= PROVISIONED_METADATA.MFI_AUTH_TOKEN.LEN:
+            mfi_token += (bytes(PROVISIONED_METADATA.MFI_AUTH_TOKEN.LEN - mfi_token_len))
         else:
-            raise ValueError('--mfi-token specified with data longer than {} bytes.'.format(FMN_MFI_AUTH_TOKEN_LEN))
+            raise ValueError('--mfi-token specified with data longer than {} bytes.'.format(PROVISIONED_METADATA.MFI_AUTH_TOKEN.LEN))
 
-        create_and_insert_record_dict(nvs_dict, unhexlify(mfi_uuid), FMN_PROVISIONING_MFI_TOKEN_UUID)
-        create_and_insert_record_dict(nvs_dict, mfi_token, FMN_PROVISIONING_MFI_AUTH_TOKEN)
+        create_and_insert_record_dict(nvs_dict, unhexlify(mfi_uuid), PROVISIONED_METADATA.MFI_TOKEN_UUID.ID)
+        create_and_insert_record_dict(nvs_dict, mfi_token, PROVISIONED_METADATA.MFI_AUTH_TOKEN.ID)
     else:
         raise click.BadArgumentUsage('Please provide the --mfi-token and --mfi-uuid options')
 
     if serial_number:
-        create_and_insert_record_dict(nvs_dict, unhexlify(serial_number), FMN_PROVISIONING_SN)
+        create_and_insert_record_dict(nvs_dict, unhexlify(serial_number), PROVISIONED_METADATA.SERIAL_NUMBER.ID)
 
     provision_data_hex_file = output_path
     nvs.write_nvs_dict_to_hex_file(nvs_dict, provision_data_hex_file)
