@@ -9,9 +9,8 @@ import os
 import re
 import sys
 import argparse
-from shutil import copyfile
-from binascii import unhexlify, hexlify
-from hashlib import md5
+from binascii import unhexlify
+from intelhex import IntelHex
 
 import six
 
@@ -19,131 +18,170 @@ from . import device as DEVICE
 from . import provisioned_metadata as PROVISIONED_METADATA
 from . import settings_nvs_utils as nvs
 
-def MFI_UUID(value):
-    pattern = re.compile('[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}')
-    if not pattern.match(value):
-        raise ValueError('--mfi-token specified with malformed Software Token UUID.')
-    return value.replace('-', '')
+MFI_UUID_EXAMPLE = '12345678-1234-1234-1234-123456789abc'
+SERIAL_NUMBER_EXAMPLE = '30313233343536373839414243444546' # '0123456789ABCDEF' in ASCII
 
+def provision_error_handle(msg, param_prefix = None):
+    parser.print_usage()
 
-def MFI_TOKEN(value):
-    try:
-        if six.PY3:
-            token = base64.decodebytes(value.encode('ascii'))
-        else:
-            token = base64.decodestring(value)
-    except Exception as e:
-        print(e)
-        raise ValueError('--mfi-token specified with malformed Software Token.')
-    return token
+    if param_prefix is None:
+        param_prefix = ''
+    else:
+        param_prefix = 'argument %s: ' % param_prefix
+    print('provision: error: ' + param_prefix + msg)
 
-
-def SERIAL_NUMBER(value):
-    CHARS_PER_BYTE = 2
-    expected_len = PROVISIONED_METADATA.SERIAL_NUMBER.LEN * CHARS_PER_BYTE
-    pattern = re.compile('^[\\dA-Fa-f]*$')
-    if not pattern.match(value) or len(value) != expected_len:
-        raise ValueError('%s is a malformed serial number' % value)
-    return value
-
-
-def SETTINGS_BASE(value):
-    if value[:2].lower() == '0x':
-        value = value[2:]
-    pattern = re.compile('^[\\dA-Fa-f]*$')
-    if not pattern.match(value):
-        raise ValueError('%s is a malformed FDS base address' % value)
-    return value
-
-
-def EXISTING_FILE_PATH(value):
-    try:
-        value = os.path.realpath(value)
-    except:
-        raise ValueError('%s is invalid' % value)
-    if not os.path.exists(value):
-        raise ValueError('%s does not exists' % value)
-    if not os.path.isfile(value):
-        raise ValueError('%s is not a file' % value)
-    return value
-
+    sys.exit(1)
 
 def cli(cmd, argv):
+    global parser
+
     parser = argparse.ArgumentParser(description='FMN Accessory Setup Provisioning Tool', prog=cmd, add_help=False)
-    parser.add_argument('-u', '--mfi-uuid', required=True, type=MFI_UUID, metavar='UUID',
-              help='MFI uuid of accessory: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
-    parser.add_argument('-m', '--mfi-token', type=MFI_TOKEN, metavar='TOKEN', required=True,
-              help='MFI token of accessory formatted as a base64 encoded string.')
-    parser.add_argument('-s', '--serial-number', type=SERIAL_NUMBER, metavar='SN',
-              help='Serial number of accessory in a hex format.')
+    parser.add_argument('-u', '--mfi-uuid', required=True, metavar='UUID',
+              help='MFi UUID of the accessory. Example UUID: ' + MFI_UUID_EXAMPLE)
+    parser.add_argument('-m', '--mfi-token', metavar='TOKEN', required=True,
+              help='MFi Token of the accessory formatted as a base64 encoded string.')
+    parser.add_argument('-s', '--serial-number', metavar='SN',
+              help='Serial number of the accessory in a hex format. Example SN: ' + SERIAL_NUMBER_EXAMPLE)
     parser.add_argument('-o', '--output-path', default='provisioned.hex', metavar='PATH',
-              help='Path to store the result of the provisioning. '
-                   'Unique identifiers will be appended to any specified file name.')
+              help='Path to store the result of the provisioning.')
     parser.add_argument('-e', '--device', help='Device of accessory to provision',
               metavar='['+'|'.join(DEVICE.FLASH_SIZE.keys())+']',
               choices=DEVICE.FLASH_SIZE.keys(), required=True)
-    parser.add_argument('-f', '--settings-base', type=SETTINGS_BASE, metavar='ADDRESS',
+    parser.add_argument('-f', '--settings-base', metavar='ADDRESS',
               help='Settings base address given in hex format. This only needs to be specified if the default values in the '
                    'NCS has been changed.')
     parser.add_argument('-x', '--input-hex-file',
               help='Hex file to be merged with provisioned Settings. If this option is set, the '
-                   'output hex file will be [input-hex-file + provisioned Settings].',
-              type=EXISTING_FILE_PATH)
+                   'output hex file will be [input-hex-file + provisioned Settings].')
     parser.add_argument('--help', action='help',
                         help='Show this help message and exit')
     args = parser.parse_args(argv)
 
     provision(args.mfi_uuid, args.mfi_token, args.serial_number, args.output_path, args.device, args.settings_base, args.input_hex_file)
 
+def settings_base_input_handle(settings_base, flash_size):
+    param_prefix = '-f/--settings-base'
 
-def provision(mfi_uuid, mfi_token, serial_number, output_path, device, settings_base, input_hex_file):
     if settings_base:
+        if settings_base[:2].lower() == '0x':
+            settings_base = settings_base[2:]
+        pattern = re.compile(r'^[\da-f]+$', re.I)
+        if not pattern.match(settings_base):
+            provision_error_handle('maflormed memory address: %s' % settings_base, param_prefix)
         settings_base = int(settings_base, 16)
     else:
-        settings_base = DEVICE.FLASH_SIZE[device] - DEVICE.SETTINGS_PARTITION_SIZE_DEFAULT
+        settings_base = flash_size - DEVICE.SETTINGS_PARTITION_SIZE_DEFAULT
 
-    print('Using %s as settings base.' % hex(settings_base))
+    if (flash_size - settings_base) <= 0:
+        provision_error_handle('address is bigger than the target device memory: %s >= %s'
+            % (hex(settings_base), hex(flash_size)), param_prefix)
 
-    if input_hex_file:
-        input_hex_file_md5 = md5(open(input_hex_file, 'rb').read()).hexdigest()
+    if settings_base % DEVICE.SETTINGS_SECTOR_SIZE != 0:
+        aligned_page = hex(settings_base & ~(DEVICE.SETTINGS_SECTOR_SIZE - 1))
+        provision_error_handle('address should be page aligned: %s -> %s'
+              % (hex(settings_base), aligned_page), param_prefix)
 
-    nvs_dict = nvs.create_blank_nvs_dict(settings_base)
+    return settings_base
 
-    if mfi_uuid and mfi_token:
-        mfi_token_len = len(mfi_token)
-        if mfi_token_len <= PROVISIONED_METADATA.MFI_AUTH_TOKEN.LEN:
-            mfi_token += (bytes(PROVISIONED_METADATA.MFI_AUTH_TOKEN.LEN - mfi_token_len))
-        else:
-            raise ValueError('--mfi-token specified with data longer than {} bytes.'.format(PROVISIONED_METADATA.MFI_AUTH_TOKEN.LEN))
+def mfi_uuid_input_handle(mfi_uuid):
+    param_prefix = '-u/--mfi-uuid'
 
-        create_and_insert_record_dict(nvs_dict, unhexlify(mfi_uuid), PROVISIONED_METADATA.MFI_TOKEN_UUID.ID)
-        create_and_insert_record_dict(nvs_dict, mfi_token, PROVISIONED_METADATA.MFI_AUTH_TOKEN.ID)
+    pattern = re.compile('[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}')
+    if not pattern.match(mfi_uuid) or len(mfi_uuid) != len(MFI_UUID_EXAMPLE):
+        msg = 'malformed formatting\n'
+        msg += 'Please use the correct format as in the following example: %s' % MFI_UUID_EXAMPLE
+        provision_error_handle(msg, param_prefix)
+
+    mfi_uuid = unhexlify(mfi_uuid.replace('-', ''))
+    if len(mfi_uuid) != PROVISIONED_METADATA.MFI_TOKEN_UUID.LEN:
+        provision_error_handle('incorrect length', param_prefix)
+
+    return mfi_uuid
+
+def mfi_token_input_handle(mfi_token):
+    param_prefix = '-m/--mfi-token'
+
+    try:
+        mfi_token = base64.decodebytes(mfi_token.encode('ascii'))
+    except Exception as e:
+        msg = 'malformed formatting\n' + str(e)
+        provision_error_handle(msg, param_prefix)
+
+    mfi_token_len = len(mfi_token)
+    if mfi_token_len <= PROVISIONED_METADATA.MFI_AUTH_TOKEN.LEN:
+        mfi_token += (bytes(PROVISIONED_METADATA.MFI_AUTH_TOKEN.LEN - mfi_token_len))
     else:
-        raise click.BadArgumentUsage('Please provide the --mfi-token and --mfi-uuid options')
+        msg = 'exceeded maximum length: %d' % PROVISIONED_METADATA.MFI_AUTH_TOKEN.LEN 
+        provision_error_handle(msg, param_prefix)
 
-    if serial_number:
-        create_and_insert_record_dict(nvs_dict, unhexlify(serial_number), PROVISIONED_METADATA.SERIAL_NUMBER.ID)
+    return mfi_token
 
-    provision_data_hex_file = output_path
-    nvs.write_nvs_dict_to_hex_file(nvs_dict, provision_data_hex_file)
+def serial_number_input_handle(serial_number):
+    param_prefix = '-s/--serial-number'
 
-    if input_hex_file:
-        merge_hex_files(merge_file_a=input_hex_file, merge_file_b=provision_data_hex_file,
-                        output_file=provision_data_hex_file)
+    if not serial_number:
+        return serial_number
 
+    pattern = re.compile(r'^([\da-f][\da-f])+$', re.I)
+    if not pattern.match(serial_number):
+        msg = 'malformed formatting\n'
+        msg += 'Please use the correct format as in the following example: %s' % SERIAL_NUMBER_EXAMPLE
+        provision_error_handle(msg, param_prefix)
 
-def merge_hex_files(merge_file_a, merge_file_b, output_file):
-    from intelhex import IntelHex
-    h = IntelHex(merge_file_a)
-    h.merge(IntelHex(merge_file_b))
-    h.write_hex_file(output_file)
+    serial_number = unhexlify(serial_number)
+    if len(serial_number) != PROVISIONED_METADATA.SERIAL_NUMBER.LEN:
+        provision_error_handle('incorrect length: %d' % len(serial_number), param_prefix)
 
+    return serial_number
+
+def input_hex_file_input_handle(input_hex_file):
+    param_prefix = '-x/--input-hex-file'
+
+    if not input_hex_file:
+        return input_hex_file
+
+    try:
+        input_hex_file = os.path.realpath(input_hex_file)
+    except:
+        provision_error_handle('malformed path format', param_prefix)
+
+    if not os.path.exists(input_hex_file):
+        provision_error_handle('target file does not exist', param_prefix)
+
+    if not os.path.isfile(input_hex_file):
+        provision_error_handle('target path is not a file', param_prefix)
+
+    try:
+        IntelHex(input_hex_file)
+    except Exception as e:
+        msg = 'target file with malformed content format\n' + str(e)
+        provision_error_handle(msg, param_prefix)
+
+    return input_hex_file
+
+def output_path_input_handle(output_path):
+    param_prefix = '-o/--output-path'
+
+    if not output_path:
+        return output_path
+
+    try:
+        output_path = os.path.realpath(output_path)
+    except:
+        provision_error_handle('malformed path format', param_prefix)
+
+    if os.path.isdir(output_path):
+        provision_error_handle('target is an existing directory', param_prefix)
+
+    if not os.path.exists(os.path.split(output_path)[0]):
+        provision_error_handle('target directory does not exist', param_prefix)
+
+    if os.path.exists(output_path):
+        provision_error_handle('target file already exists', param_prefix)
+
+    return output_path
 
 def generate_padded_record_data(data):
-    """
-    Returns word aligned record data with padding after the last byte to word
-    align the data.
-    """
     num_bytes = len(data)
     num_bytes_to_be_padded = (num_bytes % 4)
     padding = 0
@@ -162,3 +200,37 @@ def create_and_insert_record_dict(nvs_dict, record_data, settings_key):
                                                                nvs_dict['record_id'],
                                                                record)
     nvs_dict['record_id'] += 1
+
+def merge_hex_files(input_hex_file, provisioned_data_hex_file, output_file):
+    try:
+        h = IntelHex(input_hex_file)
+        h.merge(IntelHex(provisioned_data_hex_file))
+        h.write_hex_file(output_file)
+    except Exception as e:
+        os.remove(provisioned_data_hex_file)
+        msg = '--input-hex-file target cannot be merged with provisioning data\n' + str(e)
+        provision_error_handle(msg)
+
+def provision(mfi_uuid, mfi_token, serial_number, output_path, device, settings_base, input_hex_file):
+    settings_base = settings_base_input_handle(settings_base, DEVICE.FLASH_SIZE[device])
+    mfi_uuid = mfi_uuid_input_handle(mfi_uuid)
+    mfi_token = mfi_token_input_handle(mfi_token)
+    serial_number = serial_number_input_handle(serial_number)
+    input_hex_file = input_hex_file_input_handle(input_hex_file)
+    output_path = output_path_input_handle(output_path)
+
+    print('Using %s as settings base.' % hex(settings_base))
+
+    nvs_dict = nvs.create_blank_nvs_dict(settings_base)
+    create_and_insert_record_dict(nvs_dict, mfi_uuid, PROVISIONED_METADATA.MFI_TOKEN_UUID.ID)
+    create_and_insert_record_dict(nvs_dict, mfi_token, PROVISIONED_METADATA.MFI_AUTH_TOKEN.ID)
+    if serial_number:
+        create_and_insert_record_dict(nvs_dict, serial_number, PROVISIONED_METADATA.SERIAL_NUMBER.ID)
+    nvs.write_nvs_dict_to_hex_file(nvs_dict, output_path)
+
+    if input_hex_file:
+        provisioned_data_hex_file = output_path
+        merge_hex_files(input_hex_file, provisioned_data_hex_file, output_path)
+
+if __name__ == '__main__':
+    cli()
