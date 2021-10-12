@@ -4,10 +4,13 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
 #
 
+import os
 import sys
 import argparse
 import importlib
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from __package_info__ import __version__ as version
 
 commands = [
     ('provision', '..cmd_provision', 'FMN Accessory Setup Provisioning Tool'),
@@ -27,7 +30,7 @@ def cli():
                 mod = importlib.import_module(command[1], __name__)
                 return (mod.cli)(command[0], argv)
 
-    print('Find My CLI Tools for nRF Connect SDK')
+    print('Find My CLI Tools for nRF Connect SDK v' + version)
     print('')
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('command [--help]')

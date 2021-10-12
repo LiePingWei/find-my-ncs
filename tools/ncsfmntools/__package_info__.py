@@ -4,4 +4,4 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
 #
 
-from .__package_info__ import __version__
+__version__ = "0.1.0"
