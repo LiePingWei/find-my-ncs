@@ -24,6 +24,7 @@ This release covers the following features:
 
 * Significant optimization of the Flash memory footprint in Find My samples.
 * Support for nRF Connect extension for Visual Studio Code.
+* Improvements to the Find My CLI tools package.
 
 .. TODO: Uncomment following section and change version numbers
   Release tag
@@ -61,7 +62,9 @@ Changelog
 * Optimized Mbed TLS configuration for all Find My samples.
 * Optimized general release configuration for all Find My samples.
 * Added the API Reference to the documentation.
-* Added the serial number and UUID extraction to the ``ncsfmntools extract`` command.
+* Added the serial number and UUID extraction to the ``extract`` command in the Find My CLI tools package.
+* Improved error handling for the ``extract`` and ``provision`` commands in the Find My CLI tools package.
+* Added version information to the Find My CLI tools package.
 
 Known issues and limitations
 ****************************
