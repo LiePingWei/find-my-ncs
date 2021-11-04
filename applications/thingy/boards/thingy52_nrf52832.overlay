@@ -1,0 +1,39 @@
+/*
+ * Copyright (c) 2021 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
+ */
+
+/ {
+	aliases {
+		led1 = &led1;
+		led2 = &led2;
+	};
+
+	pwmspk {
+		compatible = "pwm-leds";
+		pwm_spk0: pwm-spk-0 {
+			pwms = <&pwm0 27>;
+		};
+	};
+};
+
+&i2c0 {
+	mpu9250: mpu9250@68 {
+		compatible = "invensense,mpu9250";
+		reg = <0x68>;
+		irq-gpios = <&gpio0 06 0>;
+		gyro-sr-div = <10>;
+		gyro-dlpf = <5>;
+		gyro-fs = <250>;
+		accel-fs = <2>;
+		accel-dlpf="5.05";
+		label = "MPU9250";
+		status = "okay";
+	};
+};
+
+&pwm0 {
+	status = "okay";
+	ch0-pin = <27>;
+};

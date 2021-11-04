@@ -22,7 +22,7 @@ Highlights
 
 This release covers the following features:
 
-There are no entries for this section yet.
+* Added Find My Thingy application with the Thingy:52 board support
 
 .. TODO: Uncomment following section and change version numbers
   Release tag
@@ -48,6 +48,7 @@ Supported development kits
 * PCA10040 (nRF52832 Development Kit)
 * PCA10056 (nRF52840 Development Kit)
 * PCA10100 (nRF52833 Development Kit)
+* PCA20020 (Thingy:52 Prototyping Platform)
 
 .. TODO: If you adding new kit to this list, add it also to the release-notes-latest.rst.tmpl
 
@@ -57,6 +58,8 @@ Changelog
 * Changed the logging format in the Debug variant for all Find My samples.
 * Enabled RTT as an additional logging backend in the Debug variant for all Find My samples.
 * Aligned Find My NFC implementation with the NFC library API changes from nrfxlib.
+* Added support for the Thingy:52 board
+* Created applications directory with the Find My Thingy application inside it.
 
 Known issues and limitations
 ****************************

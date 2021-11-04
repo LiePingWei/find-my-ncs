@@ -27,7 +27,7 @@ You can build each Find My sample in the following configurations:
 - The Debug configuration called *ZDebug*
 
 To select the build configuration, populate the CMAKE_BUILD_TYPE variable in the build process.
-See the example below for reference:
+For example:
 
 .. code-block:: console
 
@@ -65,7 +65,7 @@ To build a Find My sample, complete the following steps:
 
       cd <ncs_path>/find-my/samples/<sample_type>
 
-#. Build the sample using west:
+#. Build the sample using west.
 
    For the Debug configuration, use the following command:
 
