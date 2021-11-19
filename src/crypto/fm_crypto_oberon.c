@@ -57,7 +57,7 @@ int fm_crypto_ckg_init(fm_crypto_ckg_context_t ctx)
 	int ret = FMN_ERROR_CRYPTO_NO_VALUE_SET;
 
 	/* Clear out the context. */
-	ocrypto_constant_time_fill_zero(ctx, sizeof(fm_crypto_ckg_context_t));
+	ocrypto_constant_time_fill_zero(ctx, sizeof(*ctx));
 
 	/**
 	 * 1. The accessory generates a P-224 scalar s (see Random scalar generation) and a 32-byte random
@@ -99,7 +99,7 @@ error:
 void fm_crypto_ckg_free(fm_crypto_ckg_context_t ctx)
 {
 	/* Clear out the whole context structure */
-	ocrypto_constant_time_fill_zero(&ctx, sizeof(fm_crypto_ckg_context_t));
+	ocrypto_constant_time_fill_zero(&ctx, sizeof(*ctx));
 }
 
 int fm_crypto_ckg_gen_c1(fm_crypto_ckg_context_t ctx, byte out[32])
@@ -175,7 +175,7 @@ static int _fm_crypto_points_add(ecc_point *r,
 
 error:
 	/* p224 and p256 is a union. Just clear the largest */
-	ocrypto_constant_time_fill_zero(r, sizeof(r));
+	ocrypto_constant_time_fill_zero(r, sizeof(*r));
 	return ret;
 }
 
@@ -786,7 +786,7 @@ int fm_crypto_decrypt_e3(const byte serverss[32],
 
 error:
 	ocrypto_constant_time_fill_zero(&k_iv, sizeof(k_iv));
-	ocrypto_constant_time_fill_zero(out, sizeof(e3_nbytes));
+	ocrypto_constant_time_fill_zero(out, *out_nbytes);
 	*out_nbytes = 0;
 	LOG_DBG("error %d (0x%X)", ret, ret);
 	return ret;
