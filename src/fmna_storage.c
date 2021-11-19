@@ -348,7 +348,7 @@ static int fmna_storage_pairing_data_check(void)
 				if (pairing_data_flags) {
 					LOG_WRN("\t%s", pairing_item_strs[bit_index]);
 				}
-			} while (pairing_data_flags);
+			};
 		} else {
 			LOG_INF("FMN pairing information is not present in the storage");
 		}
