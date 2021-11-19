@@ -65,6 +65,7 @@ Changelog
 * Added the serial number and UUID extraction to the ``extract`` command in the Find My CLI tools package.
 * Improved error handling for the ``extract`` and ``provision`` commands in the Find My CLI tools package.
 * Added version information to the Find My CLI tools package.
+* Fixed the battery state setting in the nearby and separated advertising packets.
 
 Known issues and limitations
 ****************************
