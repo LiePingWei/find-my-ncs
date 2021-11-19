@@ -63,6 +63,10 @@ void * uarpZalloc( size_t length )
     void *pBuffer;
     
     pBuffer = k_malloc( length );
+    if ( !pBuffer )
+    {
+        return pBuffer;
+    }
     
     memset( pBuffer, 0, length );
     
