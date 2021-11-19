@@ -139,7 +139,11 @@ static int fmna_nfc_url_prepare(char *url, size_t url_max_size)
 			return -EINVAL;
 		}
 
-		fmna_serial_number_get(serial_number);
+		ret = fmna_serial_number_get(serial_number);
+		if (ret) {
+			LOG_ERR("FMN NFC: fmna_serial_number_get err %d", ret);
+			return ret;
+		}
 
 		ret = snprintk(
 			(char *) url + base_url_len,
