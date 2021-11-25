@@ -796,9 +796,9 @@ static int asn1_uint_decode(const uint8_t* asn1,
 			    uint8_t* output,
 			    size_t output_len)
 {
-	size_t tag = asn1[1];
-	size_t uint_len = asn1[1];
-	const uint8_t* uint_buf = &asn1[2];
+	size_t tag;
+	size_t uint_len;
+	const uint8_t* uint_buf;
 
 	CHECK_RV_RET(asn1_len < 3, FMN_ERROR_CRYPTO_INVALID_INPUT);
 	tag = asn1[0];
