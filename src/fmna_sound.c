@@ -291,7 +291,7 @@ static void non_owner_start_sound_handle(struct bt_conn *conn)
 static void non_owner_stop_sound_handle(struct bt_conn *conn)
 {
 	enum fmna_gatt_response_status resp_status;
-	uint16_t opcode = fmna_config_event_to_gatt_cmd_opcode(
+	uint16_t opcode = fmna_non_owner_event_to_gatt_cmd_opcode(
 		FMNA_NON_OWNER_EVENT_STOP_SOUND);
 
 	LOG_INF("FMN Non-owner: responding to sound stop request");

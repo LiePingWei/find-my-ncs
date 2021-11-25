@@ -225,7 +225,7 @@ static void serial_number_request_handle(struct bt_conn *conn)
 	} else {
 		uint16_t cmd_opcode;
 
-		cmd_opcode = fmna_owner_event_to_gatt_cmd_opcode(FMNA_GATT_OWNER_SERIAL_NUMBER_IND);
+		cmd_opcode = fmna_owner_event_to_gatt_cmd_opcode(FMNA_OWNER_EVENT_GET_SERIAL_NUMBER);
 		FMNA_GATT_COMMAND_RESPONSE_BUILD(invalid_state_cmd_rsp, cmd_opcode, FMNA_GATT_RESPONSE_STATUS_INVALID_STATE);
 
 		err = fmna_gatt_owner_cp_indicate(conn,

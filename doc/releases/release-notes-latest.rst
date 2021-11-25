@@ -66,6 +66,7 @@ Changelog
 * Improved error handling for the ``extract`` and ``provision`` commands in the Find My CLI tools package.
 * Added version information to the Find My CLI tools package.
 * Fixed the battery state setting in the nearby and separated advertising packets.
+* Fixed the response to the Stop Sound command for non-owner peers.
 
 Known issues and limitations
 ****************************
