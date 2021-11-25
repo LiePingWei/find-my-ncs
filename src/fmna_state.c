@@ -13,7 +13,7 @@
 #include "fmna_state.h"
 
 #include <bluetooth/conn.h>
-#include <power/reboot.h>
+#include <sys/reboot.h>
 
 #include <logging/log.h>
 
