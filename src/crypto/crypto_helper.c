@@ -10,9 +10,6 @@
 
 #include "ocrypto_sha256.h"
 #include "ocrypto_constant_time.h"
-#include "ocrypto_ecdh_p224.h"
-#include "ocrypto_ecdh_p256.h"
-#include "ocrypto_ecdsa_p256.h"
 #include "ocrypto_sc_p224.h"
 #include "ocrypto_sc_p256.h"
 #include "ocrypto_curve_p224.h"
