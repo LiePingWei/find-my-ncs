@@ -1,2 +1,3 @@
 **/build*/**
 **/__pycache__/**
+**/mcuboot_private.pem
