@@ -54,7 +54,8 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* Changed the logging format in the Debug variant for all Find My samples.
+* Enabled RTT as an additional logging backend in the Debug variant for all Find My samples.
 
 Known issues and limitations
 ****************************
