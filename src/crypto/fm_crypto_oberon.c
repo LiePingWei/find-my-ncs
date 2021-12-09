@@ -98,7 +98,7 @@ error:
 void fm_crypto_ckg_free(fm_crypto_ckg_context_t ctx)
 {
 	/* Clear out the whole context structure */
-	ocrypto_constant_time_fill_zero(&ctx, sizeof(*ctx));
+	ocrypto_constant_time_fill_zero(ctx, sizeof(*ctx));
 }
 
 int fm_crypto_ckg_gen_c1(fm_crypto_ckg_context_t ctx, byte out[32])
