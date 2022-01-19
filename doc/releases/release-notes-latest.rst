@@ -56,6 +56,7 @@ Changelog
 
 * Changed the logging format in the Debug variant for all Find My samples.
 * Enabled RTT as an additional logging backend in the Debug variant for all Find My samples.
+* Aligned Find My NFC implementation with the NFC library API changes from nrfxlib.
 
 Known issues and limitations
 ****************************

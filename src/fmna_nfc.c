@@ -44,7 +44,7 @@ static bool paired_state;
 static bool is_initialized;
 
 static void nfc_callback(void *context,
-			 enum nfc_t2t_event event,
+			 nfc_t2t_event_t event,
 			 const uint8_t *data,
 			 size_t data_length)
 {
