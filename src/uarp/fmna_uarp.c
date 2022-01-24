@@ -9,7 +9,7 @@
 #include <net/buf.h>
 #include <dfu/dfu_target.h>
 #include <dfu/dfu_target_mcuboot.h>
-#include <power/reboot.h>
+#include <sys/reboot.h>
 #include <logging/log_ctrl.h>
 #include <dfu/mcuboot.h>
 #include <ocrypto_sha256.h>
