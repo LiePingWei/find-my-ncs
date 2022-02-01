@@ -10,3 +10,10 @@ tests:
       - nrf52833dk_nrf52833
       - nrf52840dk_nrf52840
     tags: ci_build
+    extra_args: "CMAKE_BUILD_TYPE=ZRelease"
+  samples.coexistence.debug:
+    build_only: true
+    platform_allow: nrf52840dk_nrf52840
+    integration_platforms:
+      - nrf52840dk_nrf52840
+    tags: ci_build
