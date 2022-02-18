@@ -55,7 +55,9 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* Fixed out-of-bounds access for crypto key derivation operation.
+
+  The access was triggered during the error handling exit from the function.
 
 Known issues and limitations
 ****************************

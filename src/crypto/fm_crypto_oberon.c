@@ -568,7 +568,7 @@ int fm_crypto_derive_primary_or_secondary_x(const byte sk[32],
 error:
 	ocrypto_constant_time_fill_zero(&at, sizeof(at));
 	ocrypto_constant_time_fill_zero(&p_int, sizeof(p_int));
-	ocrypto_constant_time_fill_zero(out, 32);
+	ocrypto_constant_time_fill_zero(out, 28);
 	return ret;
 }
 
