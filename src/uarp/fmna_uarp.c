@@ -682,6 +682,7 @@ static void payload_meta_data_complete(void *accessory_delegate, void *asset_del
 	}
 
 	ret = dfu_target_init(DFU_TARGET_IMAGE_TYPE_MCUBOOT,
+			      0,
 			      asset->payload.plHdr.payloadLength,
 			      dfu_target_callback);
 	if (ret) {
@@ -741,6 +742,9 @@ static int apply_and_reboot(struct fmna_uarp_accessory *accessory,
 	int ret;
 
 	ret = dfu_target_done(true);
+	if (ret == 0) {
+		ret = dfu_target_schedule_update(0);
+	}
 
 	if (ret) {
 		LOG_ERR("Apply Staged Assets: Applying failed");
