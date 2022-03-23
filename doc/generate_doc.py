@@ -24,7 +24,7 @@ from git import Repo
 import subprocess
 
 
-PATCH_FORK = 'https://github.com/kapi-no/fw-nrfconnect-nrf.git'
+PATCH_FORK = 'https://github.com/kapi-no/sdk-nrf.git'
 PATCH_FORK_BRANCH_NAME = 'find_my_doc_fork'
 
 BUILD_DIR = "../../nrf/doc/build"

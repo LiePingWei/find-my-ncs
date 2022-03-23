@@ -23,7 +23,7 @@ jobs:
     name: Build documentation
     runs-on: ubuntu-latest
     env:
-      PATCH_FORK: "https://github.com/kapi-no/fw-nrfconnect-nrf.git"
+      PATCH_FORK: "https://github.com/kapi-no/sdk-nrf.git"
       PATCH_FORK_BRANCH_NAME: "find_my_doc_fork"
 
     steps:
