@@ -26,7 +26,7 @@ setup(name='ncsfmntools',
       install_requires=[
             'intelhex~=2.3.0',
             'six~=1.15.0',
-            'pynrfjprog~=10.10.0'
+            'pynrfjprog~=10.10'
       ],
       entry_points='''
               [console_scripts]
