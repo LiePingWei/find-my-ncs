@@ -47,7 +47,7 @@ static bool sound_stop_no_callback(struct bt_conn *conn)
 	}
 
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_SOUND_COMPLETED, NULL);
-	EVENT_SUBMIT(event);
+	APP_EVENT_SUBMIT(event);
 
 	return true;
 }
@@ -311,10 +311,10 @@ static void non_owner_stop_sound_handle(struct bt_conn *conn)
 	}
 }
 
-static bool event_handler(const struct event_header *eh)
+static bool app_event_handler(const struct app_event_header *aeh)
 {
-	if (is_fmna_config_event(eh)) {
-		struct fmna_config_event *event = cast_fmna_config_event(eh);
+	if (is_fmna_config_event(aeh)) {
+		struct fmna_config_event *event = cast_fmna_config_event(aeh);
 
 		switch (event->id) {
 		case FMNA_CONFIG_EVENT_START_SOUND:
@@ -330,8 +330,8 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
-	if (is_fmna_non_owner_event(eh)) {
-		struct fmna_non_owner_event *event = cast_fmna_non_owner_event(eh);
+	if (is_fmna_non_owner_event(aeh)) {
+		struct fmna_non_owner_event *event = cast_fmna_non_owner_event(aeh);
 
 		switch (event->id) {
 		case FMNA_NON_OWNER_EVENT_START_SOUND:
@@ -350,6 +350,6 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(fmna_sound, event_handler);
-EVENT_SUBSCRIBE(fmna_sound, fmna_config_event);
-EVENT_SUBSCRIBE(fmna_sound, fmna_non_owner_event);
+APP_EVENT_LISTENER(fmna_sound, app_event_handler);
+APP_EVENT_SUBSCRIBE(fmna_sound, fmna_config_event);
+APP_EVENT_SUBSCRIBE(fmna_sound, fmna_non_owner_event);

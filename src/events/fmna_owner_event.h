@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "event_manager.h"
+#include "app_event_manager.h"
 
 enum fmna_owner_event_id {
 	FMNA_OWNER_EVENT_GET_CURRENT_PRIMARY_KEY,
@@ -14,13 +14,13 @@ enum fmna_owner_event_id {
 };
 
 struct fmna_owner_event {
-	struct event_header header;
+	struct app_event_header header;
 
 	enum fmna_owner_event_id id;
 	struct bt_conn *conn;
 };
 
-EVENT_TYPE_DECLARE(fmna_owner_event);
+APP_EVENT_TYPE_DECLARE(fmna_owner_event);
 
 #ifdef __cplusplus
 }

@@ -211,7 +211,7 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 		event->buf.len = pairing_buf.len;
 		memcpy(event->buf.data, pairing_buf.data, pairing_buf.len);
 
-		EVENT_SUBMIT(event);
+		APP_EVENT_SUBMIT(event);
 
 		net_buf_simple_reset(&pairing_buf);
 	}
@@ -371,7 +371,7 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 	memcpy(&event.header, &event_heap->header, sizeof(event.header));
 	memcpy(event_heap, &event, sizeof(*event_heap));
 
-	EVENT_SUBMIT(event_heap);
+	APP_EVENT_SUBMIT(event_heap);
 
 error:
 	if (resp_status != FMNA_GATT_RESPONSE_STATUS_SUCCESS) {
@@ -487,7 +487,7 @@ static ssize_t non_owner_cp_write(struct bt_conn *conn,
 	event = new_fmna_non_owner_event();
 	event->id = id;
 	event->conn = conn;
-	EVENT_SUBMIT(event);
+	APP_EVENT_SUBMIT(event);
 
 error:
 	if (resp_status != FMNA_GATT_RESPONSE_STATUS_SUCCESS) {
@@ -608,7 +608,7 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 	event = new_fmna_owner_event();
 	event->id = id;
 	event->conn = conn;
-	EVENT_SUBMIT(event);
+	APP_EVENT_SUBMIT(event);
 
 error:
 	if (resp_status != FMNA_GATT_RESPONSE_STATUS_SUCCESS) {
@@ -735,7 +735,7 @@ static ssize_t debug_cp_write(struct bt_conn *conn,
 	event_heap = new_fmna_debug_event();
 	memcpy(&event.header, &event_heap->header, sizeof(event.header));
 	memcpy(event_heap, &event, sizeof(*event_heap));
-	EVENT_SUBMIT(event_heap);
+	APP_EVENT_SUBMIT(event_heap);
 
 error:
 	if (resp_status != FMNA_GATT_RESPONSE_STATUS_SUCCESS) {

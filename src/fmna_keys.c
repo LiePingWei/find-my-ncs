@@ -343,7 +343,7 @@ static void key_rotation_work_handle(struct k_work *item)
 	/* Emit event notifying that the Public Keys have changed. */
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_PUBLIC_KEYS_CHANGED, NULL);
 	event->public_keys_changed.separated_key_changed = separated_key_changed;
-	EVENT_SUBMIT(event);
+	APP_EVENT_SUBMIT(event);
 
 	/* Indicate to all connected owners that the Primary Key roll has occurred. */
 	primary_key_rotation_indicate();
@@ -517,7 +517,7 @@ static void fmna_peer_security_changed(struct bt_conn *conn, bt_security_t level
 				use_secondary_pk = false;
 
 				FMNA_EVENT_CREATE(event, FMNA_EVENT_OWNER_CONNECTED, conn);
-				EVENT_SUBMIT(event);
+				APP_EVENT_SUBMIT(event);
 			}
 		} else {
 			LOG_WRN("fmna_keys: cannot clear FMN LTK from BLE stack key pool for %s",
@@ -826,10 +826,10 @@ static void set_key_rotation_request_handle(struct bt_conn *conn, uint32_t key_r
 }
 #endif
 
-static bool event_handler(const struct event_header *eh)
+static bool app_event_handler(const struct app_event_header *aeh)
 {
-	if (is_fmna_event(eh)) {
-		struct fmna_event *event = cast_fmna_event(eh);
+	if (is_fmna_event(aeh)) {
+		struct fmna_event *event = cast_fmna_event(aeh);
 
 		switch (event->id) {
 		case FMNA_EVENT_BONDED:
@@ -854,8 +854,8 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
-	if (is_fmna_config_event(eh)) {
-		struct fmna_config_event *event = cast_fmna_config_event(eh);
+	if (is_fmna_config_event(aeh)) {
+		struct fmna_config_event *event = cast_fmna_config_event(aeh);
 
 		switch (event->id) {
 		case FMNA_CONFIG_EVENT_LATCH_SEPARATED_KEY:
@@ -874,8 +874,8 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
-	if (is_fmna_owner_event(eh)) {
-		struct fmna_owner_event *event = cast_fmna_owner_event(eh);
+	if (is_fmna_owner_event(aeh)) {
+		struct fmna_owner_event *event = cast_fmna_owner_event(aeh);
 
 		switch (event->id) {
 		case FMNA_OWNER_EVENT_GET_CURRENT_PRIMARY_KEY:
@@ -889,8 +889,8 @@ static bool event_handler(const struct event_header *eh)
 	}
 
 #if CONFIG_FMNA_QUALIFICATION
-	if (is_fmna_debug_event(eh)) {
-		struct fmna_debug_event *event = cast_fmna_debug_event(eh);
+	if (is_fmna_debug_event(aeh)) {
+		struct fmna_debug_event *event = cast_fmna_debug_event(aeh);
 
 		switch (event->id) {
 		case FMNA_DEBUG_EVENT_SET_KEY_ROTATION_TIMEOUT:
@@ -908,11 +908,11 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(fmna_keys, event_handler);
-EVENT_SUBSCRIBE_EARLY(fmna_keys, fmna_event);
-EVENT_SUBSCRIBE(fmna_keys, fmna_config_event);
-EVENT_SUBSCRIBE(fmna_keys, fmna_owner_event);
+APP_EVENT_LISTENER(fmna_keys, app_event_handler);
+APP_EVENT_SUBSCRIBE_EARLY(fmna_keys, fmna_event);
+APP_EVENT_SUBSCRIBE(fmna_keys, fmna_config_event);
+APP_EVENT_SUBSCRIBE(fmna_keys, fmna_owner_event);
 
 #if CONFIG_FMNA_QUALIFICATION
-EVENT_SUBSCRIBE(fmna_keys, fmna_debug_event);
+APP_EVENT_SUBSCRIBE(fmna_keys, fmna_debug_event);
 #endif

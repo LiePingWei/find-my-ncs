@@ -109,7 +109,7 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 	bt_conn_ref(conn);
 
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_PEER_CONNECTED, conn);
-	EVENT_SUBMIT(event);
+	APP_EVENT_SUBMIT(event);
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -152,7 +152,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	bt_conn_unref(conn);
 
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_PEER_DISCONNECTED, conn);
-	EVENT_SUBMIT(event);
+	APP_EVENT_SUBMIT(event);
 }
 
 static void security_changed(struct bt_conn *conn, bt_security_t level,
@@ -181,7 +181,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_PEER_SECURITY_CHANGED, conn);
 	event->peer_security_changed.err = err;
 	event->peer_security_changed.level = level;
-	EVENT_SUBMIT(event);
+	APP_EVENT_SUBMIT(event);
 }
 
 static void conn_owner_iterator(struct bt_conn *conn, void *user_data)
@@ -454,7 +454,7 @@ static void max_connections_request_handle(struct bt_conn *conn, uint8_t max_con
 	/* Emit the event. */
 	if (use_event) {
 		FMNA_EVENT_CREATE(event, FMNA_EVENT_MAX_CONN_CHANGED, conn);
-		EVENT_SUBMIT(event);
+		APP_EVENT_SUBMIT(event);
 	}
 }
 
@@ -489,10 +489,10 @@ static void multi_status_request_handle(struct bt_conn *conn)
 	}
 }
 
-static bool event_handler(const struct event_header *eh)
+static bool app_event_handler(const struct app_event_header *aeh)
 {
-	if (is_fmna_event(eh)) {
-		struct fmna_event *event = cast_fmna_event(eh);
+	if (is_fmna_event(aeh)) {
+		struct fmna_event *event = cast_fmna_event(aeh);
 
 		/* Clean up the connection status flags. */
 		if (event->id == FMNA_EVENT_PEER_DISCONNECTED) {
@@ -504,8 +504,8 @@ static bool event_handler(const struct event_header *eh)
 		return true;
 	}
 
-	if (is_fmna_config_event(eh)) {
-		struct fmna_config_event *event = cast_fmna_config_event(eh);
+	if (is_fmna_config_event(aeh)) {
+		struct fmna_config_event *event = cast_fmna_config_event(aeh);
 
 		switch (event->id) {
 		case FMNA_CONFIG_EVENT_SET_PERSISTENT_CONN_STATUS:
@@ -529,6 +529,6 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(fmna_conn, event_handler);
-EVENT_SUBSCRIBE_FINAL(fmna_conn, fmna_event);
-EVENT_SUBSCRIBE(fmna_conn, fmna_config_event);
+APP_EVENT_LISTENER(fmna_conn, app_event_handler);
+APP_EVENT_SUBSCRIBE_FINAL(fmna_conn, fmna_event);
+APP_EVENT_SUBSCRIBE(fmna_conn, fmna_config_event);

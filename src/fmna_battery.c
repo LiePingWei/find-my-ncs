@@ -54,7 +54,7 @@ int fmna_battery_level_set(uint8_t percentage_level)
 	battery_level = percentage_level;
 
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_BATTERY_LEVEL_CHANGED, NULL);
-	EVENT_SUBMIT(event);
+	APP_EVENT_SUBMIT(event);
 
 	return 0;
 }

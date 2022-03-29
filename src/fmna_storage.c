@@ -356,7 +356,7 @@ static int fmna_storage_pairing_data_check(void)
 		LOG_INF("FMN pairing information detected in the storage");
 
 		FMNA_EVENT_CREATE(event, FMNA_EVENT_BONDED, NULL);
-		EVENT_SUBMIT(event);
+		APP_EVENT_SUBMIT(event);
 	}
 
 	return err;

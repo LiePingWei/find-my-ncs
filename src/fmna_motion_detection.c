@@ -265,14 +265,14 @@ static void configure_ut_timers_request_handle(struct bt_conn *conn,
 }
 #endif
 
-static bool event_handler(const struct event_header *eh)
+static bool app_event_handler(const struct app_event_header *aeh)
 {
 	if (!IS_ENABLED(CONFIG_FMNA_CAPABILITY_DETECT_MOTION_ENABLED)) {
 		return false;
 	}
 
-	if (is_fmna_event(eh)) {
-		struct fmna_event *event = cast_fmna_event(eh);
+	if (is_fmna_event(aeh)) {
+		struct fmna_event *event = cast_fmna_event(aeh);
 
 		switch (event->id) {
 		case FMNA_EVENT_OWNER_CONNECTED:
@@ -294,8 +294,8 @@ static bool event_handler(const struct event_header *eh)
 	}
 
 #if CONFIG_FMNA_QUALIFICATION
-	if (is_fmna_debug_event(eh)) {
-		struct fmna_debug_event *event = cast_fmna_debug_event(eh);
+	if (is_fmna_debug_event(aeh)) {
+		struct fmna_debug_event *event = cast_fmna_debug_event(aeh);
 
 		switch (event->id) {
 		case FMNA_DEBUG_EVENT_CONFIGURE_UT_TIMERS:
@@ -315,11 +315,11 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(fmna_motion_detection, event_handler);
-EVENT_SUBSCRIBE(fmna_motion_detection, fmna_event);
+APP_EVENT_LISTENER(fmna_motion_detection, app_event_handler);
+APP_EVENT_SUBSCRIBE(fmna_motion_detection, fmna_event);
 
 #if CONFIG_FMNA_QUALIFICATION
-EVENT_SUBSCRIBE(fmna_motion_detection, fmna_debug_event);
+APP_EVENT_SUBSCRIBE(fmna_motion_detection, fmna_debug_event);
 #endif
 
 static int motion_detection_init(const struct device *unused)

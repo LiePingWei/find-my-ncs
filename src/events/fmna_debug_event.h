@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "event_manager.h"
+#include "app_event_manager.h"
 
 enum fmna_debug_event_id {
 	FMNA_DEBUG_EVENT_SET_KEY_ROTATION_TIMEOUT,
@@ -15,7 +15,7 @@ enum fmna_debug_event_id {
 };
 
 struct fmna_debug_event {
-	struct event_header header;
+	struct app_event_header header;
 
 	enum fmna_debug_event_id id;
 	struct bt_conn *conn;
@@ -29,7 +29,7 @@ struct fmna_debug_event {
 	};
 };
 
-EVENT_TYPE_DECLARE(fmna_debug_event);
+APP_EVENT_TYPE_DECLARE(fmna_debug_event);
 
 #ifdef __cplusplus
 }

@@ -1052,10 +1052,10 @@ static void owner_connected_cmd_handle(void)
 	fmna_uarp_img_confirm();
 }
 
-static bool event_handler(const struct event_header *eh)
+static bool app_event_handler(const struct app_event_header *aeh)
 {
-	if (is_fmna_event(eh)) {
-		struct fmna_event *event = cast_fmna_event(eh);
+	if (is_fmna_event(aeh)) {
+		struct fmna_event *event = cast_fmna_event(aeh);
 
 		if (event->id == FMNA_EVENT_OWNER_CONNECTED) {
 			owner_connected_cmd_handle();
@@ -1065,5 +1065,5 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(uarp_fmna_state, event_handler);
-EVENT_SUBSCRIBE(uarp_fmna_state, fmna_event);
+APP_EVENT_LISTENER(uarp_fmna_state, app_event_handler);
+APP_EVENT_SUBSCRIBE(uarp_fmna_state, fmna_event);

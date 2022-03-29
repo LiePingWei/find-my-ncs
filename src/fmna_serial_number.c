@@ -240,10 +240,10 @@ static void serial_number_request_handle(struct bt_conn *conn)
 	}
 }
 
-static bool event_handler(const struct event_header *eh)
+static bool app_event_handler(const struct app_event_header *aeh)
 {
-	if (is_fmna_event(eh)) {
-		struct fmna_event *event = cast_fmna_event(eh);
+	if (is_fmna_event(aeh)) {
+		struct fmna_event *event = cast_fmna_event(aeh);
 
 		switch (event->id) {
 		case FMNA_EVENT_BONDED:
@@ -257,8 +257,8 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
-	if (is_fmna_owner_event(eh)) {
-		struct fmna_owner_event *event = cast_fmna_owner_event(eh);
+	if (is_fmna_owner_event(aeh)) {
+		struct fmna_owner_event *event = cast_fmna_owner_event(aeh);
 
 		switch (event->id) {
 		case FMNA_OWNER_EVENT_GET_SERIAL_NUMBER:
@@ -274,6 +274,6 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(fmna_serial_number, event_handler);
-EVENT_SUBSCRIBE(fmna_serial_number, fmna_event);
-EVENT_SUBSCRIBE(fmna_serial_number, fmna_owner_event);
+APP_EVENT_LISTENER(fmna_serial_number, app_event_handler);
+APP_EVENT_SUBSCRIBE(fmna_serial_number, fmna_event);
+APP_EVENT_SUBSCRIBE(fmna_serial_number, fmna_owner_event);

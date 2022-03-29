@@ -7,7 +7,7 @@ extern "C" {
 
 #include "fmna_keys.h"
 
-#include "event_manager.h"
+#include "app_event_manager.h"
 
 #include <bluetooth/conn.h>
 
@@ -40,7 +40,7 @@ struct fmna_peer_security_changed {
 };
 
 struct fmna_event {
-	struct event_header header;
+	struct app_event_header header;
 
 	enum fmna_event_id id;
 	struct bt_conn *conn;
@@ -50,7 +50,7 @@ struct fmna_event {
 	};
 };
 
-EVENT_TYPE_DECLARE(fmna_event);
+APP_EVENT_TYPE_DECLARE(fmna_event);
 
 #ifdef __cplusplus
 }

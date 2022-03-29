@@ -516,7 +516,7 @@ static void pairing_complete_cmd_handle(struct bt_conn *conn,
 	pairing_conn = NULL;
 
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_PAIRING_COMPLETED, conn);
-	EVENT_SUBMIT(event);
+	APP_EVENT_SUBMIT(event);
 }
 
 static void fmna_peer_disconnected(struct bt_conn *conn)
@@ -565,10 +565,10 @@ static void fmna_peer_security_changed(struct bt_conn *conn, bt_security_t level
 	}
 }
 
-static bool event_handler(const struct event_header *eh)
+static bool app_event_handler(const struct app_event_header *aeh)
 {
-	if (is_fmna_event(eh)) {
-		struct fmna_event *event = cast_fmna_event(eh);
+	if (is_fmna_event(aeh)) {
+		struct fmna_event *event = cast_fmna_event(aeh);
 
 		switch (event->id) {
 		case FMNA_EVENT_PEER_DISCONNECTED:
@@ -586,8 +586,8 @@ static bool event_handler(const struct event_header *eh)
 		return false;
 	}
 
-	if (is_fmna_pair_event(eh)) {
-		struct fmna_pair_event *event = cast_fmna_pair_event(eh);
+	if (is_fmna_pair_event(aeh)) {
+		struct fmna_pair_event *event = cast_fmna_pair_event(aeh);
 
 		switch (event->id) {
 		case FMNA_PAIR_EVENT_INITIATE_PAIRING:
@@ -610,6 +610,6 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(fmna_pair, event_handler);
-EVENT_SUBSCRIBE(fmna_pair, fmna_event);
-EVENT_SUBSCRIBE(fmna_pair, fmna_pair_event);
+APP_EVENT_LISTENER(fmna_pair, app_event_handler);
+APP_EVENT_SUBSCRIBE(fmna_pair, fmna_event);
+APP_EVENT_SUBSCRIBE(fmna_pair, fmna_pair_event);

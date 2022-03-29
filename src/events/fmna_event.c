@@ -2,14 +2,14 @@
 
 #include "fmna_event.h"
 
-static void log_fmna_event(const struct event_header *eh)
+static void log_fmna_event(const struct app_event_header *aeh)
 {
-	struct fmna_event *event = cast_fmna_event(eh);
+	struct fmna_event *event = cast_fmna_event(aeh);
 
-	EVENT_MANAGER_LOG(eh, "Opcode: 0x%02X", event->id);
+	APP_EVENT_MANAGER_LOG(aeh, "Opcode: 0x%02X", event->id);
 }
 
-EVENT_TYPE_DEFINE(fmna_event,
-		  log_fmna_event,
-		  NULL,
-		  EVENT_FLAGS_CREATE(EVENT_TYPE_FLAGS_INIT_LOG_ENABLE));
+APP_EVENT_TYPE_DEFINE(fmna_event,
+		      log_fmna_event,
+		      NULL,
+		      APP_EVENT_FLAGS_CREATE(APP_EVENT_TYPE_FLAGS_INIT_LOG_ENABLE));

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "event_manager.h"
+#include "app_event_manager.h"
 
 enum fmna_config_event_id {
 	FMNA_CONFIG_EVENT_START_SOUND,
@@ -30,7 +30,7 @@ struct fmna_utc {
 };
 
 struct fmna_config_event {
-	struct event_header header;
+	struct app_event_header header;
 
 	enum fmna_config_event_id id;
 	struct bt_conn *conn;
@@ -44,7 +44,7 @@ struct fmna_config_event {
 	};
 };
 
-EVENT_TYPE_DECLARE(fmna_config_event);
+APP_EVENT_TYPE_DECLARE(fmna_config_event);
 
 #ifdef __cplusplus
 }

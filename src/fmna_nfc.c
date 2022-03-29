@@ -262,14 +262,14 @@ static void state_changed(void)
 	}
 }
 
-static bool event_handler(const struct event_header *eh)
+static bool app_event_handler(const struct app_event_header *aeh)
 {
 	if (!is_initialized) {
 		return false;
 	}
 
-	if (is_fmna_event(eh)) {
-		struct fmna_event *event = cast_fmna_event(eh);
+	if (is_fmna_event(aeh)) {
+		struct fmna_event *event = cast_fmna_event(aeh);
 
 		switch (event->id) {
 		case FMNA_EVENT_BATTERY_LEVEL_CHANGED:
@@ -288,5 +288,5 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(fmna_nfc, event_handler);
-EVENT_SUBSCRIBE(fmna_nfc, fmna_event);
+APP_EVENT_LISTENER(fmna_nfc, app_event_handler);
+APP_EVENT_SUBSCRIBE(fmna_nfc, fmna_event);

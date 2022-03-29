@@ -351,10 +351,10 @@ static bool submit_event_write(struct bt_conn *conn, const uint8_t *buf, uint16_
 	return true;
 }
 
-static bool event_handler(const struct event_header *eh)
+static bool app_event_handler(const struct app_event_header *aeh)
 {
-	if (is_fmna_event(eh)) {
-		struct fmna_event *event = cast_fmna_event(eh);
+	if (is_fmna_event(aeh)) {
+		struct fmna_event *event = cast_fmna_event(aeh);
 
 		switch (event->id) {
 		case FMNA_EVENT_PEER_DISCONNECTED:
@@ -370,5 +370,5 @@ static bool event_handler(const struct event_header *eh)
 	return false;
 }
 
-EVENT_LISTENER(fmna_uarp_service, event_handler);
-EVENT_SUBSCRIBE(fmna_uarp_service, fmna_event);
+APP_EVENT_LISTENER(fmna_uarp_service, app_event_handler);
+APP_EVENT_SUBSCRIBE(fmna_uarp_service, fmna_event);
