@@ -55,6 +55,7 @@ Supported development kits
 Changelog
 *********
 
+* Fixed the serial number counter to start from zero instead of one.
 * Fixed out-of-bounds access for crypto key derivation operation.
 
   The access was triggered during the error handling exit from the function.

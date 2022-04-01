@@ -99,6 +99,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					uint8_t sn_response[FMNA_SERIAL_NUMBER_ENC_BLEN])
 {
 	int err;
+	uint64_t counter;
 	struct sn_hmac_payload sn_hmac_payload;
 	struct sn_payload sn_payload;
 	uint8_t server_shared_secret[FMNA_SERVER_SHARED_SECRET_LEN];
@@ -107,20 +108,22 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 	memset(sn_response, 0, FMNA_SERIAL_NUMBER_ENC_BLEN);
 
 	err = fmna_storage_pairing_item_load(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
-					     (uint8_t *) &sn_payload.counter,
-					     sizeof(sn_payload.counter));
+					     (uint8_t *) &counter,
+					     sizeof(counter));
 	if (err) {
 		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_load err %d", err);
 		return;
 	}
 
-	sn_payload.counter++;
-	sn_hmac_payload.counter = sn_payload.counter;
+	sn_payload.counter = counter;
+	sn_hmac_payload.counter = counter;
+
+	counter++;
 
 	/* Store the Serial Number counter. */
 	err = fmna_storage_pairing_item_store(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
-					      (uint8_t *) &sn_payload.counter,
-					      sizeof(sn_payload.counter));
+					      (uint8_t *) &counter,
+					      sizeof(counter));
 	if (err) {
 		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_store err %d", err);
 		return;
