@@ -113,6 +113,10 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 	/* Clear the encrypted serial number initially in case of error. */
 	memset(sn_response, 0, FMNA_SERIAL_NUMBER_ENC_BLEN);
 
+	/* Initialize input parameters to zero. */
+	memset(&sn_payload, 0, sizeof(sn_payload));
+	memset(&sn_hmac_payload, 0, sizeof(sn_hmac_payload));
+
 	err = fmna_storage_pairing_item_load(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
 					     (uint8_t *) &counter,
 					     sizeof(counter));

@@ -57,6 +57,7 @@ Changelog
 
 * Fixed the serial number counter to start from zero instead of one.
 * Fixed an array overwrite when the serial number string is 16 bytes long.
+* Populated unset memory regions of variables that are used during serial number encryption.
 * Fixed out-of-bounds access for crypto key derivation operation.
 
   The access was triggered during the error handling exit from the function.
