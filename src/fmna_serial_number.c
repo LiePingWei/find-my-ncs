@@ -74,6 +74,7 @@ int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 	}
 #else
 	uint8_t temp[8];
+	uint8_t sn_temp[FMNA_SERIAL_NUMBER_BLEN + 1];
 	size_t index;
 
 	/* XOR device ID and address to identify the device */
@@ -84,7 +85,12 @@ int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 	*((uint32_t *)(temp + 4)) ^= NRF_FICR->DEVICEADDR[1];
 
 	/* Convert to a character string */
-	index = bin2hex(temp, sizeof(temp), serial_number, FMNA_SERIAL_NUMBER_BLEN);
+	index = bin2hex(temp, sizeof(temp), sn_temp, FMNA_SERIAL_NUMBER_BLEN);
+
+	/* Use a temporary buffer to protect memory segmenets next to serial number
+	 * pointer. The bin2hex function writes a string terminator at the
+	 * FMNA_SERIAL_NUMBER_BLEN array index. */
+	memcpy(serial_number, sn_temp, FMNA_SERIAL_NUMBER_BLEN);
 
 	/* Pad remaining with 'f' */
 	while (index < FMNA_SERIAL_NUMBER_BLEN) {
