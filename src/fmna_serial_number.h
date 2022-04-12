@@ -23,7 +23,7 @@ enum fmna_serial_number_enc_query_type {
 
 int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN]);
 
-void fmna_serial_number_enc_get(
+int fmna_serial_number_enc_get(
 	enum fmna_serial_number_enc_query_type query_type,
 	uint8_t serial_number_enc[FMNA_SERIAL_NUMBER_ENC_BLEN]);
 

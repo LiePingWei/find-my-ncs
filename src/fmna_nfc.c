@@ -98,13 +98,18 @@ static int fmna_nfc_url_prepare(char *url, size_t url_max_size)
 		uint8_t serial_number_enc[FMNA_SERIAL_NUMBER_ENC_BLEN];
 		char serial_number_enc_str[FMNA_SERIAL_NUMBER_ENC_STR_LEN] = {0};
 
-		fmna_serial_number_enc_get(
-			FMNA_SERIAL_NUMBER_ENC_QUERY_TYPE_TAP,
-			serial_number_enc);
+		ret = fmna_serial_number_enc_get(FMNA_SERIAL_NUMBER_ENC_QUERY_TYPE_TAP,
+						serial_number_enc);
+		if (ret) {
+			LOG_ERR("FMN NFC: fmna_serial_number_enc_get err %d", ret);
+			return ret;
+		}
+
 		if (!bin2hex(
 			serial_number_enc, sizeof(serial_number_enc),
 			serial_number_enc_str, sizeof(serial_number_enc_str))) {
 			LOG_ERR("FMN NFC: bin2hex error");
+			return -EINVAL;
 		}
 
 		ret = snprintk(

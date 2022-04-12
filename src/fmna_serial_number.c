@@ -101,8 +101,8 @@ int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 	return 0;
 }
 
-static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type query_type,
-					uint8_t sn_response[FMNA_SERIAL_NUMBER_ENC_BLEN])
+int fmna_serial_number_enc_get(enum fmna_serial_number_enc_query_type query_type,
+			       uint8_t sn_response[FMNA_SERIAL_NUMBER_ENC_BLEN])
 {
 	int err;
 	uint64_t counter;
@@ -122,7 +122,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					     sizeof(counter));
 	if (err) {
 		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_load err %d", err);
-		return;
+		return err;
 	}
 
 	sn_payload.counter = counter;
@@ -136,7 +136,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					      sizeof(counter));
 	if (err) {
 		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_store err %d", err);
-		return;
+		return err;
 	}
 
 	LOG_INF("Serial Number query count: %llu", sn_payload.counter);
@@ -144,7 +144,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 	err = fmna_serial_number_get(sn_payload.serial_number);
 	if (err) {
 		LOG_ERR("fmna_serial_number: fmna_serial_number_get err %d", err);
-		return;
+		return err;
 	}
 	memcpy(sn_hmac_payload.serial_number,
 	       sn_payload.serial_number,
@@ -161,7 +161,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 		break;
 	default:
 		LOG_ERR("Invalid Serial Number Query Type");
-		return;
+		return -EINVAL;
 	}
 
 	err = fmna_storage_pairing_item_load(FMNA_STORAGE_SERVER_SHARED_SECRET_ID,
@@ -169,7 +169,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					     sizeof(server_shared_secret));
 	if (err) {
 		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_load err %d", err);
-		return;
+		return err;
 	}
 
 	err = fm_crypto_authenticate_with_ksn(server_shared_secret,
@@ -178,7 +178,7 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 					      sn_payload.hmac);
 	if (err) {
 		LOG_ERR("fmna_serial_number: fm_crypto_authenticate_with_ksn err %d", err);
-		return;
+		return err;
 	}
 
 	uint32_t sn_response_len = FMNA_SERIAL_NUMBER_ENC_BLEN;
@@ -194,15 +194,10 @@ static void encrypted_sn_response_build(enum fmna_serial_number_enc_query_type q
 		 * error.
 		 */
 		memset(sn_response, 0, FMNA_SERIAL_NUMBER_ENC_BLEN);
-		return;
+		return err;
 	}
-}
 
-void fmna_serial_number_enc_get(
-	enum fmna_serial_number_enc_query_type query_type,
-	uint8_t serial_number_enc[FMNA_SERIAL_NUMBER_ENC_BLEN])
-{
-	encrypted_sn_response_build(query_type, serial_number_enc);
+	return 0;
 }
 
 static void pairing_completed_handle(struct bt_conn *conn)
@@ -220,7 +215,12 @@ static void serial_number_request_handle(struct bt_conn *conn)
 		struct net_buf_simple sn_rsp_buf;
 		uint8_t encrypted_sn_rsp[FMNA_SERIAL_NUMBER_ENC_BLEN];
 
-		encrypted_sn_response_build(FMNA_SERIAL_NUMBER_ENC_QUERY_TYPE_BT, encrypted_sn_rsp);
+		err = fmna_serial_number_enc_get(FMNA_SERIAL_NUMBER_ENC_QUERY_TYPE_BT,
+						 encrypted_sn_rsp);
+		if (err) {
+			LOG_ERR("fmna_serial_number: fmna_serial_number_enc_get returned error: %d", err);
+			return;
+		}
 
 		net_buf_simple_init_with_data(&sn_rsp_buf,
 					      encrypted_sn_rsp,
