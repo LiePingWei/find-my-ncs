@@ -128,19 +128,6 @@ int fmna_serial_number_enc_get(enum fmna_serial_number_enc_query_type query_type
 	sn_payload.counter = counter;
 	sn_hmac_payload.counter = counter;
 
-	counter++;
-
-	/* Store the Serial Number counter. */
-	err = fmna_storage_pairing_item_store(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
-					      (uint8_t *) &counter,
-					      sizeof(counter));
-	if (err) {
-		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_store err %d", err);
-		return err;
-	}
-
-	LOG_INF("Serial Number query count: %llu", sn_payload.counter);
-
 	err = fmna_serial_number_get(sn_payload.serial_number);
 	if (err) {
 		LOG_ERR("fmna_serial_number: fmna_serial_number_get err %d", err);
@@ -200,6 +187,37 @@ int fmna_serial_number_enc_get(enum fmna_serial_number_enc_query_type query_type
 	return 0;
 }
 
+int fmna_serial_number_enc_counter_increase(uint32_t increment)
+{
+	int err;
+	uint64_t counter = {0};
+
+	__ASSERT(increment > 0, "fmna serial number increment must be greater than zero");
+
+	err = fmna_storage_pairing_item_load(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
+					     (uint8_t *) &counter,
+					     sizeof(counter));
+	if (err) {
+		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_load err %d", err);
+		return err;
+	}
+
+	counter += increment;
+
+	/* Store the Serial Number counter. */
+	err = fmna_storage_pairing_item_store(FMNA_STORAGE_SN_QUERY_COUNTER_ID,
+					      (uint8_t *) &counter,
+					      sizeof(counter));
+	if (err) {
+		LOG_ERR("fmna_serial_number: fmna_storage_pairing_item_store err %d", err);
+		return err;
+	}
+
+	LOG_INF("Serial Number query count: %llu", counter);
+
+	return 0;
+}
+
 static void pairing_completed_handle(struct bt_conn *conn)
 {
 	is_paired = true;
@@ -231,6 +249,13 @@ static void serial_number_request_handle(struct bt_conn *conn)
 						  &sn_rsp_buf);
 		if (err) {
 			LOG_ERR("fmna_serial_number: fmna_gatt_owner_cp_indicate returned error: %d", err);
+			return;
+		}
+
+		err = fmna_serial_number_enc_counter_increase(1);
+		if (err) {
+			LOG_ERR("fmna_serial_number: fmna_serial_number_enc_counter_increase"
+				" returned error: %d", err);
 			return;
 		}
 

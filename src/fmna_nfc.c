@@ -43,12 +43,64 @@ static uint8_t battery_state;
 static bool paired_state;
 static bool is_initialized;
 
+static struct sn_counter_update {
+	struct k_work_delayable work;
+	atomic_t increment;
+} sn_counter_update;
+
 static void nfc_callback(void *context,
 			 nfc_t2t_event_t event,
 			 const uint8_t *data,
 			 size_t data_length)
 {
-	/* Implementation not needed */
+	ARG_UNUSED(context);
+	ARG_UNUSED(data);
+	ARG_UNUSED(data_length);
+
+	switch (event) {
+	case NFC_T2T_EVENT_DATA_READ:
+		LOG_DBG("FMN NFC: NDEF payload read");
+
+		if (paired_state) {
+			atomic_inc(&sn_counter_update.increment);
+			k_work_reschedule(&sn_counter_update.work, K_NO_WAIT);
+		}
+
+		break;
+	default:
+		break;
+	}
+}
+
+static void sn_counter_update_work_handle(struct k_work *item)
+{
+	int err;
+	atomic_val_t increment;
+	atomic_val_t new_increment;
+
+	increment = atomic_get(&sn_counter_update.increment);
+
+	if (!paired_state) {
+		return;
+	}
+
+	err = fmna_serial_number_enc_counter_increase(increment);
+	if (err) {
+		LOG_ERR("FMN NFC: fmna_serial_number_enc_counter_increase returned error: %d",
+			err);
+	}
+
+	if (!err) {
+		new_increment = atomic_sub(&sn_counter_update.increment, increment);
+		if (new_increment != increment) {
+			LOG_DBG("FMN NFC: Scheduling another update of serial number counter");
+			k_work_reschedule(&sn_counter_update.work, K_NO_WAIT);
+		}
+	} else {
+		LOG_DBG("FMN NFC: Scheduling another attempt to update serial number counter"
+			" in one second on error: %d", err);
+		k_work_reschedule(&sn_counter_update.work, K_SECONDS(1));
+	}
 }
 
 static int fmna_nfc_url_prepare(char *url, size_t url_max_size)
@@ -236,6 +288,8 @@ int fmna_nfc_init(uint8_t id)
 		return err;
 	}
 
+	k_work_init_delayable(&sn_counter_update.work, sn_counter_update_work_handle);
+
 	is_initialized = true;
 
 	LOG_INF("FMN NFC: NFC capability is enabled");
@@ -262,6 +316,10 @@ static void state_changed(void)
 	current_paired_state = fmna_state_is_paired();
 	if (current_paired_state != paired_state){
 		paired_state = current_paired_state;
+
+		if (paired_state) {
+			atomic_clear(&sn_counter_update.increment);
+		}
 
 		fmna_nfc_buffer_update();
 	}

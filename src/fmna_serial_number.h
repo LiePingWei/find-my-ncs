@@ -27,6 +27,8 @@ int fmna_serial_number_enc_get(
 	enum fmna_serial_number_enc_query_type query_type,
 	uint8_t serial_number_enc[FMNA_SERIAL_NUMBER_ENC_BLEN]);
 
+int fmna_serial_number_enc_counter_increase(uint32_t increment);
+
 
 #ifdef __cplusplus
 }
