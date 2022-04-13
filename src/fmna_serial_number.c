@@ -215,6 +215,9 @@ int fmna_serial_number_enc_counter_increase(uint32_t increment)
 
 	LOG_INF("Serial Number query count: %llu", counter);
 
+	FMNA_EVENT_CREATE(event, FMNA_EVENT_SERIAL_NUMBER_CNT_CHANGED, NULL);
+	APP_EVENT_SUBMIT(event);
+
 	return 0;
 }
 

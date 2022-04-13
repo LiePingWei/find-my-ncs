@@ -59,6 +59,7 @@ Changelog
 * Fixed an array overwrite when the serial number string is 16 bytes long.
 * Populated unset memory regions of variables that are used during serial number encryption.
 * Serial number counter is now correctly incremented after each successful NFC read operation.
+* Find My NFC payload is now updated along with the serial number counter.
 * Fixed out-of-bounds access for crypto key derivation operation.
 
   The access was triggered during the error handling exit from the function.

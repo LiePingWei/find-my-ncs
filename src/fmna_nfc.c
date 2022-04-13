@@ -309,6 +309,11 @@ static void battery_level_changed(void)
 	}
 }
 
+static void serial_number_cnt_changed(void)
+{
+	fmna_nfc_buffer_update();
+}
+
 static void state_changed(void)
 {
 	bool current_paired_state;
@@ -337,6 +342,9 @@ static bool app_event_handler(const struct app_event_header *aeh)
 		switch (event->id) {
 		case FMNA_EVENT_BATTERY_LEVEL_CHANGED:
 			battery_level_changed();
+			break;
+		case FMNA_EVENT_SERIAL_NUMBER_CNT_CHANGED:
+			serial_number_cnt_changed();
 			break;
 		case FMNA_EVENT_STATE_CHANGED:
 			state_changed();
