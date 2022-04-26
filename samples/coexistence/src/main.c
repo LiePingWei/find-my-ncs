@@ -417,9 +417,12 @@ static void hr_sensor_auth_passkey_display(struct bt_conn *conn, unsigned int pa
 
 static struct bt_conn_auth_cb hr_sensor_auth_cb_display = {
 	.cancel = hr_sensor_auth_cancel,
-	.pairing_complete = hr_sensor_pairing_complete,
 	.pairing_accept = hr_sensor_pairing_accept,
 	.passkey_display = hr_sensor_auth_passkey_display,
+};
+
+static struct bt_conn_auth_info_cb hr_sensor_auth_info_cb_display = {
+	.pairing_complete = hr_sensor_pairing_complete,
 };
 
 static void hr_sensor_connected(struct bt_conn *conn, uint8_t err)
@@ -526,6 +529,7 @@ static void hr_sensor_initialize(void)
 {
 	bt_conn_cb_register(&hr_sensor_conn_callbacks);
 	bt_conn_auth_cb_register(&hr_sensor_auth_cb_display);
+	bt_conn_auth_info_cb_register(&hr_sensor_auth_info_cb_display);
 
 	if (factory_settings_restore_check()) {
 		printk("HR Sensor: performing reset to default factory settings\n");
