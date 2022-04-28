@@ -85,7 +85,7 @@ int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 	*((uint32_t *)(temp + 4)) ^= NRF_FICR->DEVICEADDR[1];
 
 	/* Convert to a character string */
-	index = bin2hex(temp, sizeof(temp), sn_temp, FMNA_SERIAL_NUMBER_BLEN);
+	index = bin2hex(temp, sizeof(temp), sn_temp, sizeof(sn_temp));
 
 	/* Use a temporary buffer to protect memory segmenets next to serial number
 	 * pointer. The bin2hex function writes a string terminator at the
