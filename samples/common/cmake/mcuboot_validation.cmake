@@ -13,5 +13,8 @@ if(CONFIG_BOOTLOADER_MCUBOOT)
     endif()
   endif()
 
-  assert_exists(mcuboot_CONF_FILE)
+  foreach (filepath ${mcuboot_CONF_FILE})
+    assert_exists(filepath)
+  endforeach()
+
 endif()
