@@ -7,6 +7,7 @@
 cmake_minimum_required(VERSION 3.20.0)
 
 set(CONF_FILE prj.conf)
+set(mcuboot_CONF_FILE ${CMAKE_CURRENT_SOURCE_DIR}/child_image/mcuboot.conf)
 set(FIND_MY_COMMON_CMAKE_DIR
     "$ENV{ZEPHYR_BASE}/../find-my/samples/common/cmake/"
     CACHE PATH "Common configuration directory")
