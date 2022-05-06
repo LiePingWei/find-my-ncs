@@ -15,9 +15,13 @@
 #include "fmna_state.h"
 #include "fmna_storage.h"
 
+#include <hal/nrf_ficr.h>
+
 #include <logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
+
+#define SN_DEVICE_ID_WORD_LEN     2
 
 #define SN_LOOKUP_INTERVAL        K_MINUTES(5)
 
@@ -79,19 +83,20 @@ int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 		return err;
 	}
 #else
-	uint8_t temp[8];
+	uint32_t device_id[SN_DEVICE_ID_WORD_LEN];
 	uint8_t sn_temp[FMNA_SERIAL_NUMBER_BLEN + 1];
 	size_t index;
 
-	/* XOR device ID and address to identify the device */
-	*((uint32_t *)temp) =  NRF_FICR->DEVICEID[0];
-	*((uint32_t *)temp) ^= NRF_FICR->DEVICEADDR[0];
-
-	*((uint32_t *)(temp + 4)) =  NRF_FICR->DEVICEID[1];
-	*((uint32_t *)(temp + 4)) ^= NRF_FICR->DEVICEADDR[1];
+	/* Use Device ID as a serial number. */
+	for (int i = 0; i < ARRAY_SIZE(device_id); i++) {
+		device_id[i] = nrf_ficr_deviceid_get(NRF_FICR, i);
+	}
 
 	/* Convert to a character string */
-	index = bin2hex(temp, sizeof(temp), sn_temp, sizeof(sn_temp));
+	index = bin2hex((uint8_t *) device_id,
+			sizeof(device_id),
+			sn_temp,
+			sizeof(sn_temp));
 
 	/* Use a temporary buffer to protect memory segmenets next to serial number
 	 * pointer. The bin2hex function writes a string terminator at the

@@ -62,6 +62,7 @@ Changelog
   This change is available in the Find My Simple and Qualification samples.
 * Added a new callback to the Find My API. It notifies the user about the paired state changes.
 * Added an indication of the paired state using **LED 3** in the Find My Simple and Qualification samples.
+* The Device ID from the FICR register group is now used as a serial number for Find My.
 
 Known issues and limitations
 ****************************
