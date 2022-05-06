@@ -63,6 +63,9 @@ Changelog
 * Added a new callback to the Find My API. It notifies the user about the paired state changes.
 * Added an indication of the paired state using **LED 3** in the Find My Simple and Qualification samples.
 * The Device ID from the FICR register group is now used as a serial number for Find My.
+* Replaced static verification of the TX power parameter ``FMNA_TX_POWER`` with a dynamic one.
+
+  A warning is logged in case of a mismatch between the chosen TX power and platform capabilities during Find My initialization.
 
 Known issues and limitations
 ****************************

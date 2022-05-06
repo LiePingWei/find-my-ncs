@@ -17,16 +17,6 @@
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
-/* Validation of TX power configuration from Kconfig */
-#if   defined(RADIO_TXPOWER_TXPOWER_Pos4dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos4dBm)
-#elif defined(RADIO_TXPOWER_TXPOWER_Pos5dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos5dBm)
-#elif defined(RADIO_TXPOWER_TXPOWER_Pos6dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos6dBm)
-#elif defined(RADIO_TXPOWER_TXPOWER_Pos7dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos7dBm)
-#elif defined(RADIO_TXPOWER_TXPOWER_Pos8dBm) && (CONFIG_FMNA_TX_POWER == RADIO_TXPOWER_TXPOWER_Pos8dBm)
-#else
-	#error "TX power configuration not supported on a chosen Find My target"
-#endif
-
 #define UNPAIRED_ADV_INTERVAL    0x0030 /* 30 ms */
 #define PAIRED_ADV_INTERVAL      0x0C80 /* 2 s */
 #define PAIRED_ADV_INTERVAL_FAST 0x0030 /* 30 ms */
@@ -153,7 +143,7 @@ static const struct bt_le_ext_adv_cb unpaired_adv_callbacks = {
 	.connected = ext_adv_connected,
 };
 
-static void bt_ext_advertising_tx_power_set(uint16_t handle)
+static int bt_ext_advertising_tx_power_set(uint16_t handle, int8_t *tx_power)
 {
 	int err;
 	struct bt_hci_cp_vs_write_tx_power_level *cp;
@@ -164,7 +154,7 @@ static void bt_ext_advertising_tx_power_set(uint16_t handle)
 	buf = bt_hci_cmd_create(BT_HCI_OP_VS_WRITE_TX_POWER_LEVEL, sizeof(*cp));
 	if (!buf) {
 		LOG_ERR("fmna_adv: cannot allocate buffer to set TX power");
-		return;
+		return -ENOMEM;
 	}
 
 	cp = net_buf_add(buf, sizeof(*cp));
@@ -175,13 +165,19 @@ static void bt_ext_advertising_tx_power_set(uint16_t handle)
 	err = bt_hci_cmd_send_sync(BT_HCI_OP_VS_WRITE_TX_POWER_LEVEL, buf, &rsp);
 	if (err) {
 		LOG_ERR("fmna_adv: cannot set TX power (err: %d)", err);
-		return;
+		return err;
 	}
 
 	rp = (struct bt_hci_rp_vs_write_tx_power_level *) rsp->data;
 	LOG_DBG("Advertising TX power set to %d dBm", rp->selected_tx_power);
 
 	net_buf_unref(rsp);
+
+	if (tx_power) {
+		*tx_power = rp->selected_tx_power;
+	}
+
+	return err;
 }
 
 int fmna_adv_stop(void)
@@ -243,7 +239,12 @@ static int bt_ext_advertising_start(const struct adv_start_config *config)
 		LOG_ERR("bt_hci_get_adv_handle returned error: %d", err);
 		return err;
 	}
-	bt_ext_advertising_tx_power_set(adv_handle);
+
+	err = bt_ext_advertising_tx_power_set(adv_handle, NULL);
+	if (err) {
+		LOG_ERR("bt_ext_advertising_tx_power_set returned error: %d", err);
+		return err;
+	}
 
 	err = bt_le_ext_adv_start(adv_set, &ext_adv_start_param);
 	if (err) {
@@ -520,8 +521,61 @@ int fmna_adv_unpaired_cb_register(fmna_adv_timeout_cb_t cb)
 	return 0;
 }
 
+static int bt_ext_advertising_tx_power_verify(uint8_t id)
+{
+#if CONFIG_LOG
+	int err;
+	int del_err;
+	int8_t tx_power;
+	uint8_t adv_handle;
+	struct bt_le_ext_adv *tx_adv_set = NULL;
+	struct bt_le_adv_param param = {
+		.id = id,
+		.options = BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_USE_IDENTITY,
+		.interval_min = UNPAIRED_ADV_INTERVAL,
+		.interval_max = UNPAIRED_ADV_INTERVAL,
+	};
+
+	err = bt_le_ext_adv_create(&param, NULL, &tx_adv_set);
+	if (err) {
+		LOG_ERR("bt_le_ext_adv_create returned error: %d", err);
+		return err;
+	}
+
+	err = bt_hci_get_adv_handle(tx_adv_set, &adv_handle);
+	if (err) {
+		LOG_ERR("bt_hci_get_adv_handle returned error: %d", err);
+		goto error;
+	}
+
+	err = bt_ext_advertising_tx_power_set(adv_handle, &tx_power);
+	if (err) {
+		LOG_ERR("bt_ext_advertising_tx_power_set returned error: %d", err);
+		goto error;
+	}
+
+	if (tx_power != CONFIG_FMNA_TX_POWER) {
+		LOG_WRN("The FMN advertising TX Power is smaller than the desired configuration");
+		LOG_WRN("due to the \"%s\" board limitations: %d dBm < %d dBm",
+			CONFIG_BOARD, tx_power, CONFIG_FMNA_TX_POWER);
+	}
+
+error:
+	del_err = bt_le_ext_adv_delete(tx_adv_set);
+	if (del_err) {
+		LOG_ERR("bt_le_ext_adv_delete returned error: %d", del_err);
+	}
+
+	return ((err != 0) ? err : del_err);
+#else
+	return 0;
+#endif /* CONFIG_LOG */
+}
+
 int fmna_adv_init(uint8_t id)
 {
+	int err;
+
 	if (id == BT_ID_DEFAULT) {
 		LOG_ERR("The default identity cannot be used for FMN");
 		return -EINVAL;
@@ -533,6 +587,12 @@ int fmna_adv_init(uint8_t id)
 	if (id != bt_id) {
 		LOG_ERR("FMN identity cannot be found: %d", bt_id);
 		return id;
+	}
+
+	err = bt_ext_advertising_tx_power_verify(id);
+	if (err) {
+		LOG_ERR("TX power verification failed: %d", err);
+		return err;
 	}
 
 	return 0;

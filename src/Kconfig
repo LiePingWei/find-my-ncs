@@ -37,11 +37,16 @@ config FMNA_MAX_CONN
 	range 2 BT_MAX_CONN
 
 config FMNA_TX_POWER
-	int "TX power"
+	int "TX power in dBm"
 	help
 	  TX power configuration in dBm used in advertising and connections.
+	  Please note that the desired configuration may be different from the
+	  actual one if a chosen HW platform does not support it. In this case,
+	  the Find My stack displays a warning notifying the user about the
+	  real TX power during the enabling procedure of this library. The
+	  actual TX power value will be as close to the desired configuration
+	  as possible.
 	default 4
-	range 4 4 if SOC_NRF52832
 	range 4 8
 
 config FMNA_CUSTOM_SERIAL_NUMBER
