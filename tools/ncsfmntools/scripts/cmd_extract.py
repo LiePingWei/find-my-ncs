@@ -165,8 +165,11 @@ def cli(cmd, argv):
 
     extract(args.device, args.settings_base)
 
-def settings_base_input_handle(settings_base, flash_size):
+def settings_base_input_handle(settings_base, device):
     param_prefix = '-f/--settings-base'
+
+    flash_size = DEVICE.FLASH_SIZE[device]
+    partition_size = DEVICE.SETTINGS_PARTITION_SIZE_DEFAULT[device]
 
     if settings_base:
         if settings_base[:2].lower() == '0x':
@@ -176,7 +179,7 @@ def settings_base_input_handle(settings_base, flash_size):
             extract_error_handle('maflormed memory address: %s' % settings_base, param_prefix)
         settings_base = int(settings_base, 16)
     else:
-        settings_base = flash_size - DEVICE.SETTINGS_PARTITION_SIZE_DEFAULT
+        settings_base = flash_size - partition_size
 
     if (flash_size - settings_base) <= 0:
         extract_error_handle('address is bigger than the target device memory: %s >= %s'
@@ -190,7 +193,7 @@ def settings_base_input_handle(settings_base, flash_size):
     return settings_base
 
 def extract(device, settings_base):
-    settings_base = settings_base_input_handle(settings_base, DEVICE.FLASH_SIZE[device])
+    settings_base = settings_base_input_handle(settings_base, device)
     settings_size = DEVICE.FLASH_SIZE[device] - settings_base
 
     # Open connection to the device and read the NVS data.

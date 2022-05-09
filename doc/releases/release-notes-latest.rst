@@ -67,6 +67,11 @@ Changelog
 
   A warning is logged in case of a mismatch between the chosen TX power and platform capabilities during Find My initialization.
 
+CLI Tools
+=========
+
+* Added the nRF5340 SoC support to the provision and extract command in the v0.2.0 release.
+
 Known issues and limitations
 ****************************
 

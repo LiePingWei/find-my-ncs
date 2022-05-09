@@ -59,8 +59,11 @@ def cli(cmd, argv):
 
     provision(args.mfi_uuid, args.mfi_token, args.serial_number, args.output_path, args.device, args.settings_base, args.input_hex_file)
 
-def settings_base_input_handle(settings_base, flash_size):
+def settings_base_input_handle(settings_base, device):
     param_prefix = '-f/--settings-base'
+
+    flash_size = DEVICE.FLASH_SIZE[device]
+    partition_size = DEVICE.SETTINGS_PARTITION_SIZE_DEFAULT[device]
 
     if settings_base:
         if settings_base[:2].lower() == '0x':
@@ -70,7 +73,7 @@ def settings_base_input_handle(settings_base, flash_size):
             provision_error_handle('maflormed memory address: %s' % settings_base, param_prefix)
         settings_base = int(settings_base, 16)
     else:
-        settings_base = flash_size - DEVICE.SETTINGS_PARTITION_SIZE_DEFAULT
+        settings_base = flash_size - partition_size
 
     if (flash_size - settings_base) <= 0:
         provision_error_handle('address is bigger than the target device memory: %s >= %s'
@@ -212,7 +215,7 @@ def merge_hex_files(input_hex_file, provisioned_data_hex_file, output_file):
         provision_error_handle(msg)
 
 def provision(mfi_uuid, mfi_token, serial_number, output_path, device, settings_base, input_hex_file):
-    settings_base = settings_base_input_handle(settings_base, DEVICE.FLASH_SIZE[device])
+    settings_base = settings_base_input_handle(settings_base, device)
     mfi_uuid = mfi_uuid_input_handle(mfi_uuid)
     mfi_token = mfi_token_input_handle(mfi_token)
     serial_number = serial_number_input_handle(serial_number)
