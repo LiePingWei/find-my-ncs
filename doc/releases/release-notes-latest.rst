@@ -65,6 +65,7 @@ Changelog
 * Added a configuration file for the HCI RPMsg child image in all Find My samples.
 
   This file is used with the nRF5340 targets and aligns the application image with its network counterpart.
+* Added support for the Release configuration on the nRF5340 target.
 * Extended the settings storage partition for the nRF5340 target to fill up the space left because of its 4-page alignment.
 * The Device ID from the FICR register group is now used as a serial number for Find My.
 * Replaced static verification of the TX power parameter ``FMNA_TX_POWER`` with a dynamic one.
