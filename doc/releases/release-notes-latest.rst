@@ -67,6 +67,7 @@ Changelog
   This file is used with the nRF5340 targets and aligns the application image with its network counterpart.
 * Added support for the Release configuration on the nRF5340 target.
 * Extended the settings storage partition for the nRF5340 target to fill up the space left because of its 4-page alignment.
+* Aligned the Find My Serial Number module with TF-M and SPM requirements for non-secure targets.
 * Migrated to the full Oberon implementation of crypto primitives for Find My.
 * The Device ID from the FICR register group is now used as a serial number for Find My.
 * Replaced static verification of the TX power parameter ``FMNA_TX_POWER`` with a dynamic one.

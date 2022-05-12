@@ -15,7 +15,15 @@
 #include "fmna_state.h"
 #include "fmna_storage.h"
 
+#if defined(CONFIG_TRUSTED_EXECUTION_NONSECURE)
+#if defined(CONFIG_BUILD_WITH_TFM)
+#include <tfm_ioctl_api.h>
+#elif defined(CONFIG_SPM_SERVICE_READ)
+#include <secure_services.h>
+#endif /* CONFIG_SPM_SERVICE_READ */
+#else
 #include <hal/nrf_ficr.h>
+#endif /* CONFIG_TRUSTED_EXECUTION_NONSECURE */
 
 #include <logging/log.h>
 
@@ -72,11 +80,58 @@ int fmna_serial_number_lookup_enable(void)
 	return 0;
 }
 
+#if defined(CONFIG_TRUSTED_EXECUTION_NONSECURE)
+
+static int device_id_get(uint32_t *device_id, size_t device_id_len)
+{
+	int err;
+	const size_t device_id_size = device_id_len * sizeof(*device_id);
+	uint32_t device_id_addr = (uint32_t)NRF_FICR_S->INFO.DEVICEID;
+
+	__ASSERT(sizeof(NRF_FICR_S->INFO.DEVICEID) == device_id_size,
+		 "Length of the Device ID buffer misaligned with the corresponding FICR register.");
+
+#if defined(CONFIG_BUILD_WITH_TFM)
+	enum tfm_platform_err_t plt_err;
+
+	err = 0;
+	plt_err = tfm_platform_mem_read(device_id, device_id_addr, device_id_size, &err);
+	if ((plt_err != TFM_PLATFORM_ERR_SUCCESS) || (err != 0)) {
+		LOG_ERR("fmna_serial_number: cannot read FICR Device ID: plt_err %d, err: %d",
+			plt_err, err);
+		return -EACCES;
+	}
+#elif defined(CONFIG_SPM_SERVICE_READ)
+	err = spm_request_read(device_id, device_id_addr, device_id_size);
+	if (err) {
+		LOG_ERR("fmna_serial_number: cannot read FICR Device ID: err %d", err);
+		return err;
+	}
+#else
+#error "Find My serial number: cannot read FICR Device ID in current configuration"
+#endif /* CONFIG_SPM_SERVICE_READ */
+
+	return 0;
+}
+
+#else
+
+static int device_id_get(uint32_t *device_id, size_t device_id_len)
+{
+	for (size_t i = 0; i < device_id_len; i++) {
+		device_id[i] = nrf_ficr_deviceid_get(NRF_FICR, i);
+	}
+
+	return 0;
+}
+
+#endif /* CONFIG_TRUSTED_EXECUTION_NONSECURE */
+
 int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 {
-#if CONFIG_FMNA_CUSTOM_SERIAL_NUMBER
 	int err;
 
+#if CONFIG_FMNA_CUSTOM_SERIAL_NUMBER
 	err = fmna_storage_serial_number_load(serial_number);
 	if (err) {
 		LOG_ERR("fmna_serial_number: fmna_storage_serial_number_load err %d", err);
@@ -88,8 +143,10 @@ int fmna_serial_number_get(uint8_t serial_number[FMNA_SERIAL_NUMBER_BLEN])
 	size_t index;
 
 	/* Use Device ID as a serial number. */
-	for (int i = 0; i < ARRAY_SIZE(device_id); i++) {
-		device_id[i] = nrf_ficr_deviceid_get(NRF_FICR, i);
+	err = device_id_get(device_id, ARRAY_SIZE(device_id));
+	if (err) {
+		LOG_ERR("fmna_serial_number: device_id_get returned err: %d", err);
+		return err;
 	}
 
 	/* Convert to a character string */
