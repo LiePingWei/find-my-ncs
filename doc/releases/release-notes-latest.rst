@@ -62,6 +62,7 @@ Changelog
   This change is available in the Find My Simple and Qualification samples.
 * Added a new callback to the Find My API. It notifies the user about the paired state changes.
 * Added an indication of the paired state using **LED 3** in the Find My Simple and Qualification samples.
+* Extended the settings storage partition for the nRF5340 target to fill up the space left because of its 4-page alignment.
 * The Device ID from the FICR register group is now used as a serial number for Find My.
 * Replaced static verification of the TX power parameter ``FMNA_TX_POWER`` with a dynamic one.
 
