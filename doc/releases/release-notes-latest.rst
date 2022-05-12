@@ -66,6 +66,7 @@ Changelog
 * Replaced static verification of the TX power parameter ``FMNA_TX_POWER`` with a dynamic one.
 
   A warning is logged in case of a mismatch between the chosen TX power and platform capabilities during Find My initialization.
+* Added support for a common target-based partition configuration in Find My samples.
 
 CLI Tools
 =========

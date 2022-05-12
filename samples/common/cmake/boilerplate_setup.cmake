@@ -22,6 +22,11 @@ if (NOT EXISTS "${FIND_MY_COMMON_CONFIG_DIR}/app_${CMAKE_BUILD_TYPE}.conf")
           "Please add file ${FIND_MY_COMMON_CONFIG_DIR}/app_${CMAKE_BUILD_TYPE}.conf")
 endif()
 
+# Set static partition configuration if it exists
+set(PM_STATIC_YML_FILE
+  ${FIND_MY_COMMON_CONFIG_DIR}/pm_static_${BOARD}.yml
+  )
+
 # Define configuration files.
 set(CONF_FILE ${FIND_MY_COMMON_CONFIG_DIR}/app_${CMAKE_BUILD_TYPE}.conf ${CONF_FILE})
 
