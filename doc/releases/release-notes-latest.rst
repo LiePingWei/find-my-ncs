@@ -67,6 +67,7 @@ Changelog
 
   A warning is logged in case of a mismatch between the chosen TX power and platform capabilities during Find My initialization.
 * Added support for a common target-based partition configuration in Find My samples.
+* Added support for a common target-based Kconfig configuration for the primary application and MCUboot image.
 
 CLI Tools
 =========

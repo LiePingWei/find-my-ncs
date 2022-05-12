@@ -27,9 +27,38 @@ set(PM_STATIC_YML_FILE
   ${FIND_MY_COMMON_CONFIG_DIR}/pm_static_${BOARD}.yml
   )
 
-# Define configuration files.
-set(CONF_FILE ${FIND_MY_COMMON_CONFIG_DIR}/app_${CMAKE_BUILD_TYPE}.conf ${CONF_FILE})
+# Collect application configuration
+set(CONF_FILE_temp ${CONF_FILE})
+
+set(CONF_FILE
+  ${FIND_MY_COMMON_CONFIG_DIR}/app_${CMAKE_BUILD_TYPE}.conf)
+
+set(FIND_MY_APP_COMMON_TARGET_CONF
+  "${FIND_MY_COMMON_CONFIG_DIR}/app_${CMAKE_BUILD_TYPE}_${BOARD}.conf")
+if (EXISTS "${FIND_MY_APP_COMMON_TARGET_CONF}")
+  set(CONF_FILE
+    ${CONF_FILE}
+    ${FIND_MY_APP_COMMON_TARGET_CONF})
+endif()
+
+set(CONF_FILE
+  ${CONF_FILE}
+  ${CONF_FILE_temp})
+
+# Collect MCUboot configuration
+set(mcuboot_CONF_FILE_temp ${mcuboot_CONF_FILE})
 
 set(mcuboot_CONF_FILE
-  ${FIND_MY_COMMON_CONFIG_DIR}/mcuboot_${CMAKE_BUILD_TYPE}.conf
-  ${mcuboot_CONF_FILE})
+  ${FIND_MY_COMMON_CONFIG_DIR}/mcuboot_${CMAKE_BUILD_TYPE}.conf)
+
+set(FIND_MY_MCUBOOT_COMMON_TARGET_CONF
+  "${FIND_MY_COMMON_CONFIG_DIR}/mcuboot_${CMAKE_BUILD_TYPE}_${BOARD}.conf")
+if (EXISTS "${FIND_MY_MCUBOOT_COMMON_TARGET_CONF}")
+  set(mcuboot_CONF_FILE
+    ${mcuboot_CONF_FILE}
+    ${FIND_MY_MCUBOOT_COMMON_TARGET_CONF})
+endif()
+
+set(mcuboot_CONF_FILE
+  ${mcuboot_CONF_FILE}
+  ${mcuboot_CONF_FILE_temp})
