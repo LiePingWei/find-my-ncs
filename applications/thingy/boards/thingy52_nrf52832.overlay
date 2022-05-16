@@ -13,7 +13,7 @@
 	pwmspk {
 		compatible = "pwm-leds";
 		pwm_spk0: pwm-spk-0 {
-			pwms = <&pwm0 27>;
+			pwms = <&pwm0 0 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
 		};
 	};
 };
