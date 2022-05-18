@@ -56,6 +56,7 @@ Changelog
 *********
 
 * Added a new callback to the Find My API. It notifies the user about the paired state changes.
+* Added an indication of the paired state using **LED 3** in the Find My Simple and Qualification samples.
 
 Known issues and limitations
 ****************************

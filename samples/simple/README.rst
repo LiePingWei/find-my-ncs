@@ -60,6 +60,9 @@ LED 1:
 LED 2:
    Indicates that the motion is detected in the current motion detection period.
 
+LED 3:
+   Indicates that the device is paired using Find My.
+
 Building and running
 ********************
 

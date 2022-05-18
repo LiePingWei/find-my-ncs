@@ -23,6 +23,7 @@
 
 #define FMNA_SOUND_LED             DK_LED1
 #define FMNA_MOTION_INDICATION_LED DK_LED2
+#define FMNA_PAIRED_STATE_LED      DK_LED3
 
 #define FMNA_ADV_RESUME_BUTTON             DK_BTN1_MSK
 #define FMNA_SN_LOOKUP_BUTTON              DK_BTN2_MSK
@@ -158,9 +159,18 @@ static void pairing_mode_exited(void)
 	pairing_mode_exit = true;
 }
 
+static void paired_state_changed(bool paired)
+{
+	printk("The FMN accessory transitioned to the %spaired state\n",
+	       paired ? "" : "un");
+
+	dk_set_led(FMNA_PAIRED_STATE_LED, paired);
+}
+
 static const struct fmna_enable_cb enable_callbacks = {
 	.battery_level_request = battery_level_request,
 	.pairing_mode_exited = pairing_mode_exited,
+	.paired_state_changed = paired_state_changed,
 };
 
 static int fmna_id_create(uint8_t id)
