@@ -226,6 +226,19 @@ struct fmna_enable_cb {
 	 *  owner (for example, a button press).
 	 */
 	void (*pairing_mode_exited)(void);
+
+	/** @brief Indicate paired state changes.
+	 *
+	 *  This callback is called to indicate that the Find My accessory
+	 *  has successfully paired or unpaired.
+	 *
+	 *  This callback also reports the initial paired state when the user
+	 *  enables the FMN stack with the @ref fmna_enable API.
+	 *
+	 *  @param paired True if the accessory is paired.
+	 *                False if the accessory is unpaired.
+	 */
+	void (*paired_state_changed)(bool paired);
 };
 
 /** @brief Set the current battery level as a percentage.

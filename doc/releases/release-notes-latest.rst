@@ -55,7 +55,7 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* Added a new callback to the Find My API. It notifies the user about the paired state changes.
 
 Known issues and limitations
 ****************************

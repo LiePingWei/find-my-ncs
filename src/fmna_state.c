@@ -33,6 +33,7 @@ static bool persistent_conn_adv = false;
 
 static bool location_available;
 static fmna_state_location_availability_changed_t location_availability_changed_cb;
+static fmna_state_paired_state_changed_t paired_state_changed_cb;
 
 static uint16_t nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
 
@@ -310,6 +311,19 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 		}
 	}
 
+	if (paired_state_changed_cb) {
+		bool has_pairing_state_changed = false;
+
+		has_pairing_state_changed |= (prev_state == FMNA_STATE_UNDEFINED);
+		has_pairing_state_changed |= (prev_state == FMNA_STATE_UNPAIRED);
+		has_pairing_state_changed |= (new_state == FMNA_STATE_UNPAIRED);
+		has_pairing_state_changed &= (new_state != FMNA_STATE_UNDEFINED);
+
+		if (has_pairing_state_changed) {
+			paired_state_changed_cb(fmna_state_is_paired());
+		}
+	}
+
 	/* Emit event notifying that the device is in the new state. */
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_STATE_CHANGED, NULL);
 	APP_EVENT_SUBMIT(event);
@@ -462,6 +476,14 @@ int fmna_state_location_availability_cb_register(
 	fmna_state_location_availability_changed_t cb)
 {
 	location_availability_changed_cb = cb;
+
+	return 0;
+}
+
+int fmna_state_paired_state_changed_cb_register(
+	fmna_state_paired_state_changed_t cb)
+{
+	paired_state_changed_cb = cb;
 
 	return 0;
 }
