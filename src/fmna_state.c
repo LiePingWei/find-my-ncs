@@ -24,9 +24,8 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define NEARBY_SEPARATED_TIMEOUT_MAX     3600
 #define PERSISTENT_CONN_ADV_TIMEOUT      3
 
-static enum fmna_state state = FMNA_STATE_UNDEFINED;
+static enum fmna_state state = FMNA_STATE_DISABLED;
 static bool is_adv_paused = false;
-static bool is_bonded = false;
 static bool is_maintained = false;
 static bool unpair_pending = false;
 static bool persistent_conn_adv = false;
@@ -153,8 +152,8 @@ static int advertise_restart_on_no_state_change(void)
 			return err;
 		}
 		break;
-	case FMNA_STATE_UNDEFINED:
-		__ASSERT(0, "FMN state must be defined at this point");
+	case FMNA_STATE_DISABLED:
+		__ASSERT(0, "FMN state must be enabled at this point");
 		break;
 	}
 
@@ -172,8 +171,8 @@ static const char *state_name_get(enum fmna_state state)
 		return "Nearby";
 	case FMNA_STATE_SEPARATED:
 		return "Separated";
-	case FMNA_STATE_UNDEFINED:
-		return "Undefined";
+	case FMNA_STATE_DISABLED:
+		return "Disabled";
 	default:
 		return "Unknown";
 	}
@@ -196,7 +195,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 
 	/* Handle Unpaired state transition. */
 	if (new_state == FMNA_STATE_UNPAIRED) {
-		if ((prev_state != FMNA_STATE_CONNECTED) && (prev_state != FMNA_STATE_UNDEFINED)) {
+		if ((prev_state != FMNA_STATE_CONNECTED) && (prev_state != FMNA_STATE_DISABLED)) {
 			LOG_ERR("FMN State: Forbidden transition");
 			return -EINVAL;
 		}
@@ -281,7 +280,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 	} else if (new_state == FMNA_STATE_SEPARATED) {
 		/* Handle Separated state transition. */
 
-		if ((prev_state != FMNA_STATE_NEARBY) && (prev_state != FMNA_STATE_UNDEFINED)) {
+		if ((prev_state != FMNA_STATE_NEARBY) && (prev_state != FMNA_STATE_DISABLED)) {
 			LOG_ERR("FMN State: Forbidden transition");
 			return -EINVAL;
 		}
@@ -292,10 +291,36 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 			LOG_ERR("separated_adv_start returned error: %d", err);
 			return err;
 		}
+	} else if (new_state == FMNA_STATE_DISABLED) {
+		/* Stop all kernel objects */
+		k_timer_stop(&nearby_separated_timer);
+
+		/* No need to do anything if the cancellation operation fails
+		 * and the workqueue item is already being executed.
+		 */
+		k_work_cancel(&nearby_separated_work);
+		k_work_cancel_delayable(&persistent_conn_work);
+
+		/* Stop the key service if necessary. */
+		if (prev_state != FMNA_STATE_UNPAIRED) {
+			err = fmna_keys_service_stop();
+			if (err) {
+				LOG_ERR("fmna_keys_service_stop returned error: %d", err);
+				return err;
+			}
+		}
+
+		/* Reset the FMN state. */
+		is_adv_paused = false;
+		is_maintained = false;
+		unpair_pending = false;
+		persistent_conn_adv = false;
 	}
 
-	if (prev_state == FMNA_STATE_UNDEFINED) {
+	if (prev_state == FMNA_STATE_DISABLED) {
 		LOG_DBG("Initializing FMN State to: %s", state_str);
+	} else if (new_state == FMNA_STATE_DISABLED) {
+		LOG_DBG("Uninitializing FMN State");
 	} else {
 		LOG_DBG("Changing FMN State to: %s", state_str);
 	}
@@ -314,10 +339,10 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 	if (paired_state_changed_cb) {
 		bool has_pairing_state_changed = false;
 
-		has_pairing_state_changed |= (prev_state == FMNA_STATE_UNDEFINED);
+		has_pairing_state_changed |= (prev_state == FMNA_STATE_DISABLED);
 		has_pairing_state_changed |= (prev_state == FMNA_STATE_UNPAIRED);
 		has_pairing_state_changed |= (new_state == FMNA_STATE_UNPAIRED);
-		has_pairing_state_changed &= (new_state != FMNA_STATE_UNDEFINED);
+		has_pairing_state_changed &= (new_state != FMNA_STATE_DISABLED);
 
 		if (has_pairing_state_changed) {
 			paired_state_changed_cb(fmna_state_is_paired());
@@ -400,7 +425,7 @@ int fmna_state_pause(void)
 {
 	int err;
 
-	if (state == FMNA_STATE_UNDEFINED) {
+	if (state == FMNA_STATE_DISABLED) {
 		return -EINVAL;
 	}
 
@@ -412,12 +437,14 @@ int fmna_state_pause(void)
 		return err;
 	}
 
+	LOG_DBG("Pausing FMN advertising");
+
 	return 0;
 }
 
 int fmna_state_resume(void)
 {
-	if (state == FMNA_STATE_UNDEFINED) {
+	if (state == FMNA_STATE_DISABLED) {
 		return -EINVAL;
 	}
 
@@ -442,10 +469,18 @@ enum fmna_state fmna_state_get(void)
 
 bool fmna_state_is_paired(void)
 {
-	return (fmna_state_get() != FMNA_STATE_UNPAIRED);
+	enum fmna_state current_state = fmna_state_get();
+
+	return ((current_state != FMNA_STATE_UNPAIRED) &&
+		(current_state != FMNA_STATE_DISABLED));
 }
 
-int fmna_state_init(uint8_t bt_id)
+bool fmna_state_is_enabled(void)
+{
+	return (fmna_state_get() != FMNA_STATE_DISABLED);
+}
+
+int fmna_state_init(uint8_t bt_id, bool is_paired)
 {
 	int err;
 	enum fmna_state state;
@@ -459,13 +494,32 @@ int fmna_state_init(uint8_t bt_id)
 	/* Set the location available variable so that the first callback
 	 * is triggered during the initialization.
 	 */
-	location_available = !is_bonded;
+	location_available = !is_paired;
 
 	/* Initialize state. */
-	state = is_bonded ? FMNA_STATE_SEPARATED : FMNA_STATE_UNPAIRED;
+	state = is_paired ? FMNA_STATE_SEPARATED : FMNA_STATE_UNPAIRED;
 	err   = state_set(NULL, state);
 	if (err) {
 		LOG_ERR("state_set returned error: %d", err);
+		return err;
+	}
+
+	return 0;
+}
+
+int fmna_state_uninit(void)
+{
+	int err;
+
+	err = state_set(NULL, FMNA_STATE_DISABLED);
+	if (err) {
+		LOG_ERR("state_set returned error: %d", err);
+		return err;
+	}
+
+	err = fmna_adv_uninit();
+	if (err) {
+		LOG_ERR("fmna_adv_uninit returned error: %d", err);
 		return err;
 	}
 
@@ -634,9 +688,6 @@ static bool app_event_handler(const struct app_event_header *aeh)
 		struct fmna_event *event = cast_fmna_event(aeh);
 
 		switch (event->id) {
-		case FMNA_EVENT_BONDED:
-			is_bonded = true;
-			break;
 		case FMNA_EVENT_MAX_CONN_CHANGED:
 			advertise_restart_on_no_state_change();
 			break;

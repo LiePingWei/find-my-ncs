@@ -224,6 +224,45 @@ static void separated_state_transition_handle(void)
 	k_timer_start(&motion_enable_timer, separated_ut_timer_period, K_NO_WAIT);
 }
 
+static void disabled_state_transition_handle(void)
+{
+	LOG_DBG("Disabling the motion detection");
+
+	/* Stop all kernel objects */
+	k_timer_stop(&motion_enable_timer);
+	k_timer_stop(&motion_poll_timer);
+	k_timer_stop(&motion_poll_duration_timer);
+
+	/* No need to check the return value because
+	 * this call is executed in the same context.
+	 */
+	k_work_cancel(&play_sound_work);
+
+	/* Reset the state. */
+	motion_detection_enabled = false;
+	play_sound_requested = false;
+	sound_count = 0;
+
+	separated_ut_timer_period   = SEPARATED_UT_TIMER_PERIOD;
+	separated_ut_backoff_period = SEPARATED_UT_BACKOFF_PERIOD;
+}
+
+static void state_transition_handle(void)
+{
+	enum fmna_state state = fmna_state_get();
+
+	switch (state) {
+	case FMNA_STATE_SEPARATED:
+		separated_state_transition_handle();
+		break;
+	case FMNA_STATE_DISABLED:
+		disabled_state_transition_handle();
+		break;
+	default:
+		break;
+	}
+}
+
 static void sound_completed_handle(void)
 {
 	if (play_sound_requested) {
@@ -282,9 +321,7 @@ static bool app_event_handler(const struct app_event_header *aeh)
 			sound_completed_handle();
 			break;
 		case FMNA_EVENT_STATE_CHANGED:
-			if (fmna_state_get() == FMNA_STATE_SEPARATED) {
-				separated_state_transition_handle();
-			}
+			state_transition_handle();
 			break;
 		default:
 			break;

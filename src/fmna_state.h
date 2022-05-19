@@ -19,7 +19,7 @@ enum fmna_state {
 	FMNA_STATE_NEARBY,
 	FMNA_STATE_SEPARATED,
 
-	FMNA_STATE_UNDEFINED,
+	FMNA_STATE_DISABLED,
 };
 
 typedef void (*fmna_state_location_availability_changed_t)(bool available);
@@ -30,11 +30,15 @@ enum fmna_state fmna_state_get(void);
 
 bool fmna_state_is_paired(void);
 
+bool fmna_state_is_enabled(void);
+
 int fmna_state_pause(void);
 
 int fmna_state_resume(void);
 
-int fmna_state_init(uint8_t bt_id);
+int fmna_state_init(uint8_t bt_id, bool is_paired);
+
+int fmna_state_uninit(void);
 
 int fmna_state_location_availability_cb_register(
 	fmna_state_location_availability_changed_t cb);

@@ -4,12 +4,15 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
+#include <fmna.h>
+
 #include "crypto/fm_crypto.h"
 #include "events/fmna_event.h"
 #include "events/fmna_owner_event.h"
 #include "fmna_gatt_fmns.h"
 #include "fmna_product_plan.h"
 #include "fmna_serial_number.h"
+#include "fmna_state.h"
 #include "fmna_storage.h"
 
 #include <logging/log.h>
@@ -38,7 +41,6 @@ static void sn_lookup_timeout_handle(struct k_timer *timer_id);
 
 static K_TIMER_DEFINE(sn_lookup_timer, sn_lookup_timeout_handle, NULL);
 
-static bool is_paired = false;
 static bool is_lookup_enabled = false;
 
 static void sn_lookup_timeout_handle(struct k_timer *timer_id)
@@ -50,6 +52,10 @@ static void sn_lookup_timeout_handle(struct k_timer *timer_id)
 
 int fmna_serial_number_lookup_enable(void)
 {
+	if (!fmna_is_ready()) {
+		return -EINVAL;
+	}
+
 	if (!IS_ENABLED(CONFIG_FMNA_CAPABILITY_BLE_SN_LOOKUP_ENABLED)) {
 		return -ENOTSUP;
 	}
@@ -221,18 +227,13 @@ int fmna_serial_number_enc_counter_increase(uint32_t increment)
 	return 0;
 }
 
-static void pairing_completed_handle(struct bt_conn *conn)
-{
-	is_paired = true;
-}
-
 static void serial_number_request_handle(struct bt_conn *conn)
 {
 	int err;
 
 	LOG_INF("Requesting Serial Number");
 
-	if (is_paired && is_lookup_enabled) {
+	if (fmna_state_is_paired() && is_lookup_enabled) {
 		struct net_buf_simple sn_rsp_buf;
 		uint8_t encrypted_sn_rsp[FMNA_SERIAL_NUMBER_ENC_BLEN];
 
@@ -283,21 +284,6 @@ static void serial_number_request_handle(struct bt_conn *conn)
 
 static bool app_event_handler(const struct app_event_header *aeh)
 {
-	if (is_fmna_event(aeh)) {
-		struct fmna_event *event = cast_fmna_event(aeh);
-
-		switch (event->id) {
-		case FMNA_EVENT_BONDED:
-		case FMNA_EVENT_PAIRING_COMPLETED:
-			pairing_completed_handle(event->conn);
-			break;
-		default:
-			break;
-		}
-
-		return false;
-	}
-
 	if (is_fmna_owner_event(aeh)) {
 		struct fmna_owner_event *event = cast_fmna_owner_event(aeh);
 
@@ -316,5 +302,4 @@ static bool app_event_handler(const struct app_event_header *aeh)
 }
 
 APP_EVENT_LISTENER(fmna_serial_number, app_event_handler);
-APP_EVENT_SUBSCRIBE(fmna_serial_number, fmna_event);
 APP_EVENT_SUBSCRIBE(fmna_serial_number, fmna_owner_event);

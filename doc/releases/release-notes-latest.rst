@@ -22,7 +22,7 @@ Highlights
 
 This release covers the following features:
 
-There are no entries for this section yet.
+* Added a dedicated API for turning off the Find My functionality.
 
 .. TODO: Uncomment following section and change version numbers
   Release tag
@@ -55,6 +55,8 @@ Supported development kits
 Changelog
 *********
 
+* Added a new :c:func:`fmna_disable` function to the Find My API. It disables the FMN stack.
+* Added a new :c:func:`fmna_is_ready` function to the Find My API. It checks if the FMN stack is enabled.
 * Added a new callback to the Find My API. It notifies the user about the paired state changes.
 * Added an indication of the paired state using **LED 3** in the Find My Simple and Qualification samples.
 

@@ -46,7 +46,7 @@ enum fmna_storage_pairing_item_id {
 
 /* General storage API */
 
-int fmna_storage_init(bool delete_pairing_data);
+int fmna_storage_init(bool delete_pairing_data, bool *is_paired);
 
 /* API for accessing and manipulating provisioned data. */
 

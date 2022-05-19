@@ -31,7 +31,7 @@ int fmna_keys_service_stop(void);
 
 int fmna_keys_service_start(const struct fmna_keys_init *init_keys);
 
-int fmna_keys_init(uint8_t id);
+int fmna_keys_init(uint8_t id, bool is_paired);
 
 #ifdef __cplusplus
 }

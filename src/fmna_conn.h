@@ -41,6 +41,8 @@ void fmna_conn_multi_status_bit_clear(struct bt_conn *conn,
 
 int fmna_conn_init(uint8_t bt_id);
 
+int fmna_conn_uninit(void);
+
 #ifdef __cplusplus
 }
 #endif

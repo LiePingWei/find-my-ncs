@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
-#include "events/fmna_event.h"
 #include "fmna_storage.h"
 
 #include <string.h>
@@ -290,7 +289,7 @@ static int pairing_branch_load(const char      *key,
 	return 0;
 }
 
-static int fmna_storage_pairing_data_check(void)
+static int fmna_storage_pairing_data_check(bool *is_paired)
 {
 	int err;
 	uint32_t pairing_data_flags;
@@ -355,14 +354,13 @@ static int fmna_storage_pairing_data_check(void)
 	} else {
 		LOG_INF("FMN pairing information detected in the storage");
 
-		FMNA_EVENT_CREATE(event, FMNA_EVENT_BONDED, NULL);
-		APP_EVENT_SUBMIT(event);
+		*is_paired = true;
 	}
 
 	return err;
 }
 
-int fmna_storage_init(bool delete_pairing_data)
+int fmna_storage_init(bool delete_pairing_data, bool *is_paired)
 {
 	int err;
 
@@ -372,10 +370,15 @@ int fmna_storage_init(bool delete_pairing_data)
 		return err;
 	}
 
+	/* This flag will be set in the follow-up code if the pairing data
+	 * are present in the storage.
+	 */
+	*is_paired = false;
+
 	if (delete_pairing_data) {
 		LOG_INF("FMN: Performing reset to default factory settings");
 		return fmna_storage_pairing_data_delete();
 	} else {
-		return fmna_storage_pairing_data_check();
+		return fmna_storage_pairing_data_check(is_paired);
 	}
 }

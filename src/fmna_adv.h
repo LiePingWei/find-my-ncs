@@ -42,6 +42,8 @@ int fmna_adv_unpaired_cb_register(fmna_adv_timeout_cb_t cb);
 
 int fmna_adv_init(uint8_t id);
 
+int fmna_adv_uninit(void);
+
 #ifdef __cplusplus
 }
 #endif

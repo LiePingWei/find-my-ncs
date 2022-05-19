@@ -168,6 +168,11 @@ static ssize_t pairing_cp_write(struct bt_conn *conn,
 	LOG_INF("FMN Pairing CP write, handle: %u, conn: %p, len: %d",
 		attr->handle, (void *) conn, len);
 
+	if (!fmna_state_is_enabled()) {
+		LOG_WRN("FMN Pairing CP write: stack is disabled");
+		return BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED);
+	}
+
 	if (fmna_state_is_paired()) {
 		LOG_ERR("FMN Pairing CP write: already paired");
 		return BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED);
@@ -273,6 +278,11 @@ static ssize_t config_cp_write(struct bt_conn *conn,
 
 	LOG_INF("FMN Configuration CP write, handle: %u, conn: %p",
 		attr->handle, (void *) conn);
+
+	if (!fmna_state_is_enabled()) {
+		LOG_WRN("FMN Configuration CP write: stack is disabled");
+		return BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED);
+	}
 
 	NET_BUF_SIMPLE_DEFINE(config_buf, FMNS_CONFIG_MAX_RX_LEN);
 
@@ -427,6 +437,11 @@ static ssize_t non_owner_cp_write(struct bt_conn *conn,
 
 	LOG_INF("FMN Non-owner CP write, handle: %u, conn: %p", attr->handle, (void *) conn);
 
+	if (!fmna_state_is_enabled()) {
+		LOG_WRN("FMN Non-owner CP write: stack is disabled");
+		return BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED);
+	}
+
 	err = fmna_gatt_pkt_manager_chunk_collect(&non_owner_buf, buf, len, &pkt_complete);
 	if (err) {
 		LOG_ERR("fmna_gatt_pkt_manager_chunk_collect: returned error: %d", err);
@@ -544,6 +559,11 @@ static ssize_t owner_cp_write(struct bt_conn *conn,
 	NET_BUF_SIMPLE_DEFINE(owner_buf, FMNS_OWNER_MAX_RX_LEN);
 
 	LOG_INF("FMN Owner CP write, handle: %u, conn: %p", attr->handle, (void *) conn);
+
+	if (!fmna_state_is_enabled()) {
+		LOG_WRN("FMN Owner CP write: stack is disabled");
+		return BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED);
+	}
 
 	err = fmna_gatt_pkt_manager_chunk_collect(&owner_buf, buf, len, &pkt_complete);
 	if (err) {
@@ -668,6 +688,11 @@ static ssize_t debug_cp_write(struct bt_conn *conn,
 	uint16_t opcode = FMNS_OPCODE_NONE;
 
 	LOG_INF("FMN Debug CP write, handle: %u, conn: %p", attr->handle, (void *) conn);
+
+	if (!fmna_state_is_enabled()) {
+		LOG_WRN("FMN Debug CP write: stack is disabled");
+		return BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED);
+	}
 
 	NET_BUF_SIMPLE_DEFINE(debug_buf, FMNS_DEBUG_MAX_RX_LEN);
 

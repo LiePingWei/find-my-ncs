@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
+#include <fmna.h>
 #include <kernel.h>
 #include <init.h>
 #include <string.h>

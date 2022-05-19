@@ -17,13 +17,24 @@
 
 #include <fmna.h>
 
+#include <sys/atomic.h>
+
 #include <logging/log.h>
 
 LOG_MODULE_REGISTER(fmna, CONFIG_FMNA_LOG_LEVEL);
 
+/* Flags used to safely perform enable and disable operations. */
+enum {
+	FMNA_ENABLE,
+	FMNA_DISABLE,
+	FMNA_READY,
+	FMNA_NUM_FLAGS,
+};
+
 BUILD_ASSERT(CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE >= 4096,
 	"The workqueue stack size is too small for the FMN");
 
+static ATOMIC_DEFINE(flags, FMNA_NUM_FLAGS);
 static struct k_work basic_display_work;
 
 static void basic_display_work_handler(struct k_work *work)
@@ -87,6 +98,7 @@ int fmna_enable(const struct fmna_enable_param *param,
 		const struct fmna_enable_cb *cb)
 {
 	int err;
+	bool is_paired = false;
 
 	/* Verify the input parameters. */
 	if (!param || !cb) {
@@ -94,75 +106,88 @@ int fmna_enable(const struct fmna_enable_param *param,
 	}
 
 	/* Verify the state of FMN dependencies. */
-	err = bt_enable(NULL);
-	if (err != -EALREADY) {
+	if (fmna_is_ready()) {
+		LOG_ERR("FMN: FMN stack already enabled");
+		return -EALREADY;
+	}
+
+	if (!bt_is_ready()) {
 		LOG_ERR("FMN: BLE stack should be enabled");
 		return -ENOPROTOOPT;
+	}
+
+	if (atomic_test_and_set_bit(flags, FMNA_ENABLE)) {
+		LOG_ERR("FMN: FMN stack is already being enabled");
+		return -EALREADY;
 	}
 
 	/* Register enable callbacks. */
 	err = fmna_adv_unpaired_cb_register(cb->pairing_mode_exited);
 	if (err) {
 		LOG_ERR("fmna_adv_unpaired_cb_register returned error: %d", err);
-		return err;
+		goto error;
 	}
 
 	err = fmna_state_location_availability_cb_register(cb->location_availability_changed);
 	if (err) {
 		LOG_ERR("fmna_state_location_availability_cb_register returned error: %d", err);
-		return err;
+		goto error;
 	}
 
 	err = fmna_state_paired_state_changed_cb_register(cb->paired_state_changed);
 	if (err) {
 		LOG_ERR("fmna_state_paired_state_changed_cb_register returned error: %d", err);
-		return err;
+		goto error;
 	}
 
 	/* Initialize FMN modules. */
 	err = fmna_battery_init(param->init_battery_level, cb->battery_level_request);
 	if (err) {
 		LOG_ERR("fmna_battery_init returned error: %d", err);
-		return err;
+		goto error;
 	}
 
 	err = fmna_conn_init(param->bt_id);
 	if (err) {
 		LOG_ERR("fmna_conn_init returned error: %d", err);
-		return err;
+		goto error;
 	}
 
-	err = fmna_storage_init(param->use_default_factory_settings);
+	err = fmna_storage_init(param->use_default_factory_settings, &is_paired);
 	if (err) {
 		LOG_ERR("fmna_storage_init returned error: %d", err);
-		return err;
+		goto error;
 	}
 
 	err = fmna_pair_init(param->bt_id);
 	if (err) {
 		LOG_ERR("fmna_pair_init returned error: %d", err);
-		return err;
+		goto error;
 	}
 
-	err = fmna_keys_init(param->bt_id);
+	err = fmna_keys_init(param->bt_id, is_paired);
 	if (err) {
 		LOG_ERR("fmna_keys_init returned error: %d", err);
-		return err;
+		goto error;
 	}
 
-	err = fmna_state_init(param->bt_id);
+	err = fmna_state_init(param->bt_id, is_paired);
 	if (err) {
 		LOG_ERR("fmna_state_init returned error: %d", err);
-		return err;
+		goto error;
 	}
 
 	if (IS_ENABLED(CONFIG_FMNA_NFC)) {
 		err = fmna_nfc_init(param->bt_id);
 		if (err) {
 			LOG_ERR("fmna_nfc_init returned error: %d", err);
-			return err;
+			goto error;
 		}
 	}
+
+	/* Set the ready status for the FMN stack and allow calling the fmna_disable API. */
+	atomic_set_bit(flags, FMNA_READY);
+	atomic_clear_bit(flags, FMNA_DISABLE);
 
 	/* MFi tokens use a lot of stack, offload basic display logic
 	 * to the workqueue.
@@ -170,5 +195,67 @@ int fmna_enable(const struct fmna_enable_param *param,
 	k_work_init(&basic_display_work, basic_display_work_handler);
 	k_work_submit(&basic_display_work);
 
+error:
+	if (err) {
+		/* Allow the API user to call the fmna_enable again. */
+		atomic_clear_bit(flags, FMNA_ENABLE);
+	}
+
 	return err;
+}
+
+int fmna_disable(void)
+{
+	int err;
+
+	if (!fmna_is_ready()) {
+		LOG_ERR("FMN: FMN stack already disabled");
+		return -EALREADY;
+	}
+
+	if (atomic_test_and_set_bit(flags, FMNA_DISABLE)) {
+		LOG_ERR("FMN: FMN stack is already being disabled");
+		return -EALREADY;
+	}
+
+	/* Clear the ready status before disabling the FMN stack. */
+	atomic_clear_bit(flags, FMNA_READY);
+
+	/* Uninitialize FMN modules. */
+	err = fmna_state_uninit();
+	if (err) {
+		LOG_ERR("fmna_state_uninit returned error: %d", err);
+		goto error;
+	}
+
+	err = fmna_conn_uninit();
+	if (err) {
+		LOG_ERR("fmna_conn_uninit returned error: %d", err);
+		goto error;
+	}
+
+	if (IS_ENABLED(CONFIG_FMNA_NFC)) {
+		err = fmna_nfc_uninit();
+		if (err) {
+			LOG_ERR("fmna_nfc_uninit returned error: %d", err);
+			goto error;
+		}
+	}
+
+	/* Allow the API user to enable the FMN stack with the fmna_enable. */
+	atomic_clear_bit(flags, FMNA_ENABLE);
+
+error:
+	if (err) {
+		/* Allow the API user to call the fmna_disable again. */
+		atomic_clear_bit(flags, FMNA_DISABLE);
+		atomic_set_bit(flags, FMNA_READY);
+	}
+
+	return err;
+}
+
+bool fmna_is_ready(void)
+{
+	return atomic_test_bit(flags, FMNA_READY);
 }

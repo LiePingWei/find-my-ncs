@@ -279,6 +279,32 @@ int fmna_resume(void);
 int fmna_enable(const struct fmna_enable_param *param,
 		const struct fmna_enable_cb *cb);
 
+/** @brief Disable the Find My Network (FMN) stack on the accessory.
+ *
+ *  This function deactivates the FMN feature. As a result, all Find My
+ *  functionalities like advertising, NFC emulation and key rotation are
+ *  stopped. During the disabling process, the accessory also disconnects
+ *  all Find My peers that are connected to it over Bluetooth. The disabled
+ *  state of the FMN stack is treated similarly to the power-off state.
+ *
+ *  This function can only be called if the FMN stack was previously enabled
+ *  with the @ref fmna_enable API. After the device boot-up, the Find My stack
+ *  is disabled.
+ *
+ *  It is recommended to call this function from the workqueue context to
+ *  guarantee a graceful shutdown of the FMN stack without the risk of
+ *  interrupting its ongoing operations.
+ *
+ *  @return Zero on success or negative error code otherwise.
+ */
+int fmna_disable(void);
+
+/** @brief Check if Find My Network (FMN) stack is ready.
+ *
+ * @return true when the FMN stack is ready, false otherwise.
+ */
+bool fmna_is_ready(void);
+
 /**
  * @}
  */

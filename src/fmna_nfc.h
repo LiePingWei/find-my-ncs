@@ -15,6 +15,8 @@ extern "C" {
 
 int fmna_nfc_init(uint8_t id);
 
+int fmna_nfc_uninit(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -537,3 +537,20 @@ int fmna_adv_init(uint8_t id)
 
 	return 0;
 }
+
+int fmna_adv_uninit(void)
+{
+	int err;
+
+	err = fmna_adv_stop();
+	if (err) {
+		LOG_ERR("fmna_adv_stop returned error: %d", err);
+		return err;
+	}
+
+	pending_timeout = false;
+
+	LOG_INF("Stopping advertising");
+
+	return 0;
+}

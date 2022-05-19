@@ -297,6 +297,36 @@ int fmna_nfc_init(uint8_t id)
 	return 0;
 }
 
+int fmna_nfc_uninit(void)
+{
+	int err;
+
+	err = nfc_t2t_emulation_stop();
+	if (err) {
+		LOG_ERR("nfc_t2t_emulation_stop returned error: %d", err);
+		return err;
+	}
+
+	err = nfc_t2t_done();
+	if (err) {
+		LOG_ERR("nfc_t2t_done returned error: %d", err);
+		return err;
+	}
+
+	is_initialized = false;
+
+	/* No need to do anything if the cancellation operation fails
+	 * and the workqueue item is already being executed.
+	 */
+	k_work_cancel_delayable(&sn_counter_update.work);
+	atomic_clear(&sn_counter_update.increment);
+
+	LOG_INF("FMN NFC: NFC capability is disabled");
+
+	return 0;
+}
+
+
 static void battery_level_changed(void)
 {
 	uint8_t current_state;

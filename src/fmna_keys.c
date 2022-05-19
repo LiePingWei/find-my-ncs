@@ -11,6 +11,7 @@
 #include "fmna_gatt_fmns.h"
 #include "fmna_keys.h"
 #include "fmna_storage.h"
+#include "fmna_state.h"
 
 /* BLE internal header, use with caution. */
 #include <bluetooth/host/keys.h>
@@ -51,8 +52,6 @@ static uint32_t secondary_pk_rotation_delta = 0;
 static uint32_t secondary_pk_rotation_cnt = 0;
 
 static bool use_secondary_pk = false;
-
-static bool is_paired = false;
 
 /* Declaration of variables that are relevant to the BLE stack. */
 static uint8_t bt_id;
@@ -392,8 +391,6 @@ static void fmna_keys_state_cleanup(void)
 
 	is_primary_pk_latched = false;
 	use_secondary_pk = false;
-
-	is_paired = false;
 }
 
 int fmna_keys_service_stop(void)
@@ -489,7 +486,7 @@ int fmna_keys_service_start(const struct fmna_keys_init *init_keys)
 
 static void fmna_peer_connected(struct bt_conn *conn)
 {
-	if (is_paired) {
+	if (fmna_state_is_paired()) {
 		bt_ltk_set(bt_conn_get_dst(conn));
 	}
 }
@@ -501,7 +498,7 @@ static void fmna_peer_security_changed(struct bt_conn *conn, bt_security_t level
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
-	if (is_paired) {
+	if (fmna_state_is_paired()) {
 		if (bt_keys && (bt_addr_le_cmp(&bt_keys->addr, bt_conn_get_dst(conn)) == 0)) {
 			/* Reset BLE LTK key. */
 			bt_keys_clear(bt_keys);
@@ -528,7 +525,7 @@ static void fmna_peer_security_changed(struct bt_conn *conn, bt_security_t level
 
 static void fmna_peer_disconnected(struct bt_conn *conn)
 {
-	if (is_paired) {
+	if (fmna_state_is_paired()) {
 		if (bt_keys && (bt_addr_le_cmp(&bt_keys->addr, bt_conn_get_dst(conn)) == 0)) {
 			/* Reset BLE LTK key. */
 			bt_keys_clear(bt_keys);
@@ -667,7 +664,7 @@ static int paired_state_restore(void)
 	return 0;
 }
 
-int fmna_keys_init(uint8_t id)
+int fmna_keys_init(uint8_t id, bool is_paired)
 {
 	bt_id = id;
 	key_rotation_timer_period = KEY_ROTATION_TIMER_PERIOD;
@@ -785,7 +782,7 @@ static void current_primary_key_request_handle(struct bt_conn *conn)
 
 	LOG_INF("FMN Owner CP: responding to current Primary Key request");
 
-	if (is_paired) {
+	if (fmna_state_is_paired()) {
 		memcpy(primary_pk, curr_primary_pk, sizeof(primary_pk));
 	} else {
 		memset(primary_pk, 0, sizeof(primary_pk));
@@ -832,10 +829,6 @@ static bool app_event_handler(const struct app_event_header *aeh)
 		struct fmna_event *event = cast_fmna_event(aeh);
 
 		switch (event->id) {
-		case FMNA_EVENT_BONDED:
-		case FMNA_EVENT_PAIRING_COMPLETED:
-			is_paired = true;
-			break;
 		case FMNA_EVENT_PEER_CONNECTED:
 			fmna_peer_connected(event->conn);
 			break;

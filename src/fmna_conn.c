@@ -66,6 +66,10 @@ bool fmna_conn_check(struct bt_conn *conn)
 {
 	struct bt_conn_info conn_info;
 
+	if (!fmna_state_is_enabled()) {
+		return false;
+	}
+
 	bt_conn_get_info(conn, &conn_info);
 
 	return (conn_info.id == fmna_bt_id);
@@ -76,6 +80,10 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 	int err;
 	char addr[BT_ADDR_LE_STR_LEN];
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
+
+	if (!fmna_state_is_enabled()) {
+		return;
+	}
 
 	if (conn_err) {
 		LOG_ERR("Connection establishment error: %d", conn_err);
@@ -117,6 +125,10 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	int err;
 	char addr[BT_ADDR_LE_STR_LEN];
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
+
+	if (!fmna_state_is_enabled()) {
+		return;
+	}
 
 	if (!fmna_conn_check(conn)) {
 		__ASSERT(non_fmna_conns > 0,
@@ -183,6 +195,12 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 	event->peer_security_changed.level = level;
 	APP_EVENT_SUBMIT(event);
 }
+
+BT_CONN_CB_DEFINE(conn_callbacks) = {
+	.connected = connected,
+	.disconnected = disconnected,
+	.security_changed = security_changed,
+};
 
 static void conn_owner_iterator(struct bt_conn *conn, void *user_data)
 {
@@ -295,20 +313,100 @@ void fmna_conn_multi_status_bit_clear(struct bt_conn *conn,
 
 int fmna_conn_init(uint8_t bt_id)
 {
-	static struct bt_conn_cb conn_callbacks = {
-		.connected = connected,
-		.disconnected = disconnected,
-		.security_changed = security_changed,
-	};
-
-	fmna_bt_id = bt_id;
-	bt_conn_cb_register(&conn_callbacks);
-
 	k_work_init_delayable(&max_conn_work.item, max_conn_work_handle);
 
+	/* Reset the state. */
+	fmna_bt_id = bt_id;
+	max_connections = CONFIG_FMNA_MAX_CONN;
 	memset(conns, 0, sizeof(conns));
 
 	return 0;
+}
+
+static void conn_uninit_iterator(struct bt_conn *conn, void *user_data)
+{
+	int err;
+	char addr[BT_ADDR_LE_STR_LEN];
+	struct bt_conn_info conn_info;
+
+	bt_conn_get_info(conn, &conn_info);
+
+	if (conn_info.id == fmna_bt_id) {
+		/* Disconnect Find My peer. */
+		err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+		if (err) {
+			LOG_ERR("fmna_conn: bt_conn_disconnect returned error: %d", err);
+			return;
+		}
+
+		/* Remove connection reference established by this module. */
+		bt_conn_unref(conn);
+
+		bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+		LOG_DBG("Disconnecting FMN Peer: %s", addr);
+	}
+}
+
+int fmna_conn_uninit(void)
+{
+	/* Disconnect all Find My peers. */
+	bt_conn_foreach(BT_CONN_TYPE_ALL, conn_uninit_iterator, NULL);
+
+	/* Restore the authentication callback context in the Bluetooth stack. */
+	if (bt_auth_ctx) {
+		bt_conn_auth_cb_register(bt_auth_ctx);
+		bt_auth_ctx = NULL;
+	}
+
+	return 0;
+}
+
+static void peer_disconnected(struct bt_conn *conn)
+{
+	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
+
+	memset(fmna_conn, 0, sizeof(*fmna_conn));
+}
+
+
+static void state_changed_peer_counter(struct bt_conn *conn, void *user_data)
+{
+	struct bt_conn_info conn_info;
+
+	bt_conn_get_info(conn, &conn_info);
+
+	if (conn_info.id != fmna_bt_id) {
+		non_fmna_conns++;
+	}
+}
+
+static void state_changed(void)
+{
+	int err;
+	bool current_state;
+	bool prev_state;
+	static bool state = false;
+
+	current_state = fmna_state_is_enabled();
+	prev_state = state;
+	state = current_state;
+
+	/* Return if there is no transition from disabled to enabled state. */
+	if ((current_state == prev_state) || !current_state) {
+		return;
+	}
+
+	/* Count the number of non-Find-My peers. */
+	non_fmna_conns = 0;
+	bt_conn_foreach(BT_CONN_TYPE_ALL, state_changed_peer_counter, NULL);
+
+	/* Pause the FMN advertising if pair-before-use peer is connected. */
+	if (non_fmna_conns > 0) {
+		err = fmna_state_pause();
+		if (err) {
+			LOG_ERR("fmna_state_pause returned error: %d", err);
+		}
+	}
 }
 
 static void persistent_conn_request_handle(struct bt_conn *conn, uint8_t persistent_conn_status)
@@ -494,14 +592,18 @@ static bool app_event_handler(const struct app_event_header *aeh)
 	if (is_fmna_event(aeh)) {
 		struct fmna_event *event = cast_fmna_event(aeh);
 
-		/* Clean up the connection status flags. */
-		if (event->id == FMNA_EVENT_PEER_DISCONNECTED) {
-			struct fmna_conn *fmna_conn = &conns[bt_conn_index(event->conn)];
-
-			memset(fmna_conn, 0, sizeof(*fmna_conn));
+		switch (event->id) {
+		case FMNA_EVENT_PEER_DISCONNECTED:
+			peer_disconnected(event->conn);
+			return true;
+		case FMNA_EVENT_STATE_CHANGED:
+			state_changed();
+			break;
+		default:
+			break;
 		}
 
-		return true;
+		return false;
 	}
 
 	if (is_fmna_config_event(aeh)) {
