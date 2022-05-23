@@ -26,6 +26,8 @@ uint8_t fmna_conn_connection_num_get(void);
 
 bool fmna_conn_limit_check(void);
 
+bool fmna_conn_check(struct bt_conn *conn);
+
 int fmna_conn_owner_find(struct bt_conn *owner_conns[], uint8_t *owner_conn_cnt);
 
 bool fmna_conn_multi_status_bit_check(struct bt_conn *conn,

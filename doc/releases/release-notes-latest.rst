@@ -63,6 +63,7 @@ Changelog
 * Fixed out-of-bounds access for crypto key derivation operation.
 
   The access was triggered during the error handling exit from the function.
+* Removed the fmna_conn_check API function that is unreliable with the disabled Find My stack.
 
 Known issues and limitations
 ****************************

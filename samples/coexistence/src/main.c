@@ -350,12 +350,21 @@ static void hr_sensor_advertising_work_handle(struct k_work *item)
 	hr_sensor_advertising_start();
 }
 
+static bool hr_sensor_conn_check(struct bt_conn *conn)
+{
+	struct bt_conn_info conn_info;
+
+	bt_conn_get_info(conn, &conn_info);
+
+	return (conn_info.id == HR_SENSOR_BT_ID);
+}
+
 static void hr_sensor_auth_cancel(struct bt_conn *conn)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 
-	/* Filter out Find My peers. */
-	if (fmna_conn_check(conn)) {
+	/* Filter out peers not connected to the HR sensor application. */
+	if (!hr_sensor_conn_check(conn)) {
 		return;
 	}
 
@@ -368,8 +377,8 @@ static enum bt_security_err hr_sensor_pairing_accept(
 	struct bt_conn *conn,
 	const struct bt_conn_pairing_feat * const feat)
 {
-	/* Filter out Find My peers. */
-	if (fmna_conn_check(conn)) {
+	/* Filter out peers not connected to the HR sensor application. */
+	if (!hr_sensor_conn_check(conn)) {
 		return BT_SECURITY_ERR_SUCCESS;
 	}
 
@@ -387,8 +396,8 @@ static enum bt_security_err hr_sensor_pairing_accept(
 
 static void hr_sensor_pairing_complete(struct bt_conn *conn, bool bonded)
 {
-	/* Filter out Find My peers. */
-	if (fmna_conn_check(conn)) {
+	/* Filter out peers not connected to the HR sensor application. */
+	if (!hr_sensor_conn_check(conn)) {
 		return;
 	}
 
@@ -405,8 +414,8 @@ static void hr_sensor_auth_passkey_display(struct bt_conn *conn, unsigned int pa
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 
-	/* Filter out Find My peers. */
-	if (fmna_conn_check(conn)) {
+	/* Filter out peers not connected to the HR sensor application. */
+	if (!hr_sensor_conn_check(conn)) {
 		return;
 	}
 
@@ -429,8 +438,8 @@ static void hr_sensor_connected(struct bt_conn *conn, uint8_t err)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 
-	/* Filter out Find My peers. */
-	if (fmna_conn_check(conn)) {
+	/* Filter out peers not connected to the HR sensor application. */
+	if (!hr_sensor_conn_check(conn)) {
 		return;
 	}
 
@@ -447,8 +456,8 @@ static void hr_sensor_disconnected(struct bt_conn *conn, uint8_t reason)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 
-	/* Filter out Find My peers. */
-	if (fmna_conn_check(conn)) {
+	/* Filter out peers not connected to the HR sensor application. */
+	if (!hr_sensor_conn_check(conn)) {
 		return;
 	}
 
@@ -468,8 +477,8 @@ static void hr_sensor_security_changed(struct bt_conn *conn,
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 
-	/* Filter out Find My peers. */
-	if (fmna_conn_check(conn)) {
+	/* Filter out peers not connected to the HR sensor application. */
+	if (!hr_sensor_conn_check(conn)) {
 		return;
 	}
 

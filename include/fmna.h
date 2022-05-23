@@ -240,15 +240,6 @@ struct fmna_enable_cb {
  */
 int fmna_battery_level_set(uint8_t percentage_level);
 
-/** @brief Checks if this is an FMN connection.
- *
- *  This function checks if a passed connection handle belongs to the
- *  FMN stack.
- *
- *  @return true to indicate an FMN connection or false otherwise.
- */
-bool fmna_conn_check(struct bt_conn *conn);
-
 /** @brief Resume advertising in the unpaired mode.
  *
  *  This function resumes advertising in the unpaired mode after a timeout.
