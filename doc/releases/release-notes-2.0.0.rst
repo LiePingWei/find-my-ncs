@@ -16,6 +16,8 @@ This release covers the following features:
 
 * The webpage with information about the found item is now correctly displayed
   during the Identify Found Item UI flow in the Find My iOS application.
+* Removed the Bluetooth limitation that prevented the *pair before use* accessory
+  from maintaining multiple connections with the same peer.
 
 Release tag
 ***********
@@ -49,6 +51,11 @@ Changelog
 * Populated unset memory regions of variables that are used during serial number encryption.
 * Serial number counter is now correctly incremented after each successful NFC read operation.
 * Find My NFC payload is now updated along with the serial number counter.
+* Removed a limitation from the Softdevice Controller library.
+
+  It prevented the Bluetooth stack from maintaining multiple connections with the same peer (address-based filtration).
+* In the Find My Coexistence sample, fixed an issue that prevented maintaining two simultaneous connections
+  with the same iOS device: one for the Heart Rate sensor use case and the other for the Find My use case.
 * Fixed out-of-bounds access for crypto key derivation operation.
 
   The access was triggered during the error handling exit from the function.
