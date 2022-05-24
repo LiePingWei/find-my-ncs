@@ -6,9 +6,8 @@
 
 #include <ztest.h>
 
+#include <ocrypto_aes_gcm.h>
 #include <ocrypto_ecdh_p256.h>
-
-#include <mbedtls/gcm.h>
 
 #include "fm_crypto.h"
 #include "crypto_helper.h"
@@ -77,7 +76,7 @@ static int _fm_crypto_aes128gcm_decrypt(const byte key[16],
 					byte *out)
 {
 	int ret = FMN_ERROR_CRYPTO_NO_VALUE_SET;
-	struct mbedtls_gcm_context ctx;
+	ocrypto_aes_gcm_ctx ctx = {0};
 
 	LOG_DBG("_fm_crypto_aes128gcm_decrypt");
 	/*
@@ -93,20 +92,11 @@ static int _fm_crypto_aes128gcm_decrypt(const byte key[16],
 	LOG_HEXDUMP_DBG(key, 16, "key");
 	LOG_HEXDUMP_DBG(iv, 16, "iv");
 
-	mbedtls_gcm_init(&ctx);
+	ocrypto_aes_gcm_init(&ctx, key, 16, iv);
+	ocrypto_aes_gcm_init_iv(&ctx, iv, 16);
 
-	ret = mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, key, 128);
-	CHECK_RV(ret);
-
-	ret = mbedtls_gcm_auth_decrypt(&ctx,
-		ct_nbytes,
-		iv, 16,
-		NULL, 0,
-		tag, 16,
-		ct,
-		out);
-
-	mbedtls_gcm_free(&ctx);
+	ocrypto_aes_gcm_update_dec(&ctx, out, ct, ct_nbytes);
+	ret = ocrypto_aes_gcm_final_dec(&ctx, tag, 16);
 
 	LOG_HEXDUMP_DBG(out, ct_nbytes, "out");
 

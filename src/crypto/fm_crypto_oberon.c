@@ -10,14 +10,13 @@
 #include "fm_crypto.h"
 #include "crypto_helper.h"
 
+#include <ocrypto_aes_gcm.h>
 #include <ocrypto_constant_time.h>
 #include <ocrypto_hmac_sha256.h>
 #include <ocrypto_sha256.h>
 #include <ocrypto_ecdsa_p256.h>
 #include <ocrypto_ecdh_p256.h>
 #include <ocrypto_sc_p256.h>
-
-#include <mbedtls/gcm.h>
 
 const byte KDF_LABEL_UPDATE[] = "update";
 const byte KDF_LABEL_DIVERSIFY[] = "diversify";
@@ -623,8 +622,9 @@ static int _fm_crypto_aes128gcm_encrypt(const byte key[16],
 					byte *out,
 					byte *tag)
 {
-	int ret = FMN_ERROR_CRYPTO_NO_VALUE_SET;
-	struct mbedtls_gcm_context ctx;
+	ocrypto_aes_gcm_ctx ctx = {0};
+
+	LOG_DBG("_fm_crypto_aes128gcm_encrypt");
 	/*
 	* OpenSSL: EVP_EncryptInit_ex()
 	* nrf_oberon: Not needed
@@ -638,28 +638,16 @@ static int _fm_crypto_aes128gcm_encrypt(const byte key[16],
 	LOG_HEXDUMP_DBG(key, 16, "key");
 	LOG_HEXDUMP_DBG(iv, 16, "iv");
 
-	mbedtls_gcm_init(&ctx);
+	ocrypto_aes_gcm_init(&ctx, key, 16, iv);
+	ocrypto_aes_gcm_init_iv(&ctx, iv, 16);
 
-	ret = mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, key, 128);
-	CHECK_RV(ret);
-
-	ret = mbedtls_gcm_crypt_and_tag(&ctx,
-		MBEDTLS_GCM_ENCRYPT,
-		msg_nbytes,
-		iv, 16,
-		NULL, 0,
-		msg,
-		out,
-		16, tag);
-
-	mbedtls_gcm_free(&ctx);
+	ocrypto_aes_gcm_update_enc(&ctx, out, msg, msg_nbytes);
+	ocrypto_aes_gcm_final_enc(&ctx, tag, 16);
 
 	LOG_HEXDUMP_DBG(tag, 16, "tag");
 	LOG_HEXDUMP_DBG(out, msg_nbytes, "out");
 
-	LOG_DBG("_fm_crypto_aes128gcm_encrypt result: 0x%X", ret);
-
-	return ret;
+	return 0;
 }
 
 /*! @function _fm_crypto_aes128gcm_decrypt
@@ -682,7 +670,7 @@ static int _fm_crypto_aes128gcm_decrypt(const byte key[16],
 					byte *out)
 {
 	int ret = FMN_ERROR_CRYPTO_NO_VALUE_SET;
-	struct mbedtls_gcm_context ctx;
+	ocrypto_aes_gcm_ctx ctx = {0};
 
 	LOG_DBG("_fm_crypto_aes128gcm_decrypt");
 	/*
@@ -698,20 +686,11 @@ static int _fm_crypto_aes128gcm_decrypt(const byte key[16],
 	LOG_HEXDUMP_DBG(key, 16, "key");
 	LOG_HEXDUMP_DBG(iv, 16, "iv");
 
-	mbedtls_gcm_init(&ctx);
+	ocrypto_aes_gcm_init(&ctx, key, 16, iv);
+	ocrypto_aes_gcm_init_iv(&ctx, iv, 16);
 
-	ret = mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, key, 128);
-	CHECK_RV(ret);
-
-	ret = mbedtls_gcm_auth_decrypt(&ctx,
-		ct_nbytes,
-		iv, 16,
-		NULL, 0,
-		tag, 16,
-		ct,
-		out);
-
-	mbedtls_gcm_free(&ctx);
+	ocrypto_aes_gcm_update_dec(&ctx, out, ct, ct_nbytes);
+	ret = ocrypto_aes_gcm_final_dec(&ctx, tag, 16);
 
 	LOG_HEXDUMP_DBG(out, ct_nbytes, "out");
 
