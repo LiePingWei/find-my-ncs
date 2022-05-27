@@ -44,8 +44,8 @@ User interface
 
 Button:
    * Short press: Resumes advertising on the accessory when it is unpaired.
-   * Long press (>2 s): Enables the Serial Number lookup over Bluetooth® Low Energy.
-   * Resets the accessory to default factory settings when pressed during the application boot-up.
+   * Medium-length press (>2 s): Enables the serial number lookup over Bluetooth® Low Energy.
+   * Long press (>5 s): Resets the accessory to default factory settings.
 
 Speaker:
    Produces sound when the play sound action is in progress.

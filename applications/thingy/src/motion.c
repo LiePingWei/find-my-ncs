@@ -146,7 +146,7 @@ static int mpu_pwr_init(const struct device *pwr)
 
 	pwr = device_get_binding(MPU_PWR);
 	if (!pwr) {
-		LOG_ERR("Can't get binfing for MPU_PWR");
+		LOG_ERR("Can't get binding for MPU_PWR");
 		return -EIO;
 	}
 

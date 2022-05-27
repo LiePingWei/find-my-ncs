@@ -24,15 +24,13 @@ LOG_MODULE_DECLARE(app);
 #define SPK_PWR_PIN	DT_GPIO_PIN(SPK_PWR_NODE, enable_gpios)
 #define SPK_PWR_FLAGS	DT_GPIO_FLAGS(SPK_PWR_NODE, enable_gpios)
 
-#define SPK_PER_US(freq)	(1000000 / (freq))
-
 static const struct device *spk_pwm;
 static const struct device *spk_pwr;
-static uint32_t spk_per_us;
 
 
 int speaker_init(void)
 {
+	uint32_t spk_per_ns;
 	int err;
 
 	spk_pwm = DEVICE_DT_GET(SPK_CTLR);
@@ -41,8 +39,8 @@ int speaker_init(void)
 		return -EIO;
 	}
 
-	spk_per_us = SPK_PER_US(CONFIG_SPK_FREQ);
-	err = pwm_pin_set_usec(spk_pwm, SPK_CHANNEL, spk_per_us, spk_per_us/2, SPK_FLAGS);
+	spk_per_ns = PWM_HZ(CONFIG_SPK_FREQ);
+	err = pwm_set(spk_pwm, SPK_CHANNEL, spk_per_ns, (spk_per_ns / 2UL), SPK_FLAGS);
 	if (err) {
 		LOG_ERR("Can't initiate PWM (err %d)", err);
 		return err;
