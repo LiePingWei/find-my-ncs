@@ -22,6 +22,7 @@ Highlights
 
 This release covers the following features:
 
+* Added support for nRF5340 SoC in the Find My stack and samples.
 * Added a dedicated API for turning off the Find My functionality.
 
 .. TODO: Uncomment following section and change version numbers
@@ -48,6 +49,7 @@ Supported development kits
 * PCA10040 (nRF52832 Development Kit)
 * PCA10056 (nRF52840 Development Kit)
 * PCA10100 (nRF52833 Development Kit)
+* PCA10095 (nRF5340 Development Kit)
 * PCA20020 (Thingy:52 Prototyping Platform)
 
 .. TODO: If you adding new kit to this list, add it also to the release-notes-latest.rst.tmpl
@@ -86,8 +88,11 @@ Known issues and limitations
 ****************************
 
 * nRF52832 and nRF52833 SoCs are only supported in the Release configuration due to memory limitations.
+* nRF5340 SoC supports a maximum transmit power of 3dBm, violating the Find My specification requirement for 4dBm.
 * Find My characteristics are always available regardless of the accessory state.
   This limitation will require a waiver for Find My qualification.
+* Firmware updates of the nRF5340 network core are not supported with the UARP protocol.
+* The Find My Thingy application does not support the Thingy:53 platform.
 
 .. TODO:
   1. Before the release, make sure that all TODO items in the 'release-notes-latest.rst' file are fulfilled and deleted.
