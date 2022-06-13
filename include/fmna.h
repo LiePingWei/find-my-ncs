@@ -20,7 +20,7 @@ extern "C" {
 
 /** @brief Trigger types for a play sound action. */
 enum fmna_sound_trigger {
-	/** Play sound action is triggered by the Unwatned Tracking Detection
+	/** Play sound action is triggered by the Unwanted Tracking Detection
 	  * module.
 	  */
 	FMNA_SOUND_TRIGGER_UT_DETECTION,
@@ -36,14 +36,14 @@ enum fmna_sound_trigger {
 struct fmna_sound_cb {
 	/** @brief Request the user to start the play sound action.
 	 *
-	 *  This callback will be called to start the play sound action.
-	 *  The FMN stack will request this action in response to the command
+	 *  This callback is called to start the play sound action.
+	 *  The FMN stack requests this action in response to the command
 	 *  from the connected peer or in response to the motion detection
 	 *  event.
 	 *
 	 *  The user should notify the FMN stack when the play sound action
 	 *  is completed using the @ref fmna_sound_completed_indicate API. If
-	 *  the API is not called, the action eventually times out which
+	 *  the API is not called, the action eventually times out, which
 	 *  is indicated by the @ref sound_stop callback.
 	 *
 	 *  @param sound_trigger Trigger for the play sound action.
@@ -52,12 +52,12 @@ struct fmna_sound_cb {
 
 	/** @brief Request the user to stop the ongoing play sound action.
 	 *
-	 *  This callback will be called to stop the ongoing play sound action.
-	 *  The FMN stack will request this action in response to the command
+	 *  This callback is called to stop the ongoing play sound action.
+	 *  The FMN stack requests this action in response to the command
 	 *  from the connected peer or when the sound event times out before
 	 *  the @ref fmna_sound_completed_indicate API is called. The
 	 *  @ref fmna_sound_completed_indicate API should not be called after
-	 *  the @ref sound_stop callback and will return an error if called.
+	 *  the @ref sound_stop callback. It returns an error if called.
 	 */
 	void (*sound_stop)(void);
 };
@@ -69,25 +69,25 @@ struct fmna_sound_cb {
  *
  *  @param cb Sound callback structure.
  *
- *  @return Zero on success or negative error code otherwise
+ *  @return Zero on success, otherwise a negative error code.
  */
 int fmna_sound_cb_register(const struct fmna_sound_cb *cb);
 
 /** @brief Indicate the completion of the play sound action.
  *
- *  Indicate that the play sound action is completed. This function should be
- *  called only after @ref sound_start callback from @ref fmna_sound_cb structure
- *  was called. This function should not be called if the play sound action is
- *  stopped by the FMN stack. This event is indicated by @ref sound_stop callback
- *  from @ref fmna_sound_cb structure.
+ *  Indicate that the play sound action has completed. This function should be
+ *  called only after the @ref sound_start callback from the @ref fmna_sound_cb
+ *  structure is called. This function should not be called if the play sound
+ *  action is stopped by the FMN stack. This event is indicated by the 
+ *  @ref sound_stop callback from @ref the fmna_sound_cb structure.
  *
  *  @param cb Sound callback structure.
  *
- *  @return Zero on success or negative error code otherwise
+ *  @return Zero on success, otherwise a negative error code.
  */
 int fmna_sound_completed_indicate(void);
 
-/** @brief Motion detection callback structure
+/** @brief Motion detection callback structure.
  *
  *  @note All callback functions are executed in the context of the system
  *  clock interrupt handler. The user should use the system workqueue to
@@ -96,33 +96,33 @@ int fmna_sound_completed_indicate(void);
 struct fmna_motion_detection_cb {
 	/** @brief Request the user to start the motion detector.
 	 *
-	 *  This callback will be called to start the motion detection
+	 *  This callback is called to start the motion detection
 	 *  activity. From now on, the motion detection events are polled
 	 *  periodically with the @ref motion_detection_period_expired API.
-	 *  The motion detection activity is finished when the
+	 *  The motion detection activity stops when the
 	 *  @ref motion_detection_stop is called.
 	 */
 	void (*motion_detection_start)(void);
 
 	/** @brief Notify the user that the motion detection period has expired.
 	 *
-	 *  This callback will be periodically called at the end of each
+	 *  This callback is called at the end of each
 	 *  motion detection period. The @ref motion_detection_start function
-	 *  indicates the start of the first motion detection period.
-	 *  The next period is started as soon as the last period expires.
-	 *  The user should notify the FMN stack if the motion was detected
-	 *  in the last period. To pass this information, the return value
-	 *  of this callback is used.
+	 *  indicates the beginning of the first motion detection period.
+	 *  The next period is started as soon as the previous period expires.
+	 *  The user should notify the FMN stack if motion was detected
+	 *  in the previous period. The return value of this callback
+	 *  is used to pass this information.
 	 *
-	 *  @return true to indicate a detected motion in the last period
-	 *  or false otherwise.
+	 *  @return true to indicate detected motion in the last period,
+	 *  otherwise false.
 	 */
 	bool (*motion_detection_period_expired)(void);
 
 	/** @brief Notify the user that the motion detector can be stopped.
 	 *
-	 *  This callback will be called to notify the user that the motion
-	 *  detector is no longer used by the FMN protocol. It will conclude
+	 *  This callback is called to notify the user that the motion
+	 *  detector is no longer used by the FMN protocol. It concludes
 	 *  the motion detection activity that was started by the
 	 *  @ref motion_detection_start callback.
 	 */
@@ -136,16 +136,16 @@ struct fmna_motion_detection_cb {
  *
  *  @param cb Motion detection callback structure.
  *
- *  @return Zero on success or negative error code otherwise
+ *  @return Zero on success, otherwise a negative error code.
  */
 int fmna_motion_detection_cb_register(const struct fmna_motion_detection_cb *cb);
 
 /** @brief Enable serial number lookup.
  *
- *  Enable serial number lookup over BLE for a limited time duration
+ *  Enable serial number lookup over Bluetooth LE for a limited time
  *  that is defined in the FMN specification.
  *
- *  @return Zero on success or negative error code otherwise
+ *  @return Zero on success, otherwise a negative error code.
  */
 int fmna_serial_number_lookup_enable(void);
 
@@ -154,10 +154,10 @@ struct fmna_enable_param {
 	/**
 	 * @brief Bluetooth identity to be used by the FMN stack.
 	 *
-	 *  This identity should be created with bt_id_create function that is
+	 *  This identity should be created with the bt_id_create function that is
 	 *  available in the Bluetooth API.
 	 *
-	 *  @note It is not possible to use the BT_ID_DEFAULT identity for FMN
+	 *  @note The BT_ID_DEFAULT identity for FMN is not available
 	 *        because it cannot be combined with bt_id_reset function used
 	 *        in the FMN stack.
 	 */
@@ -167,7 +167,7 @@ struct fmna_enable_param {
 	 * @brief The initial battery level of the accessory.
 	 *
 	 *  The battery level is a percentage value set within the inclusive
-	 *  range of 0 - 100 %.
+	 *  range of 0 - 100%.
 	 */
 	uint8_t init_battery_level;
 
@@ -186,7 +186,7 @@ struct fmna_enable_param {
 struct fmna_enable_cb {
 	/** @brief Request the battery level from the user.
 	 *
-	 *  This callback will be called to indicate that the battery level
+	 *  This callback is called to indicate that the battery level
 	 *  information is requested. The user should provide the battery level
 	 *  data with @ref fmna_battery_level_set API in the context of this
 	 *  callback. If not provided, the previously set level of the battery
@@ -199,15 +199,15 @@ struct fmna_enable_cb {
 	 */
 	void (*battery_level_request)(void);
 
-	/** @brief Indicate the location availability of this accessory to the
+	/** @brief Indicate the location availability of this accessory to
 	 *         other Find My Network devices.
 	 *
-	 *  This callback will be called to indicate whether or not the location
+	 *  This callback is called to indicate whether the location
 	 *  of the accessory is available to non-owner devices from the Find My
 	 *  Network. This API is intended only for "pair before use" accessories.
 	 *  It is used to determine if the "Find My" suffix should be appended to
 	 *  the device name for their primary purpose Bluetooth activity
-	 *  (for example advertising or device name GATT characteristic).
+	 *  (for example, advertising or device name GATT characteristic).
 	 *
 	 *  @note When the accessory is not Find My paired or is connected with
 	 *        the Owner device, it is considered Find My Network disabled.
@@ -217,13 +217,13 @@ struct fmna_enable_cb {
 	 */
 	void (*location_availability_changed)(bool available);
 
-	/** @brief Notify the user about the exit from the pairing mode.
+	/** @brief Notify the user about exit from the pairing mode.
 	 *
-	 *  This callback will be called to notify the user about the
-	 *  advertising timeout in the pairing mode. It is possible to restart
-	 *  the advertising in this mode with the @ref fmna_resume function.
+	 *  This callback is called to notify the user about the
+	 *  advertising timeout in pairing mode. It is possible to restart
+	 *  advertising in this mode with the @ref fmna_resume function.
 	 *  Such a restart should occur on the explicit intent of the device
-	 *  owner (e.g. button press).
+	 *  owner (for example, a button press).
 	 */
 	void (*pairing_mode_exited)(void);
 };
@@ -234,33 +234,34 @@ struct fmna_enable_cb {
  *  be called in the context of @ref battery_level_request callback from the
  *  @ref fmna_enable_cb structure.
  *
- *  @param percentage_level Battery level as a percentage [0 - 100 %].
+ *  @param percentage_level Battery level as a percentage [0 - 100%].
  *
- *  @return Zero on success or negative error code otherwise
+ *  @return Zero on success, otherwise a negative error code.
  */
 int fmna_battery_level_set(uint8_t percentage_level);
 
-/** @brief Resume advertising in the unpaired mode.
+/** @brief Resume advertising in unpaired mode.
  *
- *  This function resumes advertising in the unpaired mode after a timeout.
+ *  This function resumes advertising in unpaired mode after a timeout.
  *  Such a timeout is indicated by the @ref pairing_mode_exited callback from
- *  @ref fmna_enable_cb structure.
+ *  the @ref fmna_enable_cb structure.
  *
- *  @return Zero on success or negative error code otherwise
+ *  @return Zero on success, otherwise a negative error code.
  */
 int fmna_resume(void);
 
 /** @brief Enable the Find My Network (FMN) stack on the accessory.
  *
  *  This function activates the FMN feature. The user should be prepared
- *  to respond to all registered FMN callbacks (e.g. @ref fmna_sound_cb
- *  structure) after calling this API. This function should only be called
- *  after @ref bt_enable function since BLE is required for FMN operations.
+ *  to respond to all registered FMN callbacks (for example, the 
+ *  @ref fmna_sound_cb structure) after calling this API. This function should
+ *  only be called after the @ref bt_enable function, because FMN operations
+ *  require Bluetooth LE.
  *
  *  @param param Set of parameters to configure the enabling process.
  *  @param cb    Enable callback structure.
  *
- *  @return Zero on success or negative error code otherwise
+ *  @return Zero on success, otherwise a negative error code.
  */
 int fmna_enable(const struct fmna_enable_param *param,
 		const struct fmna_enable_cb *cb);
