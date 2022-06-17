@@ -42,7 +42,8 @@ User interface
 **************
 
 Button 1:
-   Resumes advertising on the accessory when it is unpaired.
+   A short press resumes advertising on the accessory when it is unpaired.
+   A long press (>3s) activates or deactivates the Find My functionality.
 
 Button 2:
    Enables the Serial Number lookup over Bluetooth Low Energy.
@@ -52,7 +53,7 @@ Button 3:
 
 Button 4:
    Decrements the battery level.
-   Resets the accessory to default factory settings when pressed during the application boot-up.
+   Resets the accessory to default factory settings when pressed during the application boot-up or Find My activation.
 
 LED 1:
    Indicates that the play sound action is in progress.
@@ -62,6 +63,9 @@ LED 2:
 
 LED 3:
    Indicates that the device is paired using Find My.
+
+LED 4:
+   Indicates that the Find My functionality is enabled.
 
 Building and running
 ********************
