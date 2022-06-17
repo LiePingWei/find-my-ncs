@@ -65,6 +65,7 @@ Changelog
 * Added a new callback to the Find My API. It notifies the user about the paired state changes.
 * Added an indication of the paired state using **LED 3** in the Find My Simple and Qualification samples.
 * Pairing mode timeout is no longer restarted on the accessory once a Find My pairing candidate connects to it.
+* Added a new :kconfig:option:`CONFIG_FMNA_PAIRING_MODE_TIMEOUT` configuration option for setting the pairing mode timeout.
 * Added a configuration file for the HCI RPMsg child image in all Find My samples.
 
   This file is used with the nRF5340 targets and aligns the application image with its network counterpart.

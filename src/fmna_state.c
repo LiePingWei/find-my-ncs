@@ -23,7 +23,6 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define NEARBY_SEPARATED_TIMEOUT_DEFAULT 30
 #define NEARBY_SEPARATED_TIMEOUT_MAX     3600
 #define PERSISTENT_CONN_ADV_TIMEOUT      3
-#define UNPAIRED_ADV_TIMEOUT             600
 
 static enum fmna_state state = FMNA_STATE_DISABLED;
 static bool is_adv_paused = false;
@@ -245,7 +244,8 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 
 		/* Restart the pairing mode when the accessory transitions into unpaired state. */
 		pairing_mode = true;
-		k_work_reschedule(&pairing_mode_timeout_work, K_SECONDS(UNPAIRED_ADV_TIMEOUT));
+		k_work_reschedule(&pairing_mode_timeout_work,
+				  K_SECONDS(CONFIG_FMNA_PAIRING_MODE_TIMEOUT));
 
 		err = unpaired_adv_start(true);
 		if (err) {
@@ -510,7 +510,8 @@ int fmna_resume(void)
 	}
 
 	pairing_mode = true;
-	k_work_reschedule(&pairing_mode_timeout_work, K_SECONDS(UNPAIRED_ADV_TIMEOUT));
+	k_work_reschedule(&pairing_mode_timeout_work,
+			  K_SECONDS(CONFIG_FMNA_PAIRING_MODE_TIMEOUT));
 
 	err = unpaired_adv_start(true);
 	if (err) {

@@ -55,6 +55,20 @@ config FMNA_CUSTOM_SERIAL_NUMBER
 config FMNA_NORDIC_PRODUCT_PLAN
 	bool "Use Nordic Product Plan"
 
+# Pairing mode configuration
+config FMNA_PAIRING_MODE_TIMEOUT
+	int "Timeout for the pairing mode in seconds"
+	default 600
+	help
+	  Override the default timeout for the pairing mode. Please note
+	  that changes to this configuration are highly discouraged since
+	  the specification requires a 10-minute timeout (or 600 seconds).
+	  You can also use this configuration to implement the dynamic timeout.
+	  In this case, it is best to set a value for this option that is
+	  the greatest common divisor of all desired timeout values.
+	  You should resume the advertising until you achieve your desired
+	  timeout value.
+
 # AIS configuration
 menu "Accessory Information Service (AIS)"
 
