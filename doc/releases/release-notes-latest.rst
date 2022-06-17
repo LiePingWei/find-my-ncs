@@ -69,6 +69,8 @@ Changelog
 * Added a new :kconfig:option:`CONFIG_FMNA_PAIRING_MODE_AUTOSTART` configuration option for disabling automatic advertising in the pairing mode.
 
   When this option is disabled and the accessory is unpaired, you need to start advertising using the :c:func:`fmna_resume` function.
+* Blinking **LED 3** indicates active pairing mode in the Find My Simple and Qualification samples.
+* Enabling the pairing mode by pressing **Button 1** is now required in the Find My Simple and Qualification samples.
 * Added a configuration file for the HCI RPMsg child image in all Find My samples.
 
   This file is used with the nRF5340 targets and aligns the application image with its network counterpart.

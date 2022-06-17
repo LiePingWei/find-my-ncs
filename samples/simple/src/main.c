@@ -24,7 +24,10 @@
 #define FMNA_SOUND_LED             DK_LED1
 #define FMNA_MOTION_INDICATION_LED DK_LED2
 #define FMNA_PAIRED_STATE_LED      DK_LED3
+#define FMNA_PAIRING_MODE_LED      DK_LED3
 #define FMNA_ACTIVATION_LED        DK_LED4
+
+#define FMNA_PAIRING_MODE_BLINK_INTERVAL 500
 
 #define FMNA_ADV_RESUME_BUTTON             DK_BTN1_MSK
 #define FMNA_ACTIVATION_BUTTON             DK_BTN1_MSK
@@ -41,7 +44,8 @@
 #define BATTERY_LEVEL_MIN         0
 #define BATTERY_LEVEL_CHANGE_RATE 7
 
-static bool pairing_mode_exit;
+static bool paired;
+static bool pairing_mode;
 static bool motion_detection_enabled;
 static bool motion_detected;
 static uint8_t battery_level = BATTERY_LEVEL_MAX;
@@ -166,15 +170,23 @@ static void pairing_mode_exited(void)
 {
 	printk("Exited the FMN pairing mode\n");
 
-	pairing_mode_exit = true;
+	pairing_mode = false;
+
+	dk_set_led(FMNA_PAIRING_MODE_LED, 0);
 }
 
-static void paired_state_changed(bool paired)
+static void paired_state_changed(bool new_paired_state)
 {
 	printk("The FMN accessory transitioned to the %spaired state\n",
-	       paired ? "" : "un");
+	       new_paired_state ? "" : "un");
 
-	dk_set_led(FMNA_PAIRED_STATE_LED, paired);
+	paired = new_paired_state;
+
+	if (new_paired_state) {
+		pairing_mode = false;
+	}
+
+	dk_set_led(FMNA_PAIRED_STATE_LED, new_paired_state);
 }
 
 static const struct fmna_enable_cb enable_callbacks = {
@@ -276,15 +288,16 @@ static void adv_resume_action_handle(void)
 {
 	int err;
 
-	if (pairing_mode_exit) {
+	if (!paired) {
 		err = fmna_resume();
 		if (err) {
 			printk("Cannot resume the FMN activity (err: %d)\n", err);
 		} else {
-			printk("FMN pairing mode resumed\n");
-		}
+			printk("%s the FMN pairing mode\n",
+			       pairing_mode ? "Extending" : "Enabling");
 
-		pairing_mode_exit = false;
+			pairing_mode = true;
+		}
 	}
 }
 
@@ -322,7 +335,7 @@ static void disable_work_handle(struct k_work *item)
 		printk("FMN disabled\n");
 
 		/* Reset the necessary flags. */
-		pairing_mode_exit = false;
+		pairing_mode = false;
 		motion_detection_enabled = false;
 		motion_detected = false;
 
@@ -419,6 +432,19 @@ static int dk_library_initialize(void)
 	return 0;
 }
 
+static void pairing_mode_indicate(void)
+{
+	uint32_t blink_status = 0;
+
+	for (;;) {
+		if (pairing_mode) {
+			dk_set_led(FMNA_PAIRING_MODE_LED, (++blink_status) % 2);
+		}
+
+		k_sleep(K_MSEC(FMNA_PAIRING_MODE_BLINK_INTERVAL));
+	}
+}
+
 void main(void)
 {
 	int err;
@@ -444,4 +470,7 @@ void main(void)
 	}
 
 	printk("FMNA initialized\n");
+
+	/* This function never returns. */
+	pairing_mode_indicate();
 }

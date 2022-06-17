@@ -9,11 +9,11 @@ Overview
 The Find My Simple sample demonstrates how to use basic features of the Find My stack like Play Sound and Unwanted Tracking (UT) Detection features.
 
 When the application starts, it enables the Find My stack.
-From now on, the accessory is discoverable by the Find My iOS application.
+To make the accessory discoverable by the Find My iOS application, press **Button 1**.
 
 If the accessory is unpaired, you can pair with it using the mobile application.
 Note that the FMN advertising in the Unpaired state times out after 10 minutes.
-To trigger the advertising again, press **Button 1**.
+To trigger the advertising again, press **Button 1** again.
 
 If the accessory is paired, you can track its location using the Find My application.
 You can also use the app interface to play a sound on the device.
@@ -45,7 +45,7 @@ User interface
 **************
 
 Button 1:
-   A short press resumes advertising on the accessory when it is unpaired.
+   A short press enables or extends the pairing mode on the accessory.
    A long press (>3s) activates or deactivates the Find My functionality.
 
 Button 2:
@@ -65,7 +65,11 @@ LED 2:
    Indicates that the motion is detected in the current motion detection period.
 
 LED 3:
-   Indicates that the device is paired using Find My.
+   LED is blinking to indicate the pairing mode.
+
+   LED is lit to indicate the paired state.
+
+   LED is off to indicate the unpaired state without active pairing mode.
 
 LED 4:
    Indicates that the Find My functionality is enabled.
@@ -82,6 +86,7 @@ After provisioning the MFi tokens to your development kit and programming it, co
 
 1. Connect to the kit that runs this sample with a terminal emulator (for example, PuTTY).
    See `How to connect with PuTTY for the required settings <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/gs_testing.html#how-to-connect-with-putty>`_.
+#. Press **Button 1** to set the Find My accessory in the pairing mode.
 #. On your iOS device, pair the accessory using the Find My application:
 
    a. Open the Find My application.
