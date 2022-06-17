@@ -242,15 +242,17 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 			persistent_conn_adv = false;
 		}
 
-		/* Restart the pairing mode when the accessory transitions into unpaired state. */
-		pairing_mode = true;
-		k_work_reschedule(&pairing_mode_timeout_work,
-				  K_SECONDS(CONFIG_FMNA_PAIRING_MODE_TIMEOUT));
+		if (IS_ENABLED(CONFIG_FMNA_PAIRING_MODE_AUTOSTART)) {
+			/* Restart the pairing mode on a transition to the unpaired state. */
+			pairing_mode = true;
+			k_work_reschedule(&pairing_mode_timeout_work,
+					K_SECONDS(CONFIG_FMNA_PAIRING_MODE_TIMEOUT));
 
-		err = unpaired_adv_start(true);
-		if (err) {
-			LOG_ERR("unpaired_adv_start returned error: %d", err);
-			return err;
+			err = unpaired_adv_start(true);
+			if (err) {
+				LOG_ERR("unpaired_adv_start returned error: %d", err);
+				return err;
+			}
 		}
 	} else if (new_state == FMNA_STATE_CONNECTED) {
 		/* Handle Connected state transition. */

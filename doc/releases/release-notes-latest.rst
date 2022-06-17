@@ -66,6 +66,9 @@ Changelog
 * Added an indication of the paired state using **LED 3** in the Find My Simple and Qualification samples.
 * Pairing mode timeout is no longer restarted on the accessory once a Find My pairing candidate connects to it.
 * Added a new :kconfig:option:`CONFIG_FMNA_PAIRING_MODE_TIMEOUT` configuration option for setting the pairing mode timeout.
+* Added a new :kconfig:option:`CONFIG_FMNA_PAIRING_MODE_AUTOSTART` configuration option for disabling automatic advertising in the pairing mode.
+
+  When this option is disabled and the accessory is unpaired, you need to start advertising using the :c:func:`fmna_resume` function.
 * Added a configuration file for the HCI RPMsg child image in all Find My samples.
 
   This file is used with the nRF5340 targets and aligns the application image with its network counterpart.

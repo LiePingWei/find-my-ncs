@@ -69,6 +69,16 @@ config FMNA_PAIRING_MODE_TIMEOUT
 	  You should resume the advertising until you achieve your desired
 	  timeout value.
 
+config FMNA_PAIRING_MODE_AUTOSTART
+	bool "Autostart the advertising in the pairing mode"
+	default y
+	help
+	  Use the autostart feature to automatically start the Find My
+	  advertising in the pairing mode when the FMN stack gets enabled or
+	  the accessory becomes unpaired. With this configuration option
+	  disabled, you need to call the fmna_resume API to enter the pairing
+	  mode in the aforementioned scenarios.
+
 # AIS configuration
 menu "Accessory Information Service (AIS)"
 

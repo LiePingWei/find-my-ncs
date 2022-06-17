@@ -251,11 +251,20 @@ struct fmna_enable_cb {
  */
 int fmna_battery_level_set(uint8_t percentage_level);
 
-/** @brief Resume advertising in unpaired mode.
+/** @brief Resume advertising in the pairing mode.
  *
- *  This function resumes advertising in unpaired mode after a timeout.
+ *  This function resumes advertising in the pairing mode after a timeout.
  *  Such a timeout is indicated by the @ref pairing_mode_exited callback from
  *  the @ref fmna_enable_cb structure.
+ *
+ *  With the @kconfig{CONFIG_FMNA_PAIRING_MODE_AUTOSTART} option disabled, the
+ *  user needs to call this function to enter the pairing mode and to start
+ *  advertising in following scenarios:
+ *  - The FMN stack gets enabled (see the @ref fmna_enable API).
+ *  - The accessory becomes unpaired (see @ref paired_state_changed callback).
+ *
+ *  This function should only be used when the FMN stack is enabled (see
+ *  @ref fmna_is_ready API) and in the unpaired state.
  *
  *  @return Zero on success, otherwise a negative error code.
  */
