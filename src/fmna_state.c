@@ -23,6 +23,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define NEARBY_SEPARATED_TIMEOUT_DEFAULT 30
 #define NEARBY_SEPARATED_TIMEOUT_MAX     3600
 #define PERSISTENT_CONN_ADV_TIMEOUT      3
+#define UNPAIRED_ADV_TIMEOUT             600
 
 static enum fmna_state state = FMNA_STATE_DISABLED;
 static bool is_adv_paused = false;
@@ -34,20 +35,44 @@ static bool location_available;
 static fmna_state_location_availability_changed_t location_availability_changed_cb;
 static fmna_state_paired_state_changed_t paired_state_changed_cb;
 
+static bool pairing_mode = false;
+static fmna_state_pairing_mode_timeout_cb_t pairing_mode_timeout_cb;
+
 static uint16_t nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
 
 static void nearby_separated_work_handle(struct k_work *item);
 static void nearby_separated_timeout_handle(struct k_timer *timer_id);
 static void persistent_conn_work_handle(struct k_work *item);
+static void pairing_mode_timeout_work_handle(struct k_work *item);
 
 static K_WORK_DEFINE(nearby_separated_work, nearby_separated_work_handle);
 static K_TIMER_DEFINE(nearby_separated_timer, nearby_separated_timeout_handle, NULL);
 static K_WORK_DELAYABLE_DEFINE(persistent_conn_work, persistent_conn_work_handle);
+static K_WORK_DELAYABLE_DEFINE(pairing_mode_timeout_work, pairing_mode_timeout_work_handle);
 
 #if CONFIG_FMNA_QUALIFICATION
 static void reset_work_handle(struct k_work *item);
 static K_WORK_DELAYABLE_DEFINE(reset_work, reset_work_handle);
 #endif
+
+static int unpaired_adv_start(bool change_address)
+{
+	int err;
+
+	if (!pairing_mode) {
+		LOG_DBG("Pairing mode is not enabled");
+
+		return 0;
+	}
+
+	err = fmna_adv_start_unpaired(change_address);
+	if (err) {
+		LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
+		return err;
+	}
+
+	return err;
+}
 
 static int nearby_adv_start(void)
 {
@@ -131,9 +156,9 @@ static int advertise_restart_on_no_state_change(void)
 
 	switch (state) {
 	case FMNA_STATE_UNPAIRED:
-		err = fmna_adv_start_unpaired(false);
+		err = unpaired_adv_start(false);
 		if (err) {
-			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
+			LOG_ERR("unpaired_adv_start returned error: %d", err);
 			return err;
 		}
 		break;
@@ -218,9 +243,13 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 			persistent_conn_adv = false;
 		}
 
-		err = fmna_adv_start_unpaired(true);
+		/* Restart the pairing mode when the accessory transitions into unpaired state. */
+		pairing_mode = true;
+		k_work_reschedule(&pairing_mode_timeout_work, K_SECONDS(UNPAIRED_ADV_TIMEOUT));
+
+		err = unpaired_adv_start(true);
 		if (err) {
-			LOG_ERR("fmna_adv_start_unpaired returned error: %d", err);
+			LOG_ERR("unpaired_adv_start returned error: %d", err);
 			return err;
 		}
 	} else if (new_state == FMNA_STATE_CONNECTED) {
@@ -228,6 +257,10 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 
 		if (prev_state == FMNA_STATE_NEARBY) {
 			k_timer_stop(&nearby_separated_timer);
+		}
+
+		if (prev_state == FMNA_STATE_UNPAIRED) {
+			k_work_cancel_delayable(&pairing_mode_timeout_work);
 		}
 
 		is_maintained = true;
@@ -300,6 +333,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 		 */
 		k_work_cancel(&nearby_separated_work);
 		k_work_cancel_delayable(&persistent_conn_work);
+		k_work_cancel_delayable(&pairing_mode_timeout_work);
 
 		/* Stop the key service if necessary. */
 		if (prev_state != FMNA_STATE_UNPAIRED) {
@@ -315,6 +349,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 		is_maintained = false;
 		unpair_pending = false;
 		persistent_conn_adv = false;
+		pairing_mode = false;
 	}
 
 	if (prev_state == FMNA_STATE_DISABLED) {
@@ -377,6 +412,19 @@ static void persistent_conn_work_handle(struct k_work *item)
 	persistent_conn_adv = false;
 
 	advertise_restart_on_no_state_change();
+}
+
+static void pairing_mode_timeout_work_handle(struct k_work *item)
+{
+	LOG_DBG("Pairing mode timeout");
+
+	fmna_adv_stop();
+
+	pairing_mode = false;
+
+	if (pairing_mode_timeout_cb) {
+		pairing_mode_timeout_cb();
+	}
 }
 
 static bool all_owners_disconnected(struct bt_conn *conn)
@@ -455,11 +503,22 @@ int fmna_state_resume(void)
 
 int fmna_resume(void)
 {
+	int err;
+
 	if (state != FMNA_STATE_UNPAIRED) {
 		return -EINVAL;
 	}
 
-	return advertise_restart_on_no_state_change();
+	pairing_mode = true;
+	k_work_reschedule(&pairing_mode_timeout_work, K_SECONDS(UNPAIRED_ADV_TIMEOUT));
+
+	err = unpaired_adv_start(true);
+	if (err) {
+		LOG_ERR("unpaired_adv_start returned error: %d", err);
+		return err;
+	}
+
+	return err;
 }
 
 enum fmna_state fmna_state_get(void)
@@ -538,6 +597,17 @@ int fmna_state_paired_state_changed_cb_register(
 	fmna_state_paired_state_changed_t cb)
 {
 	paired_state_changed_cb = cb;
+
+	return 0;
+}
+
+int fmna_state_pairing_mode_timeout_cb_register(fmna_state_pairing_mode_timeout_cb_t cb)
+{
+	if (!cb) {
+		return -EINVAL;
+	}
+
+	pairing_mode_timeout_cb = cb;
 
 	return 0;
 }

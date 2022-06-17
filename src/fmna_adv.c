@@ -21,11 +21,6 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define PAIRED_ADV_INTERVAL      0x0C80 /* 2 s */
 #define PAIRED_ADV_INTERVAL_FAST 0x0030 /* 30 ms */
 
-/* Unpaired advertiser timeout 10 min in [N * 10 ms]:
- * 10 * 60 * 100 * 10ms = 10 * 60 s = 10 min
- */
-#define UNPAIRED_ADV_TIMEOUT (10*60*100)
-
 #define BT_ADDR_LEN sizeof(((bt_addr_t *) NULL)->val)
 
 #define FMN_SVC_PAYLOAD_UUID             0xFD44
@@ -93,55 +88,6 @@ struct adv_start_config {
 static uint8_t bt_id;
 static union adv_payload adv_payload;
 static struct bt_le_ext_adv *adv_set = NULL;
-static bool pending_timeout;
-static fmna_adv_timeout_cb_t unpaired_adv_timeout_cb;
-
-static void ext_adv_connected(struct bt_le_ext_adv *adv,
-			      struct bt_le_ext_adv_connected_info *info)
-{
-	int err;
-	struct bt_conn_info conn_info;
-
-	err = bt_conn_get_info(info->conn, &conn_info);
-	if (err) {
-		LOG_ERR("bt_conn_get_info returned error: %d", err);
-		return;
-	}
-
-	/* Indicate to the sent callback that the advertising completed
-	 * because of a new connection.
-	 */
-	pending_timeout = false;
-
-	LOG_INF("Connected with the following local identity: %d", conn_info.id);
-}
-
-static const struct bt_le_ext_adv_cb ext_adv_callbacks = {
-	.connected = ext_adv_connected,
-};
-
-void unpaired_adv_sent(struct bt_le_ext_adv *adv,
-		       struct bt_le_ext_adv_sent_info *info)
-{
-	__ASSERT(unpaired_adv_timeout_cb,
-		 "The unpaired_adv_timeout_cb callback is not populated. ");
-
-	if (!pending_timeout) {
-		return;
-	}
-	pending_timeout = false;
-
-	LOG_DBG("Unpaired advertising timeout");
-
-	if (unpaired_adv_timeout_cb) {
-		unpaired_adv_timeout_cb();
-	}
-}
-
-static const struct bt_le_ext_adv_cb unpaired_adv_callbacks = {
-	.sent = unpaired_adv_sent,
-	.connected = ext_adv_connected,
-};
 
 static int bt_ext_advertising_tx_power_set(uint16_t handle, int8_t *tx_power)
 {
@@ -326,19 +272,12 @@ int fmna_adv_start_unpaired(bool change_address)
 
 	start_config.ad.payload = unpaired_ad;
 	start_config.ad.len = ARRAY_SIZE(unpaired_ad);
-	start_config.cb = &unpaired_adv_callbacks;
 	start_config.interval = UNPAIRED_ADV_INTERVAL;
-	start_config.timeout = UNPAIRED_ADV_TIMEOUT;
 	err = bt_ext_advertising_start(&start_config);
 	if (err) {
 		LOG_ERR("bt_ext_advertising_start returned error: %d", err);
 		return err;
 	}
-
-	/* Indicate to the sent callback that the advertising completed
-	 * because of a timeout.
-	 */
-	pending_timeout = true;
 
 	LOG_INF("FMN advertising started for the Unpaired state");
 
@@ -418,7 +357,6 @@ int fmna_adv_start_nearby(const struct fmna_adv_nearby_config *config)
 
 	start_config.ad.payload = nearby_ad;
 	start_config.ad.len = ARRAY_SIZE(nearby_ad);
-	start_config.cb = &ext_adv_callbacks;
 	start_config.interval = config->fast_mode ?
 		PAIRED_ADV_INTERVAL_FAST : PAIRED_ADV_INTERVAL;
 	err = bt_ext_advertising_start(&start_config);
@@ -496,7 +434,6 @@ int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 
 	start_config.ad.payload = separated_ad;
 	start_config.ad.len = ARRAY_SIZE(separated_ad);
-	start_config.cb = &ext_adv_callbacks;
 	start_config.interval = config->fast_mode ?
 		PAIRED_ADV_INTERVAL_FAST : PAIRED_ADV_INTERVAL;
 	err = bt_ext_advertising_start(&start_config);
@@ -506,17 +443,6 @@ int fmna_adv_start_separated(const struct fmna_adv_separated_config *config)
 	}
 
 	LOG_INF("FMN advertising started for the Separated state");
-
-	return 0;
-}
-
-int fmna_adv_unpaired_cb_register(fmna_adv_timeout_cb_t cb)
-{
-	if (!cb) {
-		return -EINVAL;
-	}
-
-	unpaired_adv_timeout_cb = cb;
 
 	return 0;
 }
@@ -607,8 +533,6 @@ int fmna_adv_uninit(void)
 		LOG_ERR("fmna_adv_stop returned error: %d", err);
 		return err;
 	}
-
-	pending_timeout = false;
 
 	LOG_INF("Stopping advertising");
 

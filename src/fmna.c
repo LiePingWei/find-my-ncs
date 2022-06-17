@@ -122,9 +122,9 @@ int fmna_enable(const struct fmna_enable_param *param,
 	}
 
 	/* Register enable callbacks. */
-	err = fmna_adv_unpaired_cb_register(cb->pairing_mode_exited);
+	err = fmna_state_pairing_mode_timeout_cb_register(cb->pairing_mode_exited);
 	if (err) {
-		LOG_ERR("fmna_adv_unpaired_cb_register returned error: %d", err);
+		LOG_ERR("fmna_state_pairing_mode_timeout_cb_register returned error: %d", err);
 		goto error;
 	}
 
