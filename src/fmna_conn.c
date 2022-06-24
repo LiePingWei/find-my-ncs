@@ -257,7 +257,7 @@ int fmna_conn_owner_find(struct bt_conn *owner_conns[], uint8_t *owner_conn_cnt)
 	/* Reset the owner connection counter. */
 	*conn_owner_finder.owner_cnt = 0;
 
-	bt_conn_foreach(BT_CONN_TYPE_ALL, conn_owner_iterator, &conn_owner_finder);
+	bt_conn_foreach(BT_CONN_TYPE_LE, conn_owner_iterator, &conn_owner_finder);
 
 	if (conn_owner_finder.owner_array_size < *conn_owner_finder.owner_cnt) {
 		return -ENOMEM;
@@ -350,7 +350,7 @@ static void conn_uninit_iterator(struct bt_conn *conn, void *user_data)
 int fmna_conn_uninit(void)
 {
 	/* Disconnect all Find My peers. */
-	bt_conn_foreach(BT_CONN_TYPE_ALL, conn_uninit_iterator, NULL);
+	bt_conn_foreach(BT_CONN_TYPE_LE, conn_uninit_iterator, NULL);
 
 	/* Restore the authentication callback context in the Bluetooth stack. */
 	if (bt_auth_ctx) {
@@ -398,7 +398,7 @@ static void state_changed(void)
 
 	/* Count the number of non-Find-My peers. */
 	non_fmna_conns = 0;
-	bt_conn_foreach(BT_CONN_TYPE_ALL, state_changed_peer_counter, NULL);
+	bt_conn_foreach(BT_CONN_TYPE_LE, state_changed_peer_counter, NULL);
 
 	/* Pause the FMN advertising if pair-before-use peer is connected. */
 	if (non_fmna_conns > 0) {
@@ -421,7 +421,7 @@ static void persistent_conn_request_handle(struct bt_conn *conn, uint8_t persist
 	LOG_INF("FMN Config CP: responding to persistent connection request: %d",
 		persistent_conn_status);
 
-	bt_conn_foreach(BT_CONN_TYPE_ALL, conn_status_iterator, &conn_status_finder);
+	bt_conn_foreach(BT_CONN_TYPE_LE, conn_status_iterator, &conn_status_finder);
 	if ((persistent_conn_status & BIT(0)) && !conn_status_finder.out.is_found) {
 		fmna_conn_multi_status_bit_set(
 			conn, FMNA_CONN_MULTI_STATUS_BIT_PERSISTENT_CONNECTION);
@@ -527,7 +527,7 @@ static void max_connections_request_handle(struct bt_conn *conn, uint8_t max_con
 
 	if (conn_disconnecter.disconnect_num > 0) {
 		/* Disconnect excessive links. */
-		bt_conn_foreach(BT_CONN_TYPE_ALL, conn_disconnecter_iterator, &conn_disconnecter);
+		bt_conn_foreach(BT_CONN_TYPE_LE, conn_disconnecter_iterator, &conn_disconnecter);
 
 		if (!max_conn_work.conn) {
 			max_conn_work.conn = conn;
