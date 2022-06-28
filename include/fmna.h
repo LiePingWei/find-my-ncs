@@ -81,8 +81,6 @@ int fmna_sound_cb_register(const struct fmna_sound_cb *cb);
  *  action is stopped by the FMN stack. This event is indicated by the 
  *  @ref sound_stop callback from @ref the fmna_sound_cb structure.
  *
- *  @param cb Sound callback structure.
- *
  *  @return Zero on success, otherwise a negative error code.
  */
 int fmna_sound_completed_indicate(void);
