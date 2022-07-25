@@ -60,7 +60,6 @@ static int unpaired_adv_start(bool change_address)
 
 	if (!pairing_mode) {
 		LOG_DBG("Pairing mode is not enabled");
-
 		return 0;
 	}
 
@@ -80,7 +79,6 @@ static int nearby_adv_start(void)
 
 	if (is_adv_paused) {
 		LOG_DBG("Nearby advertising is still paused");
-
 		return 0;
 	}
 
@@ -107,7 +105,6 @@ static int separated_adv_start(void)
 
 	if (is_adv_paused) {
 		LOG_DBG("Separated advertising is still paused");
-
 		return 0;
 	}
 
