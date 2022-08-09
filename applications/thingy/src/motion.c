@@ -20,8 +20,8 @@ LOG_MODULE_DECLARE(app);
 
 #define GYRO_CALC_ROT(data)	((data) / (GYRO_SPS))
 
-#define MPU_PWR_NODE	DT_NODELABEL(mpu_pwr)
-#define MPU_PWR		DT_GPIO_LABEL(MPU_PWR_NODE, enable_gpios)
+#define MPU_PWR_NODE	DT_ALIAS(mpu_pwr)
+#define MPU_PWR		DT_GPIO_CTLR(MPU_PWR_NODE, enable_gpios)
 #define MPU_PWR_PIN	DT_GPIO_PIN(MPU_PWR_NODE, enable_gpios)
 #define MPU_PWR_FLAGS	DT_GPIO_FLAGS(MPU_PWR_NODE, enable_gpios)
 
@@ -144,7 +144,7 @@ static int mpu_pwr_init(const struct device *pwr)
 {
 	int err;
 
-	pwr = device_get_binding(MPU_PWR);
+	pwr = DEVICE_DT_GET(MPU_PWR);
 	if (!pwr) {
 		LOG_ERR("Can't get binding for MPU_PWR");
 		return -EIO;

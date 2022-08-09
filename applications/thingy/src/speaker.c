@@ -14,13 +14,13 @@
 
 LOG_MODULE_DECLARE(app);
 
-#define SPK_NODE	DT_NODELABEL(pwm_spk0)
+#define SPK_NODE	DT_ALIAS(pwm_spk0)
 #define SPK_CTLR	DT_PWMS_CTLR(SPK_NODE)
 #define SPK_CHANNEL	DT_PWMS_CHANNEL(SPK_NODE)
 #define SPK_FLAGS	DT_PWMS_FLAGS(SPK_NODE)
 
-#define SPK_PWR_NODE	DT_NODELABEL(spk_pwr)
-#define SPK_PWR		DT_GPIO_LABEL(SPK_PWR_NODE, enable_gpios)
+#define SPK_PWR_NODE	DT_ALIAS(spk_pwr)
+#define SPK_PWR		DT_GPIO_CTLR(SPK_PWR_NODE, enable_gpios)
 #define SPK_PWR_PIN	DT_GPIO_PIN(SPK_PWR_NODE, enable_gpios)
 #define SPK_PWR_FLAGS	DT_GPIO_FLAGS(SPK_PWR_NODE, enable_gpios)
 
@@ -46,7 +46,7 @@ int speaker_init(void)
 		return err;
 	}
 
-	spk_pwr = device_get_binding(SPK_PWR);
+	spk_pwr = DEVICE_DT_GET(SPK_PWR);
 	if (!spk_pwr) {
 		LOG_ERR("Can't get binfing for SPK_PWR");
 		return -EIO;

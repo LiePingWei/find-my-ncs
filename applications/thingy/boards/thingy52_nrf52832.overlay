@@ -8,6 +8,9 @@
 	aliases {
 		led1 = &led1;
 		led2 = &led2;
+		mpu-pwr = &mpu_pwr;
+		pwm-spk0 = &pwm_spk0;
+		spk-pwr = &spk_pwr;
 	};
 
 	pwmspk {

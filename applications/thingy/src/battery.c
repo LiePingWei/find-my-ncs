@@ -18,7 +18,7 @@ LOG_MODULE_DECLARE(app);
 #define VBATT			DT_PATH(vbatt)
 #define BATTERY_ADC_GAIN	ADC_GAIN_1
 
-#define BAT_MON_EN		DT_GPIO_LABEL(VBATT, power_gpios)
+#define BAT_MON_EN		DT_GPIO_CTLR(VBATT, power_gpios)
 #define BAT_MON_EN_PIN		DT_GPIO_PIN(VBATT, power_gpios)
 #define BAT_MON_EN_FLAGS	DT_GPIO_FLAGS(VBATT, power_gpios)
 
@@ -40,7 +40,7 @@ int battery_init(void)
 		return -ENOENT;
 	}
 
-	bat_mon_en = device_get_binding(BAT_MON_EN);
+	bat_mon_en = DEVICE_DT_GET(BAT_MON_EN);
 	if (!bat_mon_en) {
 		LOG_ERR("No sensor device found");
 		return -EIO;
