@@ -8,13 +8,16 @@ This application showcases the capabilities of Find My using the Thingy onboard 
 Requirements
 ************
 
-The application supports the following development kit:
+The application supports the following development kits:
 
-+---------------------------------------------------------------------------------------------------------------------------------+-----------+---------------------+---------+-----------+
-|Hardware platform                                                                                                                |PCA        |Build target         |*ZDebug* |*ZRelease* +
-+=================================================================================================================================+===========+=====================+=========+===========+
-|:ref:`Thingy:52 <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/boards/arm/thingy52_nrf52832/doc/index.html>`|PCA20020   |``thingy52_nrf52832``|         | x         |
-+---------------------------------------------------------------------------------------------------------------------------------+-----------+---------------------+---------+-----------+
++---------------------------------------------------------------------------------------------------------------------------------+-----------+------------------------------+---------+-----------+
+|Hardware platform                                                                                                                |PCA        |Build target                  |*ZDebug* |*ZRelease* +
++=================================================================================================================================+===========+==============================+=========+===========+
+|:ref:`Thingy:52 <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/boards/arm/thingy52_nrf52832/doc/index.html>`|PCA20020   |``thingy52_nrf52832``         |         | x         |
++---------------------------------------------------------------------------------------------------------------------------------+-----------+------------------------------+---------+-----------+
+|:ref:`Thingy:53 <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/boards/arm/thingy53_nrf5340/doc/index.html>` |PCA20053   |``thingy53_nrf5340_cpuapp_ns``| x       | x         |
+|                                                                                                                                 |           |``thingy53_nrf5340_cpuapp``   |         |           |
++---------------------------------------------------------------------------------------------------------------------------------+-----------+------------------------------+---------+-----------+
 
 Overview
 ********
@@ -29,7 +32,11 @@ The speaker is used in the following cases:
 * On "Play Sound" command from Find My iOS application.
 * After successful action initiated by a button press.
 
-The MPU9250 9-axis motion detector performs the motion detection.
+The motion detectors used are the following:
+
+* 9-axis MPU9520 for the Thingy:52.
+* BMI270 IMU for the Thingy:53.
+
 The axes used for motion detection are:
 
 * Gyroscope X
@@ -47,7 +54,7 @@ Button:
    * Medium-length press (>2 s): Enables the serial number lookup over Bluetooth® Low Energy.
    * Long press (>5 s): Resets the accessory to default factory settings.
 
-Speaker:
+Speaker/Buzzer:
    Produces sound when the play sound action is in progress.
 
 LED Red:

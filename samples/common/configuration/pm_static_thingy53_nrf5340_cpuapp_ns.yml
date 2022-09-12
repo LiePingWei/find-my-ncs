@@ -1,0 +1,9 @@
+# Allocate more flash for Settings partition to fill the space
+# created by the 4-page alignment.
+settings_storage:
+  address: 0xfc000
+  size: 0x4000
+nonsecure_storage:
+  address: 0xfc000
+  size: 0x4000
+  span: [settings_storage]

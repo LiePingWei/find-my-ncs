@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Nordic Semiconductor ASA
+ * Copyright (c) 2022 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
@@ -13,17 +13,14 @@
 LOG_MODULE_DECLARE(app);
 
 #include "motion.h"
-
+#include "platform/motion_platform.h"
 
 #define GYRO_TH		0.43625
-#define GYRO_SPS	10
 
-#define GYRO_CALC_ROT(data)	((data) / (GYRO_SPS))
+#define GYRO_CALC_ROT(data)	((data) / (MOTION_PLATFORM_SAMPLES_PER_SEC))
 
-#define MPU_PWR_NODE	DT_ALIAS(mpu_pwr)
-#define MPU_PWR		DT_GPIO_CTLR(MPU_PWR_NODE, enable_gpios)
-#define MPU_PWR_PIN	DT_GPIO_PIN(MPU_PWR_NODE, enable_gpios)
-#define MPU_PWR_FLAGS	DT_GPIO_FLAGS(MPU_PWR_NODE, enable_gpios)
+#define GYRO_NODE	DT_ALIAS(gyro)
+#define GYRO_PWR_NODE	DT_ALIAS(gyro_pwr)
 
 struct gyro_data {
 	double data_x;
@@ -34,7 +31,6 @@ struct gyro_data {
 static bool motion_detection_enabled;
 static bool motion_reset_en;
 static struct gyro_data *motion_data;
-
 
 static void sensor_drdy(const struct device *dev,
 			const struct sensor_trigger *trig)
@@ -112,10 +108,9 @@ bool motion_check(void)
 int motion_init(void)
 {
 	const struct device *sensor;
-	struct sensor_trigger trig;
 	int err;
 
-	sensor = DEVICE_DT_GET_ANY(invensense_mpu9250);
+	sensor = DEVICE_DT_GET(GYRO_NODE);
 	if (!sensor) {
 		LOG_ERR("No sensor device found");
 		return -EIO;
@@ -126,33 +121,35 @@ int motion_init(void)
 		return -EIO;
 	}
 
-	trig.type = SENSOR_TRIG_DATA_READY;
-	trig.chan = SENSOR_CHAN_GYRO_XYZ;
-
-	err = sensor_trigger_set(sensor, &trig, sensor_drdy);
+	err = motion_platform_init(sensor);
 	if (err) {
-		LOG_ERR("Failed to set trigger (err %d)", err);
+		LOG_ERR("Initializing platform dependent motion detection failed (err %d)", err);
 		return err;
 	}
 
 	motion_stop();
 
-	return 0;
+	err = motion_platfom_enable_drdy(sensor_drdy);
+	if (err) {
+		LOG_ERR("Initializing data ready mechanism failed (err %d)", err);
+	}
+
+	return err;
 }
 
-static int mpu_pwr_init(const struct device *pwr)
+static int gyro_pwr_init(const struct device *unused)
 {
 	int err;
+	const struct gpio_dt_spec pwr = GPIO_DT_SPEC_GET(GYRO_PWR_NODE, enable_gpios);
 
-	pwr = DEVICE_DT_GET(MPU_PWR);
-	if (!pwr) {
-		LOG_ERR("Can't get binding for MPU_PWR");
+	if (!device_is_ready(pwr.port)) {
+		LOG_ERR("GYRO_PWR is not ready");
 		return -EIO;
 	}
 
-	err = gpio_pin_configure(pwr, MPU_PWR_PIN, GPIO_OUTPUT_ACTIVE | MPU_PWR_FLAGS);
+	err = gpio_pin_configure_dt(&pwr, GPIO_OUTPUT_ACTIVE);
 	if (err) {
-		LOG_ERR("Error while configuring MPU_PWR (err %d)", err);
+		LOG_ERR("Error while configuring GYRO_PWR (err %d)", err);
 		return err;
 	}
 
@@ -161,8 +158,4 @@ static int mpu_pwr_init(const struct device *pwr)
 	return 0;
 }
 
-#if CONFIG_SENSOR_INIT_PRIORITY <= CONFIG_MPU_VDD_PWR_CTRL_INIT_PRIORITY
-#error MPU_VDD_PWR_CTRL_INIT_PRIORITY must be lower than SENSOR_INIT_PRIORITY
-#endif
-
-SYS_INIT(mpu_pwr_init, POST_KERNEL, CONFIG_MPU_VDD_PWR_CTRL_INIT_PRIORITY);
+SYS_INIT(gyro_pwr_init, POST_KERNEL, 80);

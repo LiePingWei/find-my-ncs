@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Nordic Semiconductor ASA
+ * Copyright (c) 2022 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
@@ -8,9 +8,10 @@
 	aliases {
 		led1 = &led1;
 		led2 = &led2;
-		mpu-pwr = &mpu_pwr;
-		pwm-spk0 = &pwm_spk0;
+		gyro-pwr = &mpu_pwr;
+		pwm-spk = &pwm_spk0;
 		spk-pwr = &spk_pwr;
+		gyro = &mpu9250;
 	};
 
 	pwmspk {

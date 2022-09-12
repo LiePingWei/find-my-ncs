@@ -18,13 +18,9 @@ LOG_MODULE_DECLARE(app);
 #define VBATT			DT_PATH(vbatt)
 #define BATTERY_ADC_GAIN	ADC_GAIN_1
 
-#define BAT_MON_EN		DT_GPIO_CTLR(VBATT, power_gpios)
-#define BAT_MON_EN_PIN		DT_GPIO_PIN(VBATT, power_gpios)
-#define BAT_MON_EN_FLAGS	DT_GPIO_FLAGS(VBATT, power_gpios)
 
-
+static const struct gpio_dt_spec bat_mon_en = GPIO_DT_SPEC_GET(VBATT, power_gpios);
 static const struct device *adc;
-static const struct device *bat_mon_en;
 static struct adc_sequence adc_seq;
 static struct adc_channel_cfg adc_cfg;
 static int16_t adc_raw_data;
@@ -40,14 +36,12 @@ int battery_init(void)
 		return -ENOENT;
 	}
 
-	bat_mon_en = DEVICE_DT_GET(BAT_MON_EN);
-	if (!bat_mon_en) {
-		LOG_ERR("No sensor device found");
+	if (!device_is_ready(bat_mon_en.port)) {
+		LOG_ERR("BAT_MON_EN enable is not ready");
 		return -EIO;
 	}
 
-	err = gpio_pin_configure(bat_mon_en, BAT_MON_EN_PIN,
-				 GPIO_OUTPUT_INACTIVE | BAT_MON_EN_FLAGS);
+	err = gpio_pin_configure_dt(&bat_mon_en, GPIO_OUTPUT_INACTIVE);
 	if (err) {
 		LOG_ERR("Can't configure BAT_MON_EN pin (err %d)", err);
 		return err;
@@ -76,7 +70,7 @@ static int battery_meas_prep(void)
 {
 	int err;
 
-	err = gpio_pin_set(bat_mon_en, BAT_MON_EN_PIN, 1);
+	err = gpio_pin_set_dt(&bat_mon_en, 1);
 	if (err) {
 		LOG_ERR("Can't turn on BAT_MON_EN pin (err %d)", err);
 		return err;
@@ -131,5 +125,5 @@ int battery_measure(uint8_t *charge)
 
 	*charge = volatge_to_lipo_soc(val_mv);
 
-	return gpio_pin_set(bat_mon_en, BAT_MON_EN_PIN, 0);
+	return gpio_pin_set_dt(&bat_mon_en, 0);
 }
