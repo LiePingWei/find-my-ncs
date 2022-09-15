@@ -7,6 +7,8 @@
 import os
 import re
 import sys
+import stat
+import urllib.parse
 import subprocess
 import tempfile
 import shutil
@@ -134,13 +136,35 @@ def send_to_repo():
         remote_name = tab[num]
     else:
         remote_name = list(remotes.keys())[0]
-    
+
     if remote_name not in remotes:
         raise Exception('Invalid git remote name')
 
-    exec(['git', 'push', '--force', remote_name, f'HEAD:{branch_name}'], temp_path)
+    exec(['git', 'push', '--force', remote_name, f'HEAD:refs/heads/{branch_name}'], temp_path)
 
-    shutil.rmtree(temp_path)
+    def del_rw(action, name, exc):
+        os.chmod(name, stat.S_IWRITE)
+        try:
+            os.remove(name)
+        except:
+            try:
+                os.rmdir(name)
+                ok = True
+            except:
+                ok = False
+            if not ok:
+                raise
+
+    shutil.rmtree(temp_path, onerror=del_rw)
+
+    url_parts = urllib.parse.urlparse(remotes[remote_name])
+    action_url = f'{url_parts.scheme}://{url_parts.hostname}{url_parts.path}'
+    if action_url.endswith('.git'):
+        action_url = action_url[0:-4]
+    action_url += '/actions/workflows/build_the_file.yml'
+
+    print('\nGitHub Action triggered to compose your SuperBinary on:\n')
+    print(f'    {action_url}\n')
 
 def compose():
     global script_dir, bin_file, superbinary_file, metadata_file, release_notes_file, mfigr2_file

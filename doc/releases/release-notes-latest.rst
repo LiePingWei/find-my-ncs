@@ -60,10 +60,10 @@ Changelog
   when the nrfxlib Security module is not enabled and the RNG peripheral is available in the CPU image.
   This new default configuration frees around 4 kB of flash memory.
 
-.. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
-         Otherwise, remove this part of the release notes template.
-  CLI Tools
-  =========
+CLI Tools
+=========
+
+* Fixed the :ref:`super_on_github` sample on Windows platform.
 
 Known issues and limitations
 ****************************
