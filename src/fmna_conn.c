@@ -43,16 +43,10 @@ struct fmna_conn {
 	bool is_disconnecting;
 };
 
-/* Import the authentication callback context
- * from zephyr/subsys/bluetooth/host/conn.c
- */
-extern const struct bt_conn_auth_cb *bt_auth;
-
 static struct fmna_conn conns[CONFIG_BT_MAX_CONN];
 static uint8_t max_connections = CONFIG_FMNA_MAX_CONN;
 static uint8_t non_fmna_conns = 0;
 static uint8_t fmna_bt_id;
-static const struct bt_conn_auth_cb *bt_auth_ctx;
 
 static void max_conn_work_handle(struct k_work *item);
 
@@ -106,9 +100,10 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 		return;
 	}
 
-	/* Store the authentication callback context. */
-	bt_auth_ctx = bt_auth;
-	bt_conn_auth_cb_register(NULL);
+	err = bt_conn_auth_cb_overlay(conn, NULL);
+	if (err) {
+		LOG_ERR("bt_conn_auth_cb_overlay returned error: %d", err);
+	}
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	LOG_DBG("FMN Peer connected: %s", addr);
@@ -155,12 +150,6 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
 	fmna_conn->is_disconnecting = true;
 
-	/* Restore the authentication callback context in the Bluetooth stack. */
-	if (bt_auth_ctx) {
-		bt_conn_auth_cb_register(bt_auth_ctx);
-		bt_auth_ctx = NULL;
-	}
-
 	bt_conn_unref(conn);
 
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_PEER_DISCONNECTED, conn);
@@ -182,12 +171,6 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 			addr, level, err);
 	} else {
 		LOG_DBG("FMN Peer security changed: %s level %u", addr, level);
-	}
-
-	/* Restore the authentication callback context in the Bluetooth stack. */
-	if (bt_auth_ctx) {
-		bt_conn_auth_cb_register(bt_auth_ctx);
-		bt_auth_ctx = NULL;
 	}
 
 	FMNA_EVENT_CREATE(event, FMNA_EVENT_PEER_SECURITY_CHANGED, conn);
@@ -351,12 +334,6 @@ int fmna_conn_uninit(void)
 {
 	/* Disconnect all Find My peers. */
 	bt_conn_foreach(BT_CONN_TYPE_LE, conn_uninit_iterator, NULL);
-
-	/* Restore the authentication callback context in the Bluetooth stack. */
-	if (bt_auth_ctx) {
-		bt_conn_auth_cb_register(bt_auth_ctx);
-		bt_auth_ctx = NULL;
-	}
 
 	return 0;
 }
