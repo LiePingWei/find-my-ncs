@@ -18,14 +18,22 @@ config FMNA
 	select NVS
 	select SETTINGS
 
-	select OBERON_BACKEND
-	select NORDIC_SECURITY_BACKEND
-
 	select APP_EVENT_MANAGER
 
 	select PM_SINGLE_IMAGE if !FMNA_UARP
 
 if FMNA
+
+config FMNA_CRYPTO
+	bool
+	default y
+	select NRF_OBERON if FMNA_CRYPTO_ENTROPY_SRC && !NORDIC_SECURITY_BACKEND
+	select OBERON_BACKEND if NORDIC_SECURITY_BACKEND
+	select NORDIC_SECURITY_BACKEND if !FMNA_CRYPTO_ENTROPY_SRC
+
+config FMNA_CRYPTO_ENTROPY_SRC
+	bool
+	default y if DT_HAS_NORDIC_NRF_RNG_ENABLED
 
 config FMNA_QUALIFICATION
 	bool "Enable qualification capabilities used by the FMCA app"

@@ -56,7 +56,9 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* The Find My library uses the pure Oberon library for Find My cryptographic operations
+  when the nrfxlib Security module is not enabled and the RNG peripheral is available in the CPU image.
+  This new default configuration frees around 4 kB of flash memory.
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.
