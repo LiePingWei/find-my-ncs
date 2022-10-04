@@ -189,7 +189,7 @@ static int fmna_id_create(uint8_t id)
 
 	do {
 		ret = bt_id_create(NULL, NULL);
-		if (ret) {
+		if (ret < 0) {
 			return ret;
 		}
 	} while (ret != id);
