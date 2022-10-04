@@ -1,7 +1,7 @@
 Apple Find My support for nRF Connect SDK
 #########################################
 
-The nRF Connect SDK, together with this Find My add-on and nRF5x SoCs, provide a single-chip Bluetooth Low Energy accessory solution that fulfills the requirements defined by the MFi program for the Find My Network.
+The nRF Connect SDK, together with this Find My add-on and nRF5x SoCs, provide a single-chip Bluetooth Low Energy accessory solution that fulfills the requirements defined by `the MFi program <https://mfi.apple.com/>`_ for the Find My Network.
 
 Documentation
 *************
