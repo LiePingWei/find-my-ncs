@@ -52,4 +52,5 @@ Limitations
 Known issues
 ************
 
-There are no entries for this section yet.
+* Find My pairing may sometimes fail due to the connection timeout (especially in the Find My Coexistence sample).
+  The root cause of this behaviour is a low value of the link supervision timeout parameter.

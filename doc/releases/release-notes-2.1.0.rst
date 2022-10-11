@@ -86,5 +86,7 @@ Known issues and limitations
 * nRF5340 SoC supports a maximum transmit power of 3dBm, violating the Find My specification requirement for 4dBm.
 * Find My characteristics are always available regardless of the accessory state.
   This limitation will require a waiver for Find My qualification.
+* Find My pairing may sometimes fail due to the connection timeout (especially in the Find My Coexistence sample).
+  The root cause of this behaviour is a low value of the link supervision timeout parameter.
 * Firmware updates of the nRF5340 network core are not supported with the UARP protocol.
 * The Find My Thingy application does not support the Thingy:53 platform.

@@ -67,3 +67,5 @@ Known issues and limitations
 * nRF52832 and nRF52833 SoCs are only supported in the Release configuration due to memory limitations.
 * Find My characteristics are always available regardless of the accessory state.
   This limitation will require a waiver for Find My qualification.
+* Find My pairing may sometimes fail due to the connection timeout (especially in the Find My Coexistence sample).
+  The root cause of this behaviour is a low value of the link supervision timeout parameter.
