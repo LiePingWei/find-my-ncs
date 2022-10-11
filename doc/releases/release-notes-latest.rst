@@ -59,6 +59,8 @@ Changelog
 * The Find My library uses the pure Oberon library for Find My cryptographic operations
   when the nrfxlib Security module is not enabled and the RNG peripheral is available in the CPU image.
   This new default configuration frees around 4 kB of flash memory.
+* By default, the Find My accessory requests longer supervision timeout in the Connection Parameter Update procedure.
+  The new timeout value reduces disconnection probability due to the connection timeout.
 
 CLI Tools
 =========
