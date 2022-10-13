@@ -7,6 +7,8 @@
 #include "fmna_adv.h"
 #include "fmna_battery.h"
 #include "fmna_conn.h"
+#include "fmna_gatt_ais.h"
+#include "fmna_gatt_fmns.h"
 #include "fmna_keys.h"
 #include "fmna_nfc.h"
 #include "fmna_pair.h"
@@ -14,6 +16,7 @@
 #include "fmna_storage.h"
 #include "fmna_state.h"
 #include "fmna_version.h"
+#include "uarp/fmna_uarp_service.h"
 
 #include <fmna.h>
 
@@ -94,6 +97,33 @@ static void basic_display_work_handler(struct k_work *work)
 	}
 }
 
+static int fmna_gatt_services_hidden_mode_set(bool hidden_mode)
+{
+	int err;
+
+	err = fmna_gatt_ais_hidden_mode_set(hidden_mode);
+	if (err) {
+		LOG_ERR("fmna_gatt_ais_hidden_mode_set returned error: %d", err);
+		return err;
+	}
+
+	err = fmna_gatt_service_hidden_mode_set(hidden_mode);
+	if (err) {
+		LOG_ERR("fmna_gatt_service_hidden_mode_set returned error: %d", err);
+		return err;
+	}
+
+	if (IS_ENABLED(CONFIG_FMNA_UARP)) {
+		err = fmna_uarp_service_hidden_mode_set(hidden_mode);
+		if (err) {
+			LOG_ERR("fmna_uarp_service_hidden_mode_set returned error: %d", err);
+			return err;
+		}
+	}
+
+	return 0;
+}
+
 int fmna_enable(const struct fmna_enable_param *param,
 		const struct fmna_enable_cb *cb)
 {
@@ -171,6 +201,14 @@ int fmna_enable(const struct fmna_enable_param *param,
 		goto error;
 	}
 
+	if (IS_ENABLED(CONFIG_FMNA_SERVICE_HIDDEN_MODE)) {
+		err = fmna_gatt_services_hidden_mode_set(false);
+		if (err) {
+			LOG_ERR("fmna_gatt_services_hidden_mode_set returned error: %d", err);
+			goto error;
+		}
+	}
+
 	err = fmna_state_init(param->bt_id, is_paired);
 	if (err) {
 		LOG_ERR("fmna_state_init returned error: %d", err);
@@ -232,6 +270,14 @@ int fmna_disable(void)
 	if (err) {
 		LOG_ERR("fmna_conn_uninit returned error: %d", err);
 		goto error;
+	}
+
+	if (IS_ENABLED(CONFIG_FMNA_SERVICE_HIDDEN_MODE)) {
+		err = fmna_gatt_services_hidden_mode_set(true);
+		if (err) {
+			LOG_ERR("fmna_gatt_services_hidden_mode_set returned error: %d", err);
+			goto error;
+		}
 	}
 
 	if (IS_ENABLED(CONFIG_FMNA_NFC)) {

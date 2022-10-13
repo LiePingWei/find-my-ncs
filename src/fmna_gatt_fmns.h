@@ -91,6 +91,8 @@ int fmna_gatt_debug_cp_indicate(struct bt_conn *conn,
 				enum fmna_gatt_debug_ind ind_type,
 				struct net_buf_simple *buf);
 
+int fmna_gatt_service_hidden_mode_set(bool hidden_mode);
+
 uint16_t fmna_config_event_to_gatt_cmd_opcode(enum fmna_config_event_id config_event);
 
 uint16_t fmna_non_owner_event_to_gatt_cmd_opcode(enum fmna_non_owner_event_id non_owner_event);

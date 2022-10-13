@@ -69,6 +69,7 @@ Changelog
   Platform implementations now support both Thingy:53 and Thingy:52.
 * In the Find My Coexistence sample, added a mechanism for activating and deactivating Find My on a long **Button 1** press with the status indication displayed on the **LED 4**.
 * In the Find My Connection module, fixed the :c:func:`bt_conn_foreach` API calls that are used to iterate over connected peers.
+* Added a new :kconfig:option:`CONFIG_FMNA_SERVICE_HIDDEN_MODE` configuration option for hiding Find My services in the disabled state of the FMN stack.
 
 CLI Tools
 =========

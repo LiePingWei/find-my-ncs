@@ -781,46 +781,60 @@ error:
 #endif
 
 /* Find My Network Service Declaration */
-BT_GATT_SERVICE_DEFINE(fmns_svc,
-BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),
-	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_PAIRING,
-			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
-			       BT_GATT_CHRC_INDICATE,
-			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
-			       NULL, pairing_cp_write, NULL),
-	BT_GATT_CCC(pairing_cp_ccc_cfg_changed,
-		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
-	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_CONFIG,
-			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
-			       BT_GATT_CHRC_INDICATE,
-			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
-			       NULL, config_cp_write, NULL),
-	BT_GATT_CCC(config_cp_ccc_cfg_changed,
-		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
-	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_NON_OWNER,
-			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
-			       BT_GATT_CHRC_INDICATE,
-			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
-			       NULL, non_owner_cp_write, NULL),
-	BT_GATT_CCC(non_owner_cp_ccc_cfg_changed,
-		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
-	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_OWNER,
-			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
-			       BT_GATT_CHRC_INDICATE,
-			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
-			       NULL, owner_cp_write, NULL),
-	BT_GATT_CCC(owner_cp_ccc_cfg_changed,
-		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+#define FMNA_CORE_ATTRS							\
+	BT_GATT_PRIMARY_SERVICE(BT_UUID_FMNS),				\
+	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_PAIRING,			\
+			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |	\
+			       BT_GATT_CHRC_INDICATE,			\
+			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,	\
+			       NULL, pairing_cp_write, NULL),		\
+	BT_GATT_CCC(pairing_cp_ccc_cfg_changed,				\
+		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),		\
+	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_CONFIG,			\
+			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |	\
+			       BT_GATT_CHRC_INDICATE,			\
+			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,	\
+			       NULL, config_cp_write, NULL),		\
+	BT_GATT_CCC(config_cp_ccc_cfg_changed,				\
+		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),		\
+	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_NON_OWNER,			\
+			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |	\
+			       BT_GATT_CHRC_INDICATE,			\
+			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,	\
+			       NULL, non_owner_cp_write, NULL),		\
+	BT_GATT_CCC(non_owner_cp_ccc_cfg_changed,			\
+		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),		\
+	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_OWNER,			\
+			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |	\
+			       BT_GATT_CHRC_INDICATE,			\
+			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,	\
+			       NULL, owner_cp_write, NULL),		\
+	BT_GATT_CCC(owner_cp_ccc_cfg_changed,				\
+		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE)
+
 #if CONFIG_FMNA_QUALIFICATION
-	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_DEBUG_CP,
-			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |
-			       BT_GATT_CHRC_INDICATE,
-			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
-			       NULL, debug_cp_write, NULL),
-	BT_GATT_CCC(debug_cp_ccc_cfg_changed,
-		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+#define FMNA_QUALIFICATION_CHARACTERISTIC				\
+	BT_GATT_CHARACTERISTIC(BT_UUID_FMNS_DEBUG_CP,			\
+			       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE |	\
+			       BT_GATT_CHRC_INDICATE,			\
+			       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,	\
+			       NULL, debug_cp_write, NULL),		\
+	BT_GATT_CCC(debug_cp_ccc_cfg_changed,				\
+		    BT_GATT_PERM_READ | BT_GATT_PERM_WRITE)
+
+#define FMNA_ATTRS		\
+	FMNA_CORE_ATTRS,	\
+	FMNA_QUALIFICATION_CHARACTERISTIC
+#else
+#define FMNA_ATTRS FMNA_CORE_ATTRS
 #endif
-);
+
+#if CONFIG_FMNA_SERVICE_HIDDEN_MODE
+static struct bt_gatt_attr fmns_svc_attrs[] = { FMNA_ATTRS };
+static struct bt_gatt_service fmns_svc = BT_GATT_SERVICE(fmns_svc_attrs);
+#else
+BT_GATT_SERVICE_DEFINE(fmns_svc, FMNA_ATTRS);
+#endif
 
 static int cp_indicate(struct bt_conn *conn,
 		       const struct bt_gatt_attr *attr,
@@ -1069,6 +1083,29 @@ int fmna_gatt_debug_cp_indicate(struct bt_conn *conn,
 	}
 
 	return cp_indicate(conn, &fmns_svc.attrs[FMNS_DEBUG_CHAR_INDEX], debug_opcode, buf);
+}
+#endif
+
+#if CONFIG_FMNA_SERVICE_HIDDEN_MODE
+int fmna_gatt_service_hidden_mode_set(bool hidden_mode)
+{
+	int err;
+
+	if (hidden_mode) {
+		err = bt_gatt_service_unregister(&fmns_svc);
+		if (err) {
+			LOG_ERR("FMNS: failed to unregister the service: %d", err);
+			return err;
+		}
+	} else {
+		err = bt_gatt_service_register(&fmns_svc);
+		if (err) {
+			LOG_ERR("FMNS: failed to register the service: %d", err);
+			return err;
+		}
+	}
+
+	return 0;
 }
 #endif
 

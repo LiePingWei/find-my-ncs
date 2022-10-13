@@ -204,35 +204,64 @@ static ssize_t battery_level_read(struct bt_conn *conn,
 
 
 /* Accessory information service Declaration */
-BT_GATT_SERVICE_DEFINE(ais_svc,
-	BT_GATT_PRIMARY_SERVICE(BT_UUID_AIS),
-	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_PRODUCT_DATA,
-			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
-			       product_data_read, NULL, NULL),
-	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_MANUFACTURER_NAME,
-			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
-			       manufacturer_name_read, NULL,
-			       CONFIG_FMNA_MANUFACTURER_NAME),
-	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_MODEL_NAME,
-			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
-			       model_name_read, NULL,
-			       CONFIG_FMNA_MODEL_NAME),
-	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_ACC_CATEGORY,
-			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
-			       acc_category_read, NULL, NULL),
-	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_ACC_CAPABILITIES,
-			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
-			       acc_capabilities_read, NULL, NULL),
-	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_FW_VERSION,
-			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
-			       fw_version_read, NULL, NULL),
-	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_FMN_VERSION,
-			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
-			       fmn_version_read, NULL, NULL),
-	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_BATTERY_TYPE,
-			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
-			       battery_type_read, NULL, NULL),
-	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_BATTERY_LEVEL,
-			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,
-			       battery_level_read, NULL, NULL),
-);
+#define AIS_ATTRS							\
+	BT_GATT_PRIMARY_SERVICE(BT_UUID_AIS),				\
+	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_PRODUCT_DATA,		\
+			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,	\
+			       product_data_read, NULL, NULL),		\
+	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_MANUFACTURER_NAME,		\
+			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,	\
+			       manufacturer_name_read, NULL,		\
+			       CONFIG_FMNA_MANUFACTURER_NAME),		\
+	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_MODEL_NAME,			\
+			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,	\
+			       model_name_read, NULL,			\
+			       CONFIG_FMNA_MODEL_NAME),			\
+	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_ACC_CATEGORY,		\
+			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,	\
+			       acc_category_read, NULL, NULL),		\
+	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_ACC_CAPABILITIES,		\
+			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,	\
+			       acc_capabilities_read, NULL, NULL),	\
+	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_FW_VERSION,			\
+			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,	\
+			       fw_version_read, NULL, NULL),		\
+	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_FMN_VERSION,			\
+			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,	\
+			       fmn_version_read, NULL, NULL),		\
+	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_BATTERY_TYPE,		\
+			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,	\
+			       battery_type_read, NULL, NULL),		\
+	BT_GATT_CHARACTERISTIC(BT_UUID_AIS_BATTERY_LEVEL,		\
+			       BT_GATT_CHRC_READ, BT_GATT_PERM_READ,	\
+			       battery_level_read, NULL, NULL)
+
+#if CONFIG_FMNA_SERVICE_HIDDEN_MODE
+static struct bt_gatt_attr ais_svc_attrs[] = { AIS_ATTRS };
+static struct bt_gatt_service ais_svc = BT_GATT_SERVICE(ais_svc_attrs);
+#else
+BT_GATT_SERVICE_DEFINE(ais_svc, AIS_ATTRS);
+#endif
+
+#if CONFIG_FMNA_SERVICE_HIDDEN_MODE
+int fmna_gatt_ais_hidden_mode_set(bool hidden_mode)
+{
+	int err;
+
+	if (hidden_mode) {
+		err = bt_gatt_service_unregister(&ais_svc);
+		if (err) {
+			LOG_ERR("AIS: failed to unregister the service: %d", err);
+			return err;
+		}
+	} else {
+		err = bt_gatt_service_register(&ais_svc);
+		if (err) {
+			LOG_ERR("AIS: failed to register the service: %d", err);
+			return err;
+		}
+	}
+
+	return 0;
+}
+#endif

@@ -59,6 +59,16 @@ config FMNA_TX_POWER
 config FMNA_CUSTOM_SERIAL_NUMBER
 	bool "Use custom serial number from provisioned data"
 
+config FMNA_SERVICE_HIDDEN_MODE
+	bool "Hide the Find My services in the disabled state"
+	select BT_GATT_SERVICE_CHANGED
+	select BT_GATT_DYNAMIC_DB
+	help
+	  Have the FMN, AIS and Firmware Update services registered in the
+	  Bluetooth GATT database only when the Find My stack is enabled.
+	  In the disabled state, these services will not be visible to the
+	  connected peers.
+
 # Product Plan configuration
 config FMNA_NORDIC_PRODUCT_PLAN
 	bool "Use Nordic Product Plan"

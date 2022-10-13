@@ -72,14 +72,43 @@ static ssize_t data_cp_write(struct bt_conn *conn,
 			     uint16_t offset, uint8_t flags);
 
 /* FMN Firmware Update Service Declaration */
-BT_GATT_SERVICE_DEFINE(fmn_uarp_svc,
-BT_GATT_PRIMARY_SERVICE(BT_UUID_FMN_UARP),
-	BT_GATT_CHARACTERISTIC(BT_UUID_FMN_UARP_DCP,
-			       BT_GATT_CHRC_WRITE | BT_GATT_CHRC_INDICATE,
-			       BT_GATT_PERM_WRITE_ENCRYPT,
-			       NULL, data_cp_write, NULL),
+#define FMN_UARP_ATTRS									\
+	BT_GATT_PRIMARY_SERVICE(BT_UUID_FMN_UARP),					\
+	BT_GATT_CHARACTERISTIC(BT_UUID_FMN_UARP_DCP,					\
+			       BT_GATT_CHRC_WRITE | BT_GATT_CHRC_INDICATE,		\
+			       BT_GATT_PERM_WRITE_ENCRYPT,				\
+			       NULL, data_cp_write, NULL),				\
 	BT_GATT_CCC(NULL, BT_GATT_PERM_READ_ENCRYPT | BT_GATT_PERM_WRITE_ENCRYPT),
-);
+
+#if CONFIG_FMNA_SERVICE_HIDDEN_MODE
+static struct bt_gatt_attr fmn_uarp_svc_attrs[] = { FMN_UARP_ATTRS };
+static struct bt_gatt_service fmn_uarp_svc = BT_GATT_SERVICE(fmn_uarp_svc_attrs);
+#else
+BT_GATT_SERVICE_DEFINE(fmn_uarp_svc, FMN_UARP_ATTRS);
+#endif
+
+#if CONFIG_FMNA_SERVICE_HIDDEN_MODE
+int fmna_uarp_service_hidden_mode_set(bool hidden_mode)
+{
+	int err;
+
+	if (hidden_mode) {
+		err = bt_gatt_service_unregister(&fmn_uarp_svc);
+		if (err) {
+			LOG_ERR("UARP: failed to unregister the service: %d", err);
+			return err;
+		}
+	} else {
+		err = bt_gatt_service_register(&fmn_uarp_svc);
+		if (err) {
+			LOG_ERR("UARP: failed to register the service: %d", err);
+			return err;
+		}
+	}
+
+	return 0;
+}
+#endif
 
 static ssize_t data_cp_write(struct bt_conn *conn,
 			     const struct bt_gatt_attr *attr,
