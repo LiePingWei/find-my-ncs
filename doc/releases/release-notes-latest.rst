@@ -67,6 +67,7 @@ Changelog
 * Improved RTT logging (bigger RTT buffer) of the Debug configuration in Find My projects.
 * Added motion and speaker platform abstraction in the Find My application.
   Platform implementations now support both Thingy:53 and Thingy:52.
+* In the Find My Coexistence sample, added a mechanism for activating and deactivating Find My on a long **Button 1** press with the status indication displayed on the **LED 4**.
 
 CLI Tools
 =========

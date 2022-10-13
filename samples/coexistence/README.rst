@@ -59,7 +59,8 @@ User interface
 **************
 
 Button 1:
-   Resumes advertising on the accessory when it is unpaired.
+   A short press enables or extends the Find My pairing mode on the accessory.
+   A long press (>3s) activates or deactivates the Find My functionality.
 
 Button 2:
    Enables the Serial Number lookup over Bluetooth LE.
@@ -73,6 +74,9 @@ Button 4:
 
 LED 1:
    Indicates that the play sound action is in progress.
+
+LED 4:
+   Indicates that the Find My functionality is enabled.
 
 Building and running
 ********************

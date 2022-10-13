@@ -27,11 +27,15 @@ BUILD_ASSERT(BT_ID_COUNT == CONFIG_BT_ID_MAX, "BT identities misconfigured");
 
 #define FMNA_PEER_SOUND_DURATION K_SECONDS(5)
 
-#define FMNA_SOUND_LED DK_LED1
+#define FMNA_SOUND_LED      DK_LED1
+#define FMNA_ACTIVATION_LED DK_LED4
 
 #define FMNA_ADV_RESUME_BUTTON             DK_BTN1_MSK
+#define FMNA_ACTIVATION_BUTTON             DK_BTN1_MSK
 #define FMNA_SN_LOOKUP_BUTTON              DK_BTN2_MSK
 #define FMNA_FACTORY_SETTINGS_RESET_BUTTON DK_BTN4_MSK
+
+#define FMNA_ACTIVATION_MIN_HOLD_TIME_MS 3000
 
 #define FMNA_DEVICE_NAME_SUFFIX " - Find My"
 
@@ -62,9 +66,13 @@ static bool hr_sensor_pairing_mode;
 
 static uint8_t battery_level = 100;
 
+static void fmna_enable_work_handle(struct k_work *item);
+static void fmna_disable_work_handle(struct k_work *item);
 static void fmna_sound_timeout_work_handle(struct k_work *item);
 static void hr_sensor_advertising_work_handle(struct k_work *item);
 
+static K_WORK_DELAYABLE_DEFINE(fmna_enable_work, fmna_enable_work_handle);
+static K_WORK_DELAYABLE_DEFINE(fmna_disable_work, fmna_disable_work_handle);
 static K_WORK_DELAYABLE_DEFINE(fmna_sound_timeout_work, fmna_sound_timeout_work_handle);
 static K_WORK_DEFINE(hr_sensor_advertising_work, hr_sensor_advertising_work_handle);
 
@@ -228,7 +236,81 @@ static int fmna_initialize(void)
 		return err;
 	}
 
+	dk_set_led(FMNA_ACTIVATION_LED, 1);
+
 	return 0;
+}
+
+static void fmna_adv_resume_action_handle(void)
+{
+	int err;
+
+	if (fmna_pairing_mode_exit) {
+		err = fmna_resume();
+		if (err) {
+			printk("Cannot resume the FMN activity (err: %d)\n", err);
+		} else {
+			printk("FMN pairing mode resumed\n");
+		}
+
+		fmna_pairing_mode_exit = false;
+	}
+}
+
+static void fmna_enable_work_handle(struct k_work *item)
+{
+	int err;
+	struct fmna_enable_param enable_param = {0};
+
+	enable_param.bt_id = FMNA_BT_ID;
+	enable_param.init_battery_level = battery_level;
+	enable_param.use_default_factory_settings = factory_settings_restore_check();
+
+	err = fmna_enable(&enable_param, &fmna_enable_callbacks);
+	if (err) {
+		printk("fmna_enable failed (err %d)\n", err);
+
+		k_work_reschedule(&fmna_enable_work, K_SECONDS(1));
+	} else {
+		printk("FMN enabled\n");
+
+		fmna_pairing_mode_exit = false;
+
+		dk_set_led(FMNA_ACTIVATION_LED, 1);
+	}
+}
+
+static void fmna_disable_work_handle(struct k_work *item)
+{
+	int err;
+
+	err = fmna_disable();
+	if (err) {
+		printk("fmna_disable failed (err: %d)\n", err);
+
+		k_work_reschedule(&fmna_disable_work, K_SECONDS(1));
+	} else {
+		printk("FMN disabled\n");
+
+		/* Reset the necessary flags. */
+		fmna_pairing_mode_exit = true;
+		fmna_location_available = false;
+
+		dk_set_led(FMNA_ACTIVATION_LED, 0);
+	}
+}
+
+static void fmna_activation_action_handle(void)
+{
+	/* In case we are in error retry mode. */
+	k_work_cancel_delayable(&fmna_enable_work);
+	k_work_cancel_delayable(&fmna_disable_work);
+
+	if (fmna_is_ready()) {
+		fmna_disable_work_handle(NULL);
+	} else {
+		fmna_enable_work_handle(NULL);
+	}
 }
 
 static void button_changed(uint32_t button_state, uint32_t has_changed)
@@ -236,16 +318,22 @@ static void button_changed(uint32_t button_state, uint32_t has_changed)
 	int err;
 	uint32_t buttons = button_state & has_changed;
 
-	if (buttons & FMNA_ADV_RESUME_BUTTON) {
-		if (fmna_pairing_mode_exit) {
-			err = fmna_resume();
-			if (err) {
-				printk("Cannot resume the FMN activity (err: %d)\n", err);
-			} else {
-				printk("FMN pairing mode resumed\n");
-			}
+	if (has_changed & (FMNA_ADV_RESUME_BUTTON | FMNA_ACTIVATION_BUTTON)) {
+		static int64_t prev_uptime;
 
-			fmna_pairing_mode_exit = false;
+		if (button_state & (FMNA_ADV_RESUME_BUTTON | FMNA_ACTIVATION_BUTTON)) {
+			/* On button press */
+			prev_uptime = k_uptime_get();
+		} else {
+			/* On button release */
+			int64_t hold_time;
+
+			hold_time = (k_uptime_get() - prev_uptime);
+			if (hold_time > FMNA_ACTIVATION_MIN_HOLD_TIME_MS) {
+				fmna_activation_action_handle();
+			} else {
+				fmna_adv_resume_action_handle();
+			}
 		}
 	}
 
