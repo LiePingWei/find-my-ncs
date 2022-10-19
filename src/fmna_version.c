@@ -6,9 +6,9 @@
 
 #include "fmna_version.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
-#include <dfu/mcuboot.h>
+#include <zephyr/dfu/mcuboot.h>
 #include <pm_config.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);

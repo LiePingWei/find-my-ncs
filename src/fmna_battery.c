@@ -5,10 +5,10 @@
  */
 
 #include <fmna.h>
-#include <kernel.h>
-#include <init.h>
+#include <zephyr/kernel.h>
+#include <zephyr/init.h>
 #include <string.h>
-#include <sys/byteorder.h>
+#include <zephyr/sys/byteorder.h>
 
 #include "events/fmna_event.h"
 

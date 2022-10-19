@@ -9,7 +9,7 @@ extern "C" {
 
 #include "app_event_manager.h"
 
-#include <bluetooth/conn.h>
+#include <zephyr/bluetooth/conn.h>
 
 #define FMNA_EVENT_CREATE(_name, _evt_id, _conn)     \
 	struct fmna_event *_name = new_fmna_event(); \

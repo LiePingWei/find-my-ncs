@@ -4,17 +4,16 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
-#include <kernel.h>
-#include <zephyr.h>
-#include <net/buf.h>
+#include <zephyr/kernel.h>
+#include <zephyr/net/buf.h>
 #include <dfu/dfu_target.h>
 #include <dfu/dfu_target_mcuboot.h>
-#include <sys/reboot.h>
-#include <logging/log_ctrl.h>
-#include <dfu/mcuboot.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/logging/log_ctrl.h>
+#include <zephyr/dfu/mcuboot.h>
 #include <ocrypto_sha256.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 #define LOG_MODULE_NAME fmna_uarp
 
 #include "events/fmna_event.h"

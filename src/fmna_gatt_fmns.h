@@ -11,9 +11,9 @@
 extern "C" {
 #endif
 
-#include <zephyr.h>
-#include <bluetooth/conn.h>
-#include <net/buf.h>
+#include <zephyr/kernel.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/net/buf.h>
 
 #include "events/fmna_non_owner_event.h"
 #include "events/fmna_owner_event.h"

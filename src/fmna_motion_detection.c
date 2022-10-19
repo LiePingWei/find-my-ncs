@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 #include <string.h>
-#include <init.h>
+#include <zephyr/init.h>
 
 #include "events/fmna_event.h"
 #include "fmna_gatt_fmns.h"
@@ -15,7 +15,7 @@
 
 #include <fmna.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 

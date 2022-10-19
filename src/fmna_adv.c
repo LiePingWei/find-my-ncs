@@ -8,12 +8,12 @@
 #include "fmna_battery.h"
 #include "fmna_product_plan.h"
 
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/conn.h>
-#include <bluetooth/hci.h>
-#include <bluetooth/hci_vs.h>
-#include <sys/byteorder.h>
-#include <logging/log.h>
+#include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/hci.h>
+#include <zephyr/bluetooth/hci_vs.h>
+#include <zephyr/sys/byteorder.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 

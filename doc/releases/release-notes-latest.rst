@@ -61,6 +61,7 @@ Changelog
   This new default configuration frees around 4 kB of flash memory.
 * By default, the Find My accessory requests longer supervision timeout in the Connection Parameter Update procedure.
   The new timeout value reduces disconnection probability due to the connection timeout.
+* Aligned references to all public Zephyr headers that have been moved to the :file:`include/zephyr` folder.
 
 CLI Tools
 =========

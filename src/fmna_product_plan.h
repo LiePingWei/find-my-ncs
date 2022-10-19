@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #define FMNA_PP_PRODUCT_DATA_LEN                8
 #define FMNA_PP_SERVER_ENCRYPTION_KEY_LEN       65

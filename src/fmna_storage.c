@@ -9,9 +9,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <logging/log.h>
-#include <settings/settings.h>
-#include <sys/byteorder.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/settings/settings.h>
+#include <zephyr/sys/byteorder.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 

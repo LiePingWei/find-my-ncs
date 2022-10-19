@@ -58,7 +58,7 @@
 #else
 #define LOG_LEVEL CONFIG_UARPDK_LOG_LEVEL
 #endif
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 #if defined(_UARPDK_LOG_MODULE_REGISTER)
 LOG_MODULE_REGISTER(LOG_MODULE_NAME, LOG_LEVEL);
 #else
@@ -71,8 +71,8 @@ LOG_MODULE_DECLARE(LOG_MODULE_NAME, LOG_LEVEL);
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/util_macro.h>
-#include <net/net_ip.h>
+#include <zephyr/sys/util_macro.h>
+#include <zephyr/net/net_ip.h>
 
 
 #ifdef __cplusplus

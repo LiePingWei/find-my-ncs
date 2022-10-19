@@ -6,9 +6,9 @@
 
 #include "fmna_gatt_pkt_manager.h"
 
-#include <bluetooth/gatt.h>
+#include <zephyr/bluetooth/gatt.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 

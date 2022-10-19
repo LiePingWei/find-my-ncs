@@ -11,8 +11,8 @@
 extern "C" {
 #endif
 
-#include <zephyr.h>
-#include <bluetooth/conn.h>
+#include <zephyr/kernel.h>
+#include <zephyr/bluetooth/conn.h>
 
 enum fmna_conn_multi_status_bit {
 	FMNA_CONN_MULTI_STATUS_BIT_PERSISTENT_CONNECTION = 0,

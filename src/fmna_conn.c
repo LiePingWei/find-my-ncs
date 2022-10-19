@@ -10,9 +10,9 @@
 #include "fmna_state.h"
 #include "fmna_gatt_fmns.h"
 
-#include <sys/util.h>
+#include <zephyr/sys/util.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 #define MAX_CONN_WORK_CHECK_PERIOD K_MSEC(100)

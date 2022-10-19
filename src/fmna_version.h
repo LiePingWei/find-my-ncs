@@ -11,7 +11,7 @@
 extern 'C' {
 #endif
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #define FMNA_VERSION_ENCODE(fmna_version) (               \
 	((uint32_t)(fmna_version.major) << 16) |         \

@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 bool fmna_sound_start(void);
 

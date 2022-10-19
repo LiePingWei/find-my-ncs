@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-#include <net/buf.h>
+#include <zephyr/net/buf.h>
 
 typedef uint32_t (*fmna_uarp_send_message_fn)(struct net_buf_simple *buf);
 

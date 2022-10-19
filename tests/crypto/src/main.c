@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
-#include <tc_util.h>
-#include <zephyr.h>
-#include <ztest.h>
+#include <zephyr/tc_util.h>
+#include <zephyr/kernel.h>
+#include <zephyr/ztest.h>
 
 void test_collab(void);
 void test_decrypt(void);

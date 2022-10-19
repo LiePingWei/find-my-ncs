@@ -7,8 +7,8 @@
 #ifndef FMNA_GATT_PKT_MANGER_H_
 #define FMNA_GATT_PKT_MANGER_H_
 
-#include <zephyr.h>
-#include <bluetooth/conn.h>
+#include <zephyr/kernel.h>
+#include <zephyr/bluetooth/conn.h>
 
 #ifdef __cplusplus
 extern "C" {

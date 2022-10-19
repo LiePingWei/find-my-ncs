@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 enum fmna_state {
 	FMNA_STATE_UNPAIRED,

@@ -7,7 +7,7 @@
 #ifndef FMNA_H_
 #define FMNA_H_
 
-#include <bluetooth/conn.h>
+#include <zephyr/bluetooth/conn.h>
 
 #ifdef __cplusplus
 extern "C" {

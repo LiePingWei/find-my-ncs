@@ -15,7 +15,7 @@
 #include "events/fmna_pair_event.h"
 #include "events/fmna_event.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 

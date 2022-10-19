@@ -16,7 +16,7 @@
 /* BLE internal header, use with caution. */
 #include <bluetooth/host/keys.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 

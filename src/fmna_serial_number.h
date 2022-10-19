@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #define FMNA_SERIAL_NUMBER_BLEN 16
 #define FMNA_SERIAL_NUMBER_ENC_BLEN 141

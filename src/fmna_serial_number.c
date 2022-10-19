@@ -25,7 +25,7 @@
 #include <hal/nrf_ficr.h>
 #endif /* CONFIG_TRUSTED_EXECUTION_NONSECURE */
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 

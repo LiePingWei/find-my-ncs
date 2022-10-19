@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
-#include <ztest.h>
+#include <zephyr/ztest.h>
 
 #include "fm_crypto.h"
 

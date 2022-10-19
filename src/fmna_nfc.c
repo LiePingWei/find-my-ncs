@@ -13,13 +13,13 @@
 #include "fmna_state.h"
 #include "fmna_version.h"
 
-#include <bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/bluetooth.h>
 
 #include <nfc_t2t_lib.h>
 #include <nfc/ndef/msg.h>
 #include <nfc/ndef/uri_msg.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 

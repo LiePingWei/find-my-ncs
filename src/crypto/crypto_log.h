@@ -7,7 +7,7 @@
 #ifndef CRYPTO_LOG_H_
 #define CRYPTO_LOG_H_
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 #if CONFIG_FMN_CRYPTO_DBG_ENABLED
 #define LOG_LEVEL LOG_LEVEL_DBG

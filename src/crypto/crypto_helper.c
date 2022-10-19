@@ -6,7 +6,7 @@
 
 #include "crypto_helper.h"
 
-#include <random/rand32.h>
+#include <zephyr/random/rand32.h>
 
 #include "ocrypto_sha256.h"
 #include "ocrypto_constant_time.h"

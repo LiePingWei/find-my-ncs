@@ -4,17 +4,17 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
-#include <zephyr.h>
-#include <sys/reboot.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/reboot.h>
 #include <hal/nrf_power.h>
-#include <drivers/sensor.h>
-#include <device.h>
-#include <devicetree.h>
-#include <logging/log.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(app, CONFIG_LOG_DEFAULT_LEVEL);
 
-#include <settings/settings.h>
+#include <zephyr/settings/settings.h>
 #include <dk_buttons_and_leds.h>
 
 #include <fmna.h>

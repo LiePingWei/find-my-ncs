@@ -17,9 +17,9 @@
 
 #include <fmna.h>
 
-#include <sys/atomic.h>
+#include <zephyr/sys/atomic.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(fmna, CONFIG_FMNA_LOG_LEVEL);
 

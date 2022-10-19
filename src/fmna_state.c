@@ -12,10 +12,10 @@
 #include "fmna_keys.h"
 #include "fmna_state.h"
 
-#include <bluetooth/conn.h>
-#include <sys/reboot.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/sys/reboot.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 

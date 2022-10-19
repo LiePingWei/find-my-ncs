@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
  */
 
-#include <ztest.h>
+#include <zephyr/ztest.h>
 
 #include <ocrypto_aes_gcm.h>
 #include <ocrypto_ecdh_p256.h>

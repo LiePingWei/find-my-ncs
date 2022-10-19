@@ -54,7 +54,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
 /* -------------------------------------------------------------------------------- */
 

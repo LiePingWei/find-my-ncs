@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 enum fmna_battery_state {
 	FMNA_BATTERY_STATE_FULL,
