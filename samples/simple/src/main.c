@@ -166,6 +166,11 @@ static void battery_level_request(void)
 	printk("Battery level request\n");
 }
 
+static void pairing_failed(void)
+{
+	printk("FMN pairing has failed\n");
+}
+
 static void pairing_mode_exited(void)
 {
 	printk("Exited the FMN pairing mode\n");
@@ -191,6 +196,7 @@ static void paired_state_changed(bool new_paired_state)
 
 static const struct fmna_enable_cb enable_callbacks = {
 	.battery_level_request = battery_level_request,
+	.pairing_failed = pairing_failed,
 	.pairing_mode_exited = pairing_mode_exited,
 	.paired_state_changed = paired_state_changed,
 };
