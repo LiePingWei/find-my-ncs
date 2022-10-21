@@ -314,6 +314,10 @@ static void conn_uninit_iterator(struct bt_conn *conn, void *user_data)
 
 	bt_conn_get_info(conn, &conn_info);
 
+	if (conn_info.state != BT_CONN_STATE_CONNECTED) {
+		return;
+	}
+
 	if (conn_info.id == fmna_bt_id) {
 		/* Disconnect Find My peer. */
 		err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
@@ -351,6 +355,10 @@ static void state_changed_peer_counter(struct bt_conn *conn, void *user_data)
 	struct bt_conn_info conn_info;
 
 	bt_conn_get_info(conn, &conn_info);
+
+	if (conn_info.state != BT_CONN_STATE_CONNECTED) {
+		return;
+	}
 
 	if (conn_info.id != fmna_bt_id) {
 		non_fmna_conns++;
@@ -421,12 +429,23 @@ static void conn_disconnecter_iterator(struct bt_conn *conn, void *user_data)
 	int err;
 	struct conn_disconnecter *conn_disconnecter =
 		(struct conn_disconnecter *) user_data;
+	struct bt_conn_info conn_info;
 
 	if (conn_disconnecter->disconnect_num <= 0) {
 		return;
 	}
 
 	if (conn_disconnecter->req_conn == conn) {
+		return;
+	}
+
+	bt_conn_get_info(conn, &conn_info);
+
+	if (conn_info.state != BT_CONN_STATE_CONNECTED) {
+		return;
+	}
+
+	if (conn_info.id != fmna_bt_id) {
 		return;
 	}
 
