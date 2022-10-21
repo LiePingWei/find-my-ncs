@@ -71,6 +71,7 @@ Changelog
 * In the Find My Connection module, fixed the :c:func:`bt_conn_foreach` API calls that are used to iterate over connected peers.
 * Added a new :kconfig:option:`CONFIG_FMNA_SERVICE_HIDDEN_MODE` configuration option for hiding Find My services in the disabled state of the FMN stack.
 * Enabled the :kconfig:option:`CONFIG_FMNA_SERVICE_HIDDEN_MODE` configuration option in the Find My Coexistence sample.
+* Added a new callback to the Find My API. It notifies the user about the Find My pairing failure.
 
 CLI Tools
 =========

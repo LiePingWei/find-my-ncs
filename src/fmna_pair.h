@@ -13,6 +13,10 @@ extern "C" {
 
 #include <zephyr/kernel.h>
 
+typedef void (*fmna_pair_failed_t)(void);
+
+int fmna_pair_failed_cb_register(fmna_pair_failed_t cb);
+
 int fmna_pair_init(uint8_t bt_id);
 
 #ifdef __cplusplus

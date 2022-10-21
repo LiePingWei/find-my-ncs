@@ -215,6 +215,18 @@ struct fmna_enable_cb {
 	 */
 	void (*location_availability_changed)(bool available);
 
+	/** @brief Notify the user that Find My pairing process has failed.
+	 *
+	 *  This callback is called to notify the user that the Find My pairing
+	 *  process has failed. The failure often happens due to the Bluetooth
+	 *  link termination by the connected peer during the ongoing pairing
+	 *  operation. The connected peer may want to abort the pairing process
+	 *  for multiple reasons. Often the procedure is aborted when the
+	 *  Find My app user taps the cross button during the pairing UI flow
+	 *  or when the app detects an invalid MFi token set.
+	 */
+	void (*pairing_failed)(void);
+
 	/** @brief Notify the user about exit from the pairing mode.
 	 *
 	 *  This callback is called to notify the user about the

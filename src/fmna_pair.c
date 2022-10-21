@@ -6,6 +6,7 @@
 
 #include "fmna_keys.h"
 #include "fmna_gatt_fmns.h"
+#include "fmna_pair.h"
 #include "fmna_product_plan.h"
 #include "fmna_serial_number.h"
 #include "fmna_state.h"
@@ -98,6 +99,14 @@ static struct fm_crypto_ckg_context ckg_ctx;
 
 static struct bt_conn *pairing_conn;
 static uint8_t fmna_bt_id;
+static fmna_pair_failed_t failed_cb;
+
+int fmna_pair_failed_cb_register(fmna_pair_failed_t cb)
+{
+	failed_cb = cb;
+
+	return 0;
+}
 
 int fmna_pair_init(uint8_t bt_id)
 {
@@ -532,6 +541,10 @@ static void fmna_peer_disconnected(struct bt_conn *conn)
 		err = bt_unpair(fmna_bt_id, bt_conn_get_dst(conn));
 		if (err) {
 			LOG_ERR("fmna_pair: bt_unpair returned error: %d", err);
+		}
+
+		if (failed_cb) {
+			failed_cb();
 		}
 	}
 }
