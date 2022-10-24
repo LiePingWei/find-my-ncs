@@ -22,7 +22,7 @@ Highlights
 
 This release covers the following features:
 
-There are no entries for this section yet.
+* Added support for the Thingy:53 board in the Find My Thingy application.
 
 .. TODO: Uncomment following section and change version numbers
   Release tag
@@ -50,6 +50,7 @@ Supported development kits
 * PCA10100 (nRF52833 Development Kit)
 * PCA10095 (nRF5340 Development Kit)
 * PCA20020 (Thingy:52 Prototyping Platform)
+* PCA20053 (Thingy:53 Prototyping Platform)
 
 .. TODO: If you adding new kit to this list, add it also to the release-notes-latest.rst.tmpl
 
@@ -62,6 +63,10 @@ Changelog
 * By default, the Find My accessory requests longer supervision timeout in the Connection Parameter Update procedure.
   The new timeout value reduces disconnection probability due to the connection timeout.
 * Aligned references to all public Zephyr headers that have been moved to the :file:`include/zephyr` folder.
+* Fixed the return value check of Bluetooth identity creation in the Find My Thingy application.
+* Improved RTT logging (bigger RTT buffer) of the Debug configuration in Find My projects.
+* Added motion and speaker platform abstraction in the Find My application.
+  Platform implementations now support both Thingy:53 and Thingy:52.
 
 CLI Tools
 =========
@@ -76,7 +81,6 @@ Known issues and limitations
 * Find My characteristics are always available regardless of the accessory state.
   This limitation will require a waiver for Find My qualification.
 * Firmware updates of the nRF5340 network core are not supported with the UARP protocol.
-* The Find My Thingy application does not support the Thingy:53 platform.
 
 .. TODO:
   1. Before the release, make sure that all TODO items in the 'release-notes-latest.rst' file are fulfilled and deleted.
