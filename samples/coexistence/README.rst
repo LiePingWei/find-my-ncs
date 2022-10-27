@@ -60,7 +60,7 @@ User interface
 
 Button 1:
    A short press enables or extends the Find My pairing mode on the accessory.
-   A long press (>3s) activates or deactivates the Find My functionality.
+   A long press (>3 s) activates or deactivates the Find My functionality.
 
 Button 2:
    Enables the Serial Number lookup over Bluetooth LE.
