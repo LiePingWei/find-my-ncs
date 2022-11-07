@@ -7,6 +7,7 @@
 #include "motion_platform.h"
 
 #include <errno.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(app);

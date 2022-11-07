@@ -6,6 +6,7 @@
 
 #include "motion_platform.h"
 
+#include <zephyr/kernel.h>
 #include <errno.h>
 
 #define SENSOR_VALUE_SET(_var, _int, _frac) \
