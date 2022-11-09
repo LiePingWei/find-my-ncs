@@ -124,6 +124,43 @@ static int fmna_gatt_services_hidden_mode_set(bool hidden_mode)
 	return 0;
 }
 
+static int fmna_callback_group_register(const struct fmna_enable_cb *cb)
+{
+	int err;
+
+	err = fmna_pair_failed_cb_register(cb->pairing_failed);
+	if (err) {
+		LOG_ERR("fmna_pair_failed_cb_register returned error: %d", err);
+		return err;
+	}
+
+	err = fmna_state_pairing_mode_timeout_cb_register(cb->pairing_mode_exited);
+	if (err) {
+		LOG_ERR("fmna_state_pairing_mode_timeout_cb_register returned error: %d", err);
+		return err;
+	}
+
+	err = fmna_state_location_availability_cb_register(cb->location_availability_changed);
+	if (err) {
+		LOG_ERR("fmna_state_location_availability_cb_register returned error: %d", err);
+		return err;
+	}
+
+	err = fmna_state_paired_state_changed_cb_register(cb->paired_state_changed);
+	if (err) {
+		LOG_ERR("fmna_state_paired_state_changed_cb_register returned error: %d", err);
+		return err;
+	}
+
+	err = fmna_battery_level_request_cb_register(cb->battery_level_request);
+	if (err) {
+		LOG_ERR("fmna_battery_level_request_cb_register returned error: %d", err);
+		return err;
+	}
+
+	return err;
+}
+
 int fmna_enable(const struct fmna_enable_param *param,
 		const struct fmna_enable_cb *cb)
 {
@@ -152,32 +189,14 @@ int fmna_enable(const struct fmna_enable_param *param,
 	}
 
 	/* Register enable callbacks. */
-	err = fmna_pair_failed_cb_register(cb->pairing_failed);
+	err = fmna_callback_group_register(cb);
 	if (err) {
-		LOG_ERR("fmna_pair_failed_cb_register returned error: %d", err);
-		goto error;
-	}
-
-	err = fmna_state_pairing_mode_timeout_cb_register(cb->pairing_mode_exited);
-	if (err) {
-		LOG_ERR("fmna_state_pairing_mode_timeout_cb_register returned error: %d", err);
-		goto error;
-	}
-
-	err = fmna_state_location_availability_cb_register(cb->location_availability_changed);
-	if (err) {
-		LOG_ERR("fmna_state_location_availability_cb_register returned error: %d", err);
-		goto error;
-	}
-
-	err = fmna_state_paired_state_changed_cb_register(cb->paired_state_changed);
-	if (err) {
-		LOG_ERR("fmna_state_paired_state_changed_cb_register returned error: %d", err);
+		LOG_ERR("fmna_callback_group_register returned error: %d", err);
 		goto error;
 	}
 
 	/* Initialize FMN modules. */
-	err = fmna_battery_init(param->init_battery_level, cb->battery_level_request);
+	err = fmna_battery_init(param->init_battery_level);
 	if (err) {
 		LOG_ERR("fmna_battery_init returned error: %d", err);
 		goto error;

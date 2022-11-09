@@ -26,7 +26,9 @@ enum fmna_battery_state fmna_battery_state_get_no_cb(void);
 
 enum fmna_battery_state fmna_battery_state_get(void);
 
-int fmna_battery_init(uint8_t init_battery_level, fmna_battery_level_request_cb_t cb);
+int fmna_battery_level_request_cb_register(fmna_battery_level_request_cb_t cb);
+
+int fmna_battery_init(uint8_t init_battery_level);
 
 #ifdef __cplusplus
 }

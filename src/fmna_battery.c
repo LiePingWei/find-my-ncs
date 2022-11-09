@@ -60,11 +60,16 @@ int fmna_battery_level_set(uint8_t percentage_level)
 	return 0;
 }
 
-int fmna_battery_init(uint8_t init_battery_level, fmna_battery_level_request_cb_t cb)
+int fmna_battery_level_request_cb_register(fmna_battery_level_request_cb_t cb)
+{
+	battery_level_request_cb = cb;
+
+	return 0;
+}
+
+int fmna_battery_init(uint8_t init_battery_level)
 {
 	int err;
-
-	battery_level_request_cb = cb;
 
 	err = fmna_battery_level_set(init_battery_level);
 	if (err) {
