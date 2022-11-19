@@ -10,6 +10,7 @@
 #include "fmna_conn.h"
 #include "fmna_gatt_fmns.h"
 #include "fmna_keys.h"
+#include "fmna_pair.h"
 #include "fmna_state.h"
 
 #include <zephyr/bluetooth/conn.h>
@@ -33,6 +34,7 @@ static bool persistent_conn_adv = false;
 static bool location_available;
 static fmna_state_location_availability_changed_t location_availability_changed_cb;
 static fmna_state_paired_state_changed_t paired_state_changed_cb;
+static fmna_state_pairing_failed_t pairing_failed_cb;
 
 static bool pairing_mode = false;
 static fmna_state_pairing_mode_timeout_cb_t pairing_mode_timeout_cb;
@@ -468,6 +470,28 @@ static void fmna_peer_disconnected(struct bt_conn *conn)
 	advertise_restart_on_no_state_change();
 }
 
+static void fmna_pairing_failed(void)
+{
+	if (pairing_failed_cb) {
+		pairing_failed_cb();
+	}
+}
+
+static void fmna_pair_status_changed(struct bt_conn *conn,
+				     enum fmna_pair_status status)
+{
+	switch (status) {
+	case FMNA_PAIR_STATUS_SUCCESS:
+		state_set(conn, FMNA_STATE_CONNECTED);
+		break;
+	case FMNA_PAIR_STATUS_FAILURE:
+		fmna_pairing_failed();
+		break;
+	default:
+		__ASSERT(0, "Invalid FMNA Pair state");
+	}
+}
+
 int fmna_state_pause(void)
 {
 	int err;
@@ -544,6 +568,12 @@ int fmna_state_init(uint8_t bt_id, bool is_paired)
 	int err;
 	enum fmna_state state;
 
+	err = fmna_pair_init(bt_id, fmna_pair_status_changed);
+	if (err) {
+		LOG_ERR("fmna_pair_init returned error: %d", err);
+		return err;
+	}
+
 	err = fmna_adv_init(bt_id);
 	if (err) {
 		LOG_ERR("fmna_adv_init returned error: %d", err);
@@ -608,6 +638,13 @@ int fmna_state_pairing_mode_timeout_cb_register(fmna_state_pairing_mode_timeout_
 	}
 
 	pairing_mode_timeout_cb = cb;
+
+	return 0;
+}
+
+int fmna_state_pairing_failed_cb_register(fmna_state_pairing_failed_t cb)
+{
+	pairing_failed_cb = cb;
 
 	return 0;
 }
@@ -761,7 +798,6 @@ static bool app_event_handler(const struct app_event_header *aeh)
 		case FMNA_EVENT_MAX_CONN_CHANGED:
 			advertise_restart_on_no_state_change();
 			break;
-		case FMNA_EVENT_PAIRING_COMPLETED:
 		case FMNA_EVENT_OWNER_CONNECTED:
 			state_set(event->conn, FMNA_STATE_CONNECTED);
 			break;

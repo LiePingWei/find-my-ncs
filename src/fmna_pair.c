@@ -99,27 +99,18 @@ static struct fm_crypto_ckg_context ckg_ctx;
 
 static struct bt_conn *pairing_conn;
 static uint8_t fmna_bt_id;
-static fmna_pair_failed_t failed_cb;
+static fmna_pair_status_changed_t status_cb;
 
-int fmna_pair_failed_cb_register(fmna_pair_failed_t cb)
+int fmna_pair_init(uint8_t bt_id, fmna_pair_status_changed_t cb)
 {
-	failed_cb = cb;
-
-	return 0;
-}
-
-int fmna_pair_init(uint8_t bt_id)
-{
-	int err;
-
-	err = fm_crypto_ckg_init(&ckg_ctx);
-	if (err) {
-		LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
+	if (!cb) {
+		return -EINVAL;
 	}
+	status_cb = cb;
 
 	fmna_bt_id = bt_id;
 
-	return err;
+	return 0;
 }
 
 static void pairing_peer_disconnect(struct bt_conn *conn)
@@ -500,32 +491,24 @@ static void pairing_complete_cmd_handle(struct bt_conn *conn,
 		return;
 	}
 
+	/* Find My pairing has completed. */
+	pairing_conn = NULL;
+	status_cb(conn, FMNA_PAIR_STATUS_SUCCESS);
+
 	err = fm_crypto_ckg_finish(&ckg_ctx,
-					init_keys.master_pk,
-					init_keys.primary_sk,
-					init_keys.secondary_sk);
+				   init_keys.master_pk,
+				   init_keys.primary_sk,
+				   init_keys.secondary_sk);
 	if (err) {
 		LOG_ERR("fm_crypto_ckg_finish: %d", err);
 	}
 
 	fm_crypto_ckg_free(&ckg_ctx);
 
-	/* Reinitialize context for future pairing attempts. */
-	err = fm_crypto_ckg_init(&ckg_ctx);
-	if (err) {
-		LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
-	}
-
 	err = fmna_keys_service_start(&init_keys);
 	if (err) {
 		LOG_ERR("fmna_keys_service_start: %d", err);
 	}
-
-	/* Find My pairing has completed. */
-	pairing_conn = NULL;
-
-	FMNA_EVENT_CREATE(event, FMNA_EVENT_PAIRING_COMPLETED, conn);
-	APP_EVENT_SUBMIT(event);
 }
 
 static void fmna_peer_disconnected(struct bt_conn *conn)
@@ -543,9 +526,7 @@ static void fmna_peer_disconnected(struct bt_conn *conn)
 			LOG_ERR("fmna_pair: bt_unpair returned error: %d", err);
 		}
 
-		if (failed_cb) {
-			failed_cb();
-		}
+		status_cb(conn, FMNA_PAIR_STATUS_FAILURE);
 	}
 }
 
@@ -566,6 +547,11 @@ static void fmna_peer_security_changed(struct bt_conn *conn, bt_security_t level
 
 	/* Find My pairing has started. */
 	if (!pairing_conn) {
+		err = fm_crypto_ckg_init(&ckg_ctx);
+		if (err) {
+			LOG_ERR("fm_crypto_ckg_init returned error: %d", err);
+		}
+
 		pairing_conn = conn;
 	} else {
 		LOG_WRN("fmna_pair: rejecting simultaneous pairing attempt");

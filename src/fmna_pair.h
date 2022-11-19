@@ -12,12 +12,17 @@ extern "C" {
 #endif
 
 #include <zephyr/kernel.h>
+#include <zephyr/bluetooth/conn.h>
 
-typedef void (*fmna_pair_failed_t)(void);
+enum fmna_pair_status {
+	FMNA_PAIR_STATUS_SUCCESS,
+	FMNA_PAIR_STATUS_FAILURE,
+};
 
-int fmna_pair_failed_cb_register(fmna_pair_failed_t cb);
+typedef void (*fmna_pair_status_changed_t)(struct bt_conn *conn,
+					   enum fmna_pair_status status);
 
-int fmna_pair_init(uint8_t bt_id);
+int fmna_pair_init(uint8_t bt_id, fmna_pair_status_changed_t cb);
 
 #ifdef __cplusplus
 }

@@ -11,7 +11,6 @@
 #include "fmna_gatt_fmns.h"
 #include "fmna_keys.h"
 #include "fmna_nfc.h"
-#include "fmna_pair.h"
 #include "fmna_serial_number.h"
 #include "fmna_storage.h"
 #include "fmna_state.h"
@@ -128,9 +127,9 @@ static int fmna_callback_group_register(const struct fmna_enable_cb *cb)
 {
 	int err;
 
-	err = fmna_pair_failed_cb_register(cb->pairing_failed);
+	err = fmna_state_pairing_failed_cb_register(cb->pairing_failed);
 	if (err) {
-		LOG_ERR("fmna_pair_failed_cb_register returned error: %d", err);
+		LOG_ERR("fmna_state_pairing_failed_cb_register returned error: %d", err);
 		return err;
 	}
 
@@ -211,12 +210,6 @@ int fmna_enable(const struct fmna_enable_param *param,
 	err = fmna_storage_init(param->use_default_factory_settings, &is_paired);
 	if (err) {
 		LOG_ERR("fmna_storage_init returned error: %d", err);
-		goto error;
-	}
-
-	err = fmna_pair_init(param->bt_id);
-	if (err) {
-		LOG_ERR("fmna_pair_init returned error: %d", err);
 		goto error;
 	}
 

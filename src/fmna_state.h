@@ -28,6 +28,8 @@ typedef void (*fmna_state_paired_state_changed_t)(bool paired);
 
 typedef void (*fmna_state_pairing_mode_timeout_cb_t)(void);
 
+typedef void (*fmna_state_pairing_failed_t)(void);
+
 enum fmna_state fmna_state_get(void);
 
 bool fmna_state_is_paired(void);
@@ -49,6 +51,8 @@ int fmna_state_paired_state_changed_cb_register(
 	fmna_state_paired_state_changed_t cb);
 
 int fmna_state_pairing_mode_timeout_cb_register(fmna_state_pairing_mode_timeout_cb_t cb);
+
+int fmna_state_pairing_failed_cb_register(fmna_state_pairing_failed_t cb);
 
 #ifdef __cplusplus
 }
