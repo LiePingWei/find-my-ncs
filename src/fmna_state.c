@@ -256,6 +256,9 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 	} else if (new_state == FMNA_STATE_CONNECTED) {
 		/* Handle Connected state transition. */
 
+		fmna_conn_multi_status_bit_set(
+			conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
+
 		if (prev_state == FMNA_STATE_NEARBY) {
 			k_timer_stop(&nearby_separated_timer);
 		}
