@@ -475,8 +475,19 @@ static void fmna_peer_disconnected(struct bt_conn *conn)
 
 static void fmna_pairing_failed(void)
 {
+	int err;
+
 	if (pairing_failed_cb) {
 		pairing_failed_cb();
+	}
+
+	/* Regenerate the accessory address to work around the iOS issue
+	 * with the cached bond information. This API will also restart
+	 * pairing mode timeout.
+	 */
+	err = unpaired_adv_start(true);
+	if (err) {
+		LOG_ERR("unpaired_adv_start returned error: %d", err);
 	}
 }
 

@@ -73,6 +73,7 @@ Changelog
 * Enabled the :kconfig:option:`CONFIG_FMNA_SERVICE_HIDDEN_MODE` configuration option in the Find My Coexistence sample.
 * Added a new callback to the Find My API. It notifies the user about the Find My pairing failure.
 * Added a log indication of the Find My pairing failure to the Find My Simple and Qualification samples.
+* The FMN stack advertises with a new Bluetooth address in case of a Find My pairing failure to work around the iOS issue with the cached bond information.
 * Fixed an issue with the Unpair command rejection when the command was used in the same connection session as the Find My pairing.
   The issue caused the FMN stack to persist in the paired state when the Find My app user cancelled the pairing flow after a successful pairing packet exchange.
 
