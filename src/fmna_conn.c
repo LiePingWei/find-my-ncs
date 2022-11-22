@@ -365,21 +365,9 @@ static void state_changed_peer_counter(struct bt_conn *conn, void *user_data)
 	}
 }
 
-static void state_changed(void)
+static void disabled_to_enabled_state_transition_handle(void)
 {
 	int err;
-	bool current_state;
-	bool prev_state;
-	static bool state = false;
-
-	current_state = fmna_state_is_enabled();
-	prev_state = state;
-	state = current_state;
-
-	/* Return if there is no transition from disabled to enabled state. */
-	if ((current_state == prev_state) || !current_state) {
-		return;
-	}
 
 	/* Count the number of non-Find-My peers. */
 	non_fmna_conns = 0;
@@ -392,6 +380,32 @@ static void state_changed(void)
 			LOG_ERR("fmna_state_pause returned error: %d", err);
 		}
 	}
+}
+
+static void unpaired_state_transition_handle(void)
+{
+	max_connections = CONFIG_FMNA_MAX_CONN;
+}
+
+static void state_changed(void)
+{
+	enum fmna_state current_state;
+	static enum fmna_state prev_state = FMNA_STATE_DISABLED;
+
+	current_state = fmna_state_get();
+	switch (current_state) {
+	case FMNA_STATE_UNPAIRED:
+		unpaired_state_transition_handle();
+		break;
+	default:
+		break;
+	}
+
+	if ((prev_state == FMNA_STATE_DISABLED) && (current_state != FMNA_STATE_DISABLED)) {
+		disabled_to_enabled_state_transition_handle();
+	}
+
+	prev_state = current_state;
 }
 
 static void persistent_conn_request_handle(struct bt_conn *conn, uint8_t persistent_conn_status)

@@ -391,6 +391,10 @@ static void fmna_keys_state_cleanup(void)
 
 	is_primary_pk_latched = false;
 	use_secondary_pk = false;
+
+	if (IS_ENABLED(CONFIG_FMNA_QUALIFICATION)) {
+		key_rotation_timer_period = KEY_ROTATION_TIMER_PERIOD;
+	}
 }
 
 int fmna_keys_service_stop(void)

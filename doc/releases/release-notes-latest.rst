@@ -76,6 +76,7 @@ Changelog
 * The FMN stack advertises with a new Bluetooth address in case of a Find My pairing failure to work around the iOS issue with the cached bond information.
 * Fixed an issue with the Unpair command rejection when the command was used in the same connection session as the Find My pairing.
   The issue caused the FMN stack to persist in the paired state when the Find My app user cancelled the pairing flow after a successful pairing packet exchange.
+* All accessory parameters that are configurable by iOS are set to their default values after the Unpair procedure.
 
 CLI Tools
 =========

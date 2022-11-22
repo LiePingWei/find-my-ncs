@@ -217,6 +217,14 @@ static void connected_owner_handle(void)
 	}
 }
 
+static void unpaired_state_transition_handle(void)
+{
+	if (IS_ENABLED(CONFIG_FMNA_QUALIFICATION)) {
+		separated_ut_timer_period   = SEPARATED_UT_TIMER_PERIOD;
+		separated_ut_backoff_period = SEPARATED_UT_BACKOFF_PERIOD;
+	}
+}
+
 static void separated_state_transition_handle(void)
 {
 	LOG_DBG("Starting the timer for enabling the motion detection");
@@ -252,6 +260,9 @@ static void state_transition_handle(void)
 	enum fmna_state state = fmna_state_get();
 
 	switch (state) {
+	case FMNA_STATE_UNPAIRED:
+		unpaired_state_transition_handle();
+		break;
 	case FMNA_STATE_SEPARATED:
 		separated_state_transition_handle();
 		break;

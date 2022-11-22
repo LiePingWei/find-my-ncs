@@ -239,6 +239,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 
 			unpair_pending = false;
 			persistent_conn_adv = false;
+			nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
 		}
 
 		if (IS_ENABLED(CONFIG_FMNA_PAIRING_MODE_AUTOSTART)) {
