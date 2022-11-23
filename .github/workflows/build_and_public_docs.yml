@@ -56,7 +56,7 @@ jobs:
           ref: ${{ env.SOURCE_REF }}
 
       - name: Install OS dependencies
-        run: sudo apt-get install -y ninja-build libclang-9-dev libclang-cpp9
+        run: sudo apt-get install -y ninja-build
 
       - name: Prepare
         run: |
