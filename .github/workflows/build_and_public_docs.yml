@@ -103,16 +103,16 @@ jobs:
       - name: Cache doxygen binaries
         uses: actions/cache@v2
         with:
-          path: doxygen-1.9.2.linux.bin.tar.*
-          key: doxygen-1.9.2.linux.bin.tar.
+          path: doxygen-1.9.4.linux.bin.tar.*
+          key: doxygen-1.9.4.linux.bin.tar.
 
       - name: Download and install newer doxygen
         run: |
-          if [ ! -f doxygen-1.9.2.linux.bin.tar.* ]; then wget https://github.com/doki-nordic/test-actions-playground/raw/doxygen-ubuntu-bins/doxygen-1.9.2.linux.bin.tar.xz || true; fi
-          if [ ! -f doxygen-1.9.2.linux.bin.tar.* ]; then wget https://www.doxygen.nl/files/doxygen-1.9.2.linux.bin.tar.gz || true; fi
-          tar -xf doxygen-1.9.2.linux.bin.tar.*
-          echo `pwd`/doxygen-1.9.2/bin >> $GITHUB_PATH
-          export PATH=$PATH:`pwd`/doxygen-1.9.2/bin
+          if [ ! -f doxygen-1.9.4.linux.bin.tar.* ]; then wget https://github.com/doki-nordic/test-actions-playground/raw/doxygen-ubuntu-bins/doxygen-1.9.4.linux.bin.tar.xz || true; fi
+          if [ ! -f doxygen-1.9.4.linux.bin.tar.* ]; then wget https://downloads.sourceforge.net/project/doxygen/rel-1.9.4/doxygen-1.9.4.linux.bin.tar.gz || true; fi
+          tar -xf doxygen-1.9.4.linux.bin.tar.*
+          echo `pwd`/doxygen-1.9.4/bin >> $GITHUB_PATH
+          export PATH=$PATH:`pwd`/doxygen-1.9.4/bin
           which doxygen
           doxygen --version
 
