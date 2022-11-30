@@ -21,8 +21,8 @@ Identity
 The primary purpose application should use a dedicated Bluetooth identity that is different from the identity used in the Find My stack.
 Distinct Bluetooth identities ensure that main Bluetooth LE functionality and the Find My feature can independently coexist.
 
-Before you enable the stack with the ``fmna_enable()`` API, you need to generate a non-default Bluetooth identity and pass it to the enabling function as an input parameter.
-To create such an identity, use the ``bt_id_create()`` API available in the :file:`bluetooth.h` header file.
+Before you enable the stack with the :c:func:`fmna_enable()` function, you need to generate a non-default Bluetooth identity and pass it to the enabling function as an input parameter.
+To create such an identity, use the :c:func:`bt_id_create()` function available in the :file:`bluetooth.h` header file.
 The maximum number of Bluetooth identities you can have is capped and controlled by the ``CONFIG_BT_ID_MAX`` configuration.
 It is recommended to use the default identity - ``BT_ID_DEFAULT`` - with the primary purpose application.
 
@@ -65,14 +65,14 @@ In all other cases, the device should use its original device name.
 
 You can rely on the ``location_availability_changed`` callback from the ``fmna_enable_cb`` structure to track whether the Find My Network is enabled or disabled.
 
-To dynamically change the device name, use the ``bt_set_name()`` API available in the :file:`bluetooth.h` header file and enable the ``CONFIG_BT_DEVICE_NAME_DYNAMIC`` configuration.
+To dynamically change the device name, use the :c:func:`bt_set_name()` function available in the :file:`bluetooth.h` header file and enable the ``CONFIG_BT_DEVICE_NAME_DYNAMIC`` configuration.
 
 Connection filtering
 ********************
 
 The Bluetooth LE stack in Zephyr supplies connection objects in most of its callbacks.
 The connection callbacks API is available in the :file:`conn.h` header file.
-See the ``bt_conn_cb_register()`` and ``bt_conn_auth_cb_register()`` API for reference.
+See the :c:func:`bt_conn_cb_register()` and :c:func:`bt_conn_auth_cb_register()` functions for reference.
 Another example of callbacks with connection object parameters is the GATT API.
 For reference, see callbacks in the ``bt_gatt_attr`` structure of the :file:`gatt.h` header file.
 
