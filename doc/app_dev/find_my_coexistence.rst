@@ -77,5 +77,23 @@ Another example of callbacks with connection object parameters is the GATT API.
 For reference, see callbacks in the ``bt_gatt_attr`` structure of the :file:`gatt.h` header file.
 
 When implementing Bluetooth LE callbacks with the connection object as one of its parameters, you must filter all Find My connections.
-Use the ``fmna_conn_check`` API for this purpose.
+Provided that you assigned the ``FMNA_BT_ID`` identity to the FMN stack as the :c:member:`fmna_enable_param.bt_id` parameter in the :c:func:`fmna_enable()` function, you can use the following code template for connection filtering:
+
+   .. code-block:: c
+
+      int err;
+      struct bt_conn_info conn_info;
+
+      err = bt_conn_get_info(conn, &conn_info);
+      if (err) {
+              LOG_ERR("Unable to get connection information and act on it");
+              return;
+      }
+
+      if (conn_info.id != FMNA_BT_ID) {
+              /* You can safely interact in this code scope with connection objects
+               * that are not related to the Find My (e.g. HR monitor peer).
+               */
+      }
+
 This requirement ensures that the primary purpose application logic does not interfere with the Find My activity.
