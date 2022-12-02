@@ -22,7 +22,7 @@ The primary purpose application should use a dedicated Bluetooth identity that i
 Distinct Bluetooth identities ensure that main Bluetooth LE functionality and the Find My feature can independently coexist.
 
 Before you enable the stack with the :c:func:`fmna_enable()` function, you need to generate a non-default Bluetooth identity and pass it to the enabling function as an input parameter.
-To create such an identity, use the :c:func:`bt_id_create()` function available in the :file:`bluetooth.h` header file.
+To create such an identity, use the :c:func:`bt_id_create()` function available in the :file:`zephyr/bluetooth.h` header file.
 The maximum number of Bluetooth identities you can have is capped and controlled by the ``CONFIG_BT_ID_MAX`` configuration.
 It is recommended to use the default identity - ``BT_ID_DEFAULT`` - with the primary purpose application.
 
@@ -40,7 +40,7 @@ In this configuration, the Find My stack keeps advertising according to the Find
 Advertising extension
 *********************
 
-To advertise the primary purpose application payload, use the extended advertising API from the :file:`bluetooth.h` header file.
+To advertise the primary purpose application payload, use the extended advertising API from the :file:`zephyr/bluetooth.h` header file.
 When you use this API with default flags, the advertising payload is still visible as legacy advertising to the scanning devices.
 It is necessary to use the extended API because it enables two advertising sets to be broadcasted concurrently: the first one with the Find My payload and the second one with the primary application payload.
 
@@ -65,16 +65,16 @@ In all other cases, the device should use its original device name.
 
 You can rely on the ``location_availability_changed`` callback from the ``fmna_enable_cb`` structure to track whether the Find My Network is enabled or disabled.
 
-To dynamically change the device name, use the :c:func:`bt_set_name()` function available in the :file:`bluetooth.h` header file and enable the ``CONFIG_BT_DEVICE_NAME_DYNAMIC`` configuration.
+To dynamically change the device name, use the :c:func:`bt_set_name()` function available in the :file:`zephyr/bluetooth.h` header file and enable the ``CONFIG_BT_DEVICE_NAME_DYNAMIC`` configuration.
 
 Connection filtering
 ********************
 
 The Bluetooth LE stack in Zephyr supplies connection objects in most of its callbacks.
-The connection callbacks API is available in the :file:`conn.h` header file.
+The connection callbacks API is available in the :file:`zephyr/conn.h` header file.
 See the :c:func:`bt_conn_cb_register()` and :c:func:`bt_conn_auth_cb_register()` functions for reference.
 Another example of callbacks with connection object parameters is the GATT API.
-For reference, see callbacks in the ``bt_gatt_attr`` structure of the :file:`gatt.h` header file.
+For reference, see callbacks in the ``bt_gatt_attr`` structure of the :file:`zephyr/gatt.h` header file.
 
 When implementing Bluetooth LE callbacks with the connection object as one of its parameters, you must filter all Find My connections.
 Provided that you assigned the ``FMNA_BT_ID`` identity to the FMN stack as the :c:member:`fmna_enable_param.bt_id` parameter in the :c:func:`fmna_enable()` function, you can use the following code template for connection filtering:
