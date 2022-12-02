@@ -74,6 +74,11 @@ To build and run this application, refer to generic instructions in the :ref:`sa
 Testing
 =======
 
+.. note::
+   This application does not comply with the firmware update methods that are described in `the Thingy:53 user guide <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/ug_thingy53_gs.html>`_.
+   It does not support firmware updates using the nRF Programmer app over USB (Serial Recovery) and Bluetooth LE.
+   The application is not compatible with the MCUboot bootloader preprogrammed on Thingy:53.
+
 After provisioning the MFi tokens to your development kit and programming it, complete the following steps to test the application:
 
 1. Power on the application.
