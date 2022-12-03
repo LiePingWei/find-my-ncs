@@ -83,6 +83,7 @@ static struct fmna_uarp_accessory
 	enum asset_state state;
 	uint8_t payload_hash[ocrypto_sha256_BYTES];
 	uint8_t apply_flags;
+	bool dfu_target_init_done;
 } accessory;
 
 static uint32_t query_active_firmware_version(void *accessory_delegate,
@@ -397,9 +398,12 @@ static void remove_asset(struct fmna_uarp_accessory *accessory,
 
 	accessory->state = ASSET_NONE;
 	accessory->asset = NULL;
-	ret = dfu_target_reset();
-	if (ret != 0) {
-		LOG_ERR("Cannot reset DFU target, code %d", ret);
+
+	if (accessory->dfu_target_init_done) {
+		ret = dfu_target_reset();
+		if (ret != 0) {
+			LOG_ERR("Cannot reset DFU target, code %d", ret);
+		}
 	}
 }
 
@@ -668,10 +672,12 @@ static void payload_meta_data_complete(void *accessory_delegate, void *asset_del
 		return;
 	}
 
-	ret = dfu_target_reset();
-	if (ret) {
-		LOG_ERR("dfu_target_reset failed, code %d", ret);
-		goto error_exit;
+	if (accessory->dfu_target_init_done) {
+		ret = dfu_target_reset();
+		if (ret) {
+			LOG_ERR("dfu_target_reset failed, code %d", ret);
+			goto error_exit;
+		}
 	}
 
 	ret = dfu_target_mcuboot_set_buf(mcuboot_buf, sizeof(mcuboot_buf));
@@ -680,13 +686,25 @@ static void payload_meta_data_complete(void *accessory_delegate, void *asset_del
 		goto error_exit;
 	}
 
-	ret = dfu_target_init(DFU_TARGET_IMAGE_TYPE_MCUBOOT,
-			      0,
-			      asset->payload.plHdr.payloadLength,
-			      dfu_target_callback);
-	if (ret) {
-		LOG_ERR("dfu_target_init failed, code %d", ret);
-		goto error_exit;
+	if (accessory->dfu_target_init_done) {
+		ret = dfu_target_mcuboot_init(asset->payload.plHdr.payloadLength,
+					      0,
+					      dfu_target_callback);
+		if (ret) {
+			LOG_ERR("dfu_target_mcuboot_init failed, code %d", ret);
+			goto error_exit;
+		}
+	} else {
+		ret = dfu_target_init(DFU_TARGET_IMAGE_TYPE_MCUBOOT,
+				      0,
+				      asset->payload.plHdr.payloadLength,
+				      dfu_target_callback);
+		if (ret) {
+			LOG_ERR("dfu_target_init failed, code %d", ret);
+			goto error_exit;
+		}
+
+		accessory->dfu_target_init_done = true;
 	}
 
 	status = uarpPlatformAccessoryPayloadRequestData(&accessory->accessory, asset);
