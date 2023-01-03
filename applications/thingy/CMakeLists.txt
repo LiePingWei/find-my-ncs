@@ -24,7 +24,9 @@ target_sources(app PRIVATE ${app_sources})
 target_sources_ifdef(CONFIG_BOARD_THINGY52_NRF52832 app PRIVATE
                                                         src/platform/motion_int.c
                                                         src/platform/speaker_pin_ctrl.c)
-target_sources_ifdef(CONFIG_BOARD_THINGY53_NRF5340_CPUAPP app PRIVATE
-                                                        src/platform/motion_poll.c
-                                                        src/platform/speaker_none.c)
+if(CONFIG_BOARD_THINGY53_NRF5340_CPUAPP OR CONFIG_BOARD_THINGY53_NRF5340_CPUAPP_NS)
+  target_sources(app PRIVATE
+                     src/platform/motion_poll.c
+                     src/platform/speaker_none.c)
+endif()
 include(${FIND_MY_COMMON_CMAKE_DIR}/mcuboot_validation.cmake NO_POLICY_SCOPE)

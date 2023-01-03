@@ -4,8 +4,9 @@ sample:
 tests:
   applications.thingy:
     build_only: true
-    platform_allow: thingy52_nrf52832 thingy53_nrf5340_cpuapp
+    platform_allow: thingy52_nrf52832 thingy53_nrf5340_cpuapp thingy53_nrf5340_cpuapp_ns
     integration_platforms:
       - thingy52_nrf52832
       - thingy53_nrf5340_cpuapp
+      - thingy53_nrf5340_cpuapp_ns
     tags: ci_build
