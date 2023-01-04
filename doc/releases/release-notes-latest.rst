@@ -59,6 +59,8 @@ Changelog
 
 * Disabled the external flash support for MCUboot in all Find My samples and applications.
 * Disabled the network core upgrade support on nRF53 platforms in all Find My samples and applications.
+* Fixed an issue with the board configurations of the Find My Thingy application.
+  The board configuration files were not applied for this application.
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.
