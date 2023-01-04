@@ -57,7 +57,8 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* Disabled the external flash support for MCUboot in all Find My samples and applications.
+* Disabled the network core upgrade support on nRF53 platforms in all Find My samples and applications.
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.
