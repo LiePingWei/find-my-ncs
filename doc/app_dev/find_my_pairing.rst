@@ -116,8 +116,8 @@ NVS is a file system library available in the nRF Connect SDK.
 The file system uses a fragment of the device memory for storing user's data.
 
 For more information about storage system, see 
-`the Settings documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/reference/settings/index.html>`_ and
-`the Non-Volatile Storage documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/reference/storage/nvs/nvs.html>`_.
+`the Settings documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/services/settings/index.html>`_ and
+`the Non-Volatile Storage documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/services/storage/nvs/nvs.html>`_.
 
 In the default configuration of the Find My application, the NVS memory region occupies last two pages of the device memory.
 By default, the *ncsfmntools* package generates a HEX file with provisioned data that is compatible with this firmware configuration.

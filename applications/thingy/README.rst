@@ -75,7 +75,7 @@ Testing
 =======
 
 .. note::
-   This application does not comply with the firmware update methods that are described in `the Thingy:53 user guide <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/ug_thingy53_gs.html>`_.
+   This application does not comply with the firmware update methods that are described in `the Thingy:53 user guide <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/working_with_nrf/nrf53/thingy53_gs.html>`_.
    It does not support firmware updates using the nRF Programmer app over USB (Serial Recovery) and Bluetooth LE.
    The application is not compatible with the MCUboot bootloader preprogrammed on Thingy:53.
 

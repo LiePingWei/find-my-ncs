@@ -89,7 +89,7 @@ Testing
 After provisioning the MFi tokens to your development kit and programming it, complete the following steps to test the sample:
 
 1. Connect to the kit that runs this sample with a terminal emulator (for example PuTTY).
-   See `How to connect with PuTTY for the required settings <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/gs_testing.html#how-to-connect-with-putty>`_.
+   See `How to connect with PuTTY for the required settings <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/getting_started/testing.html#how-to-connect-with-putty>`_.
 #. On your iOS device, pair the accessory using the Find My application:
 
    a. Open the Find My application.

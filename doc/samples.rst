@@ -91,4 +91,4 @@ To build a Find My sample, complete the following steps:
 
       west flash --erase
 
-For more information on building and programming using the command line, see `the Zephyr documentation on Building, Flashing, and Debugging <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/west/build-flash-debug.html#west-build-flash-debug>`_.
+For more information on building and programming using the command line, see `the Zephyr documentation on Building, Flashing, and Debugging <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/develop/west/build-flash-debug.html#west-build-flash-debug>`_.

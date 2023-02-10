@@ -44,7 +44,7 @@ It performs the following tasks necessary for the updates over the UARP using th
 * Adds sources for writing a new MCUBoot image to the flash and passing it to the MCUBoot bootloader.
 
 For more details about the bootloader and firmware updates, see the
-`nRF Connect SDK documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/app_bootloaders.html>`_.
+`nRF Connect SDK documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/app_dev/bootloaders_and_dfu/index.html>`_.
 
 Signing the MCUBoot images is mandatory.
 For development purposes, you can use the example keys distributed with MCUboot.
@@ -53,7 +53,7 @@ You have to generate your own production key pair.
 For more details, see `Managing signing keys <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/mcuboot/readme-zephyr.html#managing-signing-keys>`_
 in the MCUboot documentation.
 
-To learn how to handle the keys,  see the :ref:`simple`.
+To learn how to handle the keys, see the :ref:`simple`.
 In the sample application,  the ``ZDebug`` build configuration uses the default (insecure) keys.
 The ``ZRelease`` uses a key located at ``find-my/samples/common/configuration/mcuboot_private.pem``.
 It is not part of the distribution.
@@ -100,7 +100,7 @@ The firmware update procedure
 *****************************
 
 This section provides a general description of the firmware update procedure.
-For details, see UARP specification and `MCUBoot documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/mcuboot/>`_.
+For details, see UARP specification and `MCUBoot documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/mcuboot/wrapper.html>`_.
 
 
 Staging the SuperBinary

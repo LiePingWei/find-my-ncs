@@ -17,4 +17,4 @@ The SDK is distributed in multiple Git repositories with application code, drive
 This add-on is also a part of nRF Connect SDK and requires other SDK repositories to work correctly.
 Use the west tool to set up this distributed codebase and to keep it in sync based on the manifest file - :file:`west.yml` from `the main SDK repository <https://github.com/nrfconnect/sdk-nrf>`_.:
 
-For more information about the SDK, see `the nRF Connect SDK documentation  <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/index.html>`_.
+For more information about the SDK, see `the nRF Connect SDK documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/index.html>`_.
