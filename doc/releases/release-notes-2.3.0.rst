@@ -1,15 +1,7 @@
-.. _find_my_release_notes_latest:
+.. _find_my_release_notes_230:
 
-.. TODO: Change "latest" in above tag to specific version, e.g. 160
-
-.. TODO: Change "from main branch" to specific version, e.g. v1.6.0
-
-Find My add-on for nRF Connect SDK from main branch
-###################################################
-
-.. TODO: Remove following note
-.. note::
-   This file is a work in progress and might not cover all relevant changes.
+Find My add-on for nRF Connect SDK v2.3.0
+#########################################
 
 .. contents::
    :local:
@@ -20,16 +12,13 @@ The Find My add-on delivers reference software and libraries for developing Find
 Highlights
 **********
 
-This release covers the following features:
+There are no highlights for this release.
 
-There are no entries for this section yet.
+Release tag
+***********
 
-.. TODO: Uncomment following section and change version numbers
-  Release tag
-  ***********
-
-  The release tag for the Find My add-on for nRF Connect SDK repository is **v0.0.0**.
-  This release is compatible with nRF Connect SDK **v0.0.0** tag.
+The release tag for the Find My add-on for nRF Connect SDK repository is **v2.3.0**.
+This release is compatible with nRF Connect SDK **v2.3.0** tag.
 
 Installing
 **********
@@ -37,10 +26,9 @@ Installing
 Follow the instructions in the :ref:`ncs_install` document.
 Run the following command to install this specific release version:
 
-.. TODO: Change main to specific version, e.g. v1.6.0
 .. code-block:: console
 
-    west init -m https://github.com/nrfconnect/sdk-nrf --mr main
+    west init -m https://github.com/nrfconnect/sdk-nrf --mr v2.3.0
 
 Supported development kits
 **************************
@@ -52,8 +40,6 @@ Supported development kits
 * PCA20020 (Thingy:52 Prototyping Platform)
 * PCA20053 (Thingy:53 Prototyping Platform)
 
-.. TODO: If you adding new kit to this list, add it also to the release-notes-latest.rst.tmpl
-
 Changelog
 *********
 
@@ -63,11 +49,6 @@ Changelog
   The board configuration files were not applied for this application.
 * Fixed the configuration of the Find My Thingy application for the Thingy:53 non-secure target.
 
-.. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
-         Otherwise, remove this part of the release notes template.
-  CLI Tools
-  =========
-
 Known issues and limitations
 ****************************
 
@@ -76,8 +57,3 @@ Known issues and limitations
 * Find My characteristics are always available regardless of the accessory state.
   This limitation will require a waiver for Find My qualification.
 * Firmware updates of the nRF5340 network core are not supported with the UARP protocol.
-
-.. TODO:
-  1. Before the release, make sure that all TODO items in the 'release-notes-latest.rst' file are fulfilled and deleted.
-  2. Change ending of the 'release-notes-latest.rst' file name to an actual version, e.g. 'release-notes-1.6.0.rst'.
-  3. After the release, copy the 'release-notes-latest.rst.tmpl' file to the 'release-notes-latest.rst'.
