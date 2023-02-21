@@ -48,6 +48,8 @@ Changelog
 * Fixed an issue with the board configurations of the Find My Thingy application.
   The board configuration files were not applied for this application.
 * Fixed the configuration of the Find My Thingy application for the Thingy:53 non-secure target.
+* The :kconfig:option:`CONFIG_HEAP_MEM_POOL_SIZE` configuration option must be set explicitly in Find My projects.
+  The default value for the Find My use case is no longer applied automatically.
 
 Known issues and limitations
 ****************************

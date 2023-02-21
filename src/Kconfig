@@ -241,11 +241,6 @@ config BT_CONN_PARAM_UPDATE_TIMEOUT
 config SETTINGS_DYNAMIC_HANDLERS
 	default n
 
-# Override default kernel configuration
-
-config HEAP_MEM_POOL_SIZE
-	default 2048
-
 rsource "uarp/Kconfig"
 
 # Logger configuration
