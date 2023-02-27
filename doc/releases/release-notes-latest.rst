@@ -60,7 +60,10 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* Changed error handling behavior in both application and MCUboot bootloader configurations, for all Find My samples as follows:
+
+  * Enabled the :kconfig:option:`CONFIG_RESET_ON_FATAL_ERROR` Kconfig option by default in the Release variant.
+  * Disabled the :kconfig:option:`CONFIG_RESET_ON_FATAL_ERROR` Kconfig option by default in the Debug variant.
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.
