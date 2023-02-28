@@ -13,6 +13,7 @@ config FMNA_UARP
 	select DFU_TARGET_MCUBOOT
 	select IMG_MANAGER
 	select IMG_ERASE_PROGRESSIVELY
+	select REBOOT
 	help
 	  Enable Unified Accessory Restore Protocol (UARP) for Firmware Updates.
 

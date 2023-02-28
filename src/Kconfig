@@ -37,6 +37,7 @@ config FMNA_CRYPTO_ENTROPY_SRC
 
 config FMNA_QUALIFICATION
 	bool "Enable qualification capabilities used by the FMCA app"
+	select REBOOT
 
 config FMNA_MAX_CONN
 	int "Maximum number of FMN connections"
