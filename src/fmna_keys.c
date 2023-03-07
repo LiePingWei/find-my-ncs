@@ -15,7 +15,12 @@
 
 /* BLE internal header, use with caution. */
 #include <bluetooth/host/keys.h>
+#include <bluetooth/host/settings.h>
 
+#include <stdlib.h>
+
+#include <zephyr/sys/util.h>
+#include <zephyr/settings/settings.h>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
@@ -60,6 +65,13 @@ static struct bt_keys *fmna_bt_keys[CONFIG_BT_MAX_CONN];
 
 /* Make sure that number of keys supported in the Zephyr Bluetooth stack is sufficient. */
 BUILD_ASSERT(CONFIG_FMNA_MAX_CONN <= CONFIG_BT_MAX_PAIRED);
+
+static const char *bond_storage_key_filter[] = {
+	"ccc",
+	"sc",
+	"cf",
+	"keys"
+};
 
 static void key_rotation_work_handle(struct k_work *item);
 static void key_rotation_timeout_handle(struct k_timer *timer_id);
@@ -686,13 +698,165 @@ static int paired_state_restore(void)
 	return 0;
 }
 
+static bool is_bond_storage_data(const char *key)
+{
+	bool found = false;
+
+	for (size_t i = 0; i < ARRAY_SIZE(bond_storage_key_filter); i++) {
+		const char *f = bond_storage_key_filter[i];
+
+		if (!strncmp(key, f, strlen(f))) {
+			found = true;
+			break;
+		}
+	}
+
+	return found;
+}
+
+static int fmna_bond_storage_data_clear(const bt_addr_le_t *addr)
+{
+	int err = 0;
+	char fmna_id_str[4];
+
+	u8_to_dec(fmna_id_str, sizeof(fmna_id_str), bt_id);
+
+	for (size_t i = 0; i < ARRAY_SIZE(bond_storage_key_filter); i++) {
+		const char *f = bond_storage_key_filter[i];
+		char key[BT_SETTINGS_KEY_MAX];
+
+		bt_settings_encode_key(key, sizeof(key), f, addr, fmna_id_str);
+
+		err = settings_delete(key);
+		if (err) {
+			break;
+		};
+	}
+
+	return err;
+}
+
+static int parse_bond_storage_data(const char *key, bt_addr_le_t *addr, bool *fmna_bond)
+{
+	const char *record_type = NULL;
+	const char *addr_str = NULL;
+	const char *local_id_str = NULL;
+
+	/* Parse the Bluetooth settings data key in the following format: "<data_type>/<addr>/<id>".
+	 * The "addr" and "id" parameters are optional.
+	 */
+	record_type = key;
+	settings_name_next(record_type, &addr_str);
+	settings_name_next(addr_str, &local_id_str);
+
+	if (addr_str) {
+		int err;
+
+		err = bt_settings_decode_key(addr_str, addr);
+		if (err) {
+			return err;
+		}
+	} else {
+		bt_addr_le_copy(addr, BT_ADDR_LE_NONE);
+	}
+
+	/* Assuming that Find My cannot use the default Bluetooth local ID. */
+	*fmna_bond = local_id_str ? (atoi(local_id_str) == bt_id) : false;
+
+	return 0;
+}
+
+static int storage_addr_get_cb(const char *key, size_t len, settings_read_cb read_cb,
+			       void *cb_arg, void *param)
+{
+	int err;
+	bool found = false;
+	bt_addr_le_t *res = param;
+
+	bt_addr_le_t addr;
+	bool fmna_bond = false;
+
+	bt_addr_le_copy(&addr, BT_ADDR_LE_NONE);
+
+	err = parse_bond_storage_data(key, &addr, &fmna_bond);
+	if (err) {
+		LOG_ERR("Failed to parse key: %s", key);
+		return 0;
+	}
+
+	/* Skip if data is not related to a Find My bond. */
+	if (!fmna_bond || bt_addr_le_eq(&addr, BT_ADDR_LE_NONE)) {
+		return 0;
+	}
+
+	if (is_bond_storage_data(key)) {
+		bt_addr_le_copy(res, &addr);
+		found = true;
+	} else {
+		LOG_ERR("Unexpected Bluetooth settings key: %s", key);
+	}
+
+	/* Return error code to interrupt the settings direct load if the record was found. */
+	return found ? -EALREADY : 0;
+}
+
+static int fmna_bond_storage_cleanup(void)
+{
+	int err = 0;
+	bt_addr_le_t prev;
+	bt_addr_le_t cur;
+
+	bt_addr_le_copy(&prev, BT_ADDR_LE_NONE);
+	bt_addr_le_copy(&cur, BT_ADDR_LE_NONE);
+
+	while (true) {
+		err = settings_load_subtree_direct("bt", storage_addr_get_cb, &cur);
+		if (err) {
+			LOG_ERR("settings_load_subtree_direct failed, err: %d", err);
+			break;
+		}
+
+		/* Nothing found. */
+		if (bt_addr_le_eq(&cur, BT_ADDR_LE_NONE)) {
+			break;
+		}
+
+		/* The same bond address was reported twice - cleanup was incomplete. */
+		if (bt_addr_le_eq(&cur, &prev)) {
+			LOG_ERR("fmna_bond_storage_data_clear failed to clear the settings data");
+			err = -EDEADLK;
+			break;
+		}
+
+		err = fmna_bond_storage_data_clear(&cur);
+		if (err) {
+			LOG_ERR("fmna_bond_storage_data_clear failed, err: %d", err);
+			break;
+		}
+
+		bt_addr_le_copy(&prev, &cur);
+		bt_addr_le_copy(&cur, BT_ADDR_LE_NONE);
+	};
+
+	return err;
+}
+
 int fmna_keys_init(uint8_t id, bool is_paired)
 {
+	int err;
+
 	bt_id = id;
 	key_rotation_timer_period = KEY_ROTATION_TIMER_PERIOD;
 
+	err = fmna_bond_storage_cleanup();
+	if (err) {
+		LOG_ERR("fmna_bond_storage_cleanup failed, err: %d", err);
+		/* Do not propagate the returned error further. */
+		err = 0;
+	}
+
 	if (is_paired) {
-		int err = paired_state_restore();
+		err = paired_state_restore();
 		if (err) {
 			LOG_ERR("paired_state_restore returned error: %d", err);
 			return err;
