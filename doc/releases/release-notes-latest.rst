@@ -65,6 +65,8 @@ Changelog
   * Enabled the :kconfig:option:`CONFIG_RESET_ON_FATAL_ERROR` Kconfig option by default in the Release variant.
   * Disabled the :kconfig:option:`CONFIG_RESET_ON_FATAL_ERROR` Kconfig option by default in the Debug variant.
 
+* Improved the mechanism of injecting the Find My Long Term Key (LTK) into the Bluetooth stack in a scenario with multiple simultaneous owner connections.
+
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.
   CLI Tools
