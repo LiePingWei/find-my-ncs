@@ -6,15 +6,55 @@
 
 import binascii
 import intelhex
+import struct
+
+from . import device as DEVICE
 
 NVS_NAMECNT_ID = 0x8000
 NVS_NAME_ID_OFFSET = 0x4000
 NVS_ID_OFFSET = 0xff0
 NVS_ATE_LEN = 8
+NVS_UNPOPULATED_ATE = DEVICE.FLASH_ERASE_VALUE * NVS_ATE_LEN
 
 crc8_ccitt_table = [0x00, 0x07, 0x0e, 0x09, 0x1c, 0x1b, 0x12, 0x15, 0x38, 0x3f, 0x36, 0x31, 0x24, 0x23, 0x2a,
                     0x2d]
 
+class ATE:
+    def __init__(self, bytes, record_id, data_offset, data_len, crc):
+        self.bytes = bytes
+        self.record_id = record_id
+        self.data_offset = data_offset
+        self.data_len = data_len
+        self.crc = crc
+
+    @classmethod
+    def from_bytes(cls, bytes):
+        assert len(bytes) == NVS_ATE_LEN
+
+        vals = struct.unpack('<HHHBB', bytes)
+        record_id, data_offset, data_len, _, crc = vals
+        return cls(bytes, record_id, data_offset, data_len, crc)
+
+    def is_valid(self):
+        ate_without_crc = self.bytes[:7]
+        if (crc8_ccitt(ate_without_crc, len(ate_without_crc)) == self.crc) \
+            and self.data_offset < (DEVICE.SETTINGS_SECTOR_SIZE - NVS_ATE_LEN):
+            return True
+
+        return False
+
+    def is_populated(self):
+        return self.bytes != NVS_UNPOPULATED_ATE
+
+    def __str__(self):
+        if not self.is_populated():
+            return 'ATE: unpopulated'
+
+        return (f'ATE: {"valid" if self.is_valid() else "invalid"}\n'
+                f'  Record ID: {hex(self.record_id)}\n'
+                f'  Data offset: {hex(self.data_offset)}\n'
+                f'  Data length: {self.data_len}'
+                f'  Bytes: {self.bytes.hex()}')
 
 def create_blank_nvs_dict(base_addr):
     r = dict()

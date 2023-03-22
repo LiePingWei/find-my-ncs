@@ -80,6 +80,8 @@ CLI Tools
 =========
 
 * Added the ``-i/--input-file`` option to the ``extract`` command in the Find My CLI tools package, which allows to provide file with settings partition memory dump instead of reading memory directly from the device.
+* Reimplemented the algorithm for ``extract`` command in the Find My CLI tools package to closer follow the entry identification logic of the Settings and NVS firmware modules from Zephyr.
+* Fixed an issue in the ``extract`` command of the Find My CLI tools package, which caused the older token to be read instead of the latest one.
 
 Known issues and limitations
 ****************************
