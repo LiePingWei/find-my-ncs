@@ -10,13 +10,16 @@ import argparse
 import six
 import sys
 from contextlib import contextmanager
+import io
+
+import intelhex
 
 from pynrfjprog import LowLevel as API
 from . import device as DEVICE
 from . import provisioned_metadata as PROVISIONED_METADATA
 from . import settings_nvs_utils as nvs
 
-NVS_UNPOPULATED_ATE = b'\xff\xff\xff\xff\xff\xff\xff\xff'
+NVS_UNPOPULATED_ATE = DEVICE.FLASH_ERASE_VALUE * nvs.NVS_ATE_LEN
 
 def extract_error_handle(msg, param_prefix = None):
     parser.print_usage()
@@ -153,17 +156,28 @@ def cli(cmd, argv):
     global parser
 
     parser = argparse.ArgumentParser(description='FMN Accessory MFi Token Extractor Tool', prog=cmd, add_help=False)
-    parser.add_argument('-e', '--device', help='Device of accessory to use',
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-e', '--device', default=None, help='Device of accessory to use',
               metavar='['+'|'.join(DEVICE.FLASH_SIZE.keys())+']',
-              choices=DEVICE.FLASH_SIZE.keys(), required=True)
-    parser.add_argument('-f', '--settings-base', metavar='ADDRESS',
+              choices=DEVICE.FLASH_SIZE.keys())
+    group.add_argument('-i', '--input-file', default=None, help='File in *.hex or *.bin format with Settings partition memory dump')
+    parser.add_argument('-f', '--settings-base', default=None, metavar='ADDRESS',
               help='Settings base address given in hex format. This only needs to be specified if the default values in the '
                    'NCS has been changed.')
     parser.add_argument('--help', action='help',
                         help='Show this help message and exit')
+
     args = parser.parse_args(argv)
 
-    extract(args.device, args.settings_base)
+    if args.device is None and args.settings_base:
+        extract_error_handle("argument -f/--settings-base: cannot be used with other arguments than -e/--device")
+
+    if args.device:
+        bin_str = load_from_device(args.device, args.settings_base)
+    elif args.input_file:
+        bin_str = load_from_file(args.input_file)
+
+    extract(bin_str)
 
 def settings_base_input_handle(settings_base, device):
     param_prefix = '-f/--settings-base'
@@ -192,18 +206,38 @@ def settings_base_input_handle(settings_base, device):
 
     return settings_base
 
-def extract(device, settings_base):
+def load_from_device(device, settings_base):
     settings_base = settings_base_input_handle(settings_base, device)
     settings_size = DEVICE.FLASH_SIZE[device] - settings_base
+    print('Looking for the provisioned data in the following memory range: %s - %s'
+        % (hex(settings_base), hex(settings_base + settings_size)))
 
-    # Open connection to the device and read the NVS data.
+    # Open connection to the device and read the NVS data
     with open_nrf(None) as api:
         bin_data = api.read(settings_base, settings_size)
-    bin_str = bytes(bin_data)
 
-    print('Looking for the provisioned data in the following memory range: %s - %s'
-          % (hex(settings_base), hex(settings_base + settings_size)))
+    return bytes(bin_data)
 
+def load_from_file(filename):
+    print("Searching for the provisioned data in provided settings partition memory dump file")
+
+    # Read content from assumed settings partition memory dump
+    if filename.endswith(".hex"):
+        out = io.BytesIO(b"")
+        intelhex.hex2bin(filename, out)
+        bin_str = out.getvalue()
+    elif filename.endswith(".bin"):
+        with open(filename, "rb") as f:
+            bin_str = f.read()
+    else:
+        extract_error_handle("Not supported file type, use .hex or .bin!")
+
+    # Align input to settings sector size
+    bin_str = bin_str.ljust(DEVICE.SETTINGS_SECTOR_SIZE, DEVICE.FLASH_ERASE_VALUE)
+
+    return bin_str
+
+def extract(bin_str):
     # Get the UUID Value
     auth_uuid_key = nvs.get_kvs_name(PROVISIONED_METADATA.MFI_TOKEN_UUID.ID)
     auth_uuid = find_settings_value(

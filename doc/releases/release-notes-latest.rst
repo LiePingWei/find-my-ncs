@@ -75,10 +75,10 @@ Changelog
   * The :kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_FULL` Kconfig option logs the full Base64 encoded token.
   * The MFi Authentication Token is now printed in the Base64 format (:kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_SHORT`) during the Find My initialization.
 
-.. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
-         Otherwise, remove this part of the release notes template.
-  CLI Tools
-  =========
+CLI Tools
+=========
+
+* Added the ``-i/--input-file`` option to the ``extract`` command in the Find My CLI tools package, which allows to provide file with settings partition memory dump instead of reading memory directly from the device.
 
 Known issues and limitations
 ****************************
