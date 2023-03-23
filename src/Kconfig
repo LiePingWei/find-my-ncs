@@ -70,6 +70,27 @@ config FMNA_SERVICE_HIDDEN_MODE
 	  In the disabled state, these services will not be visible to the
 	  connected peers.
 
+choice FMNA_LOG_MFI_AUTH_TOKEN_FORMAT
+	prompt "Log MFi Authentication Token format"
+	depends on LOG
+	default FMNA_LOG_MFI_AUTH_TOKEN_BASE64_SHORT
+
+config FMNA_LOG_MFI_AUTH_TOKEN_HEX_SHORT
+	bool "Log first 16 bytes MFi Authentication Token in standard hex format"
+
+config FMNA_LOG_MFI_AUTH_TOKEN_HEX_FULL
+	bool "Log full MFi Authentication Token with trimmed trailing zeros in standard hex format"
+
+config FMNA_LOG_MFI_AUTH_TOKEN_BASE64_SHORT
+	bool "Log first and last 16 characters of MFi Authentication Token in Base64 encoded format"
+	select BASE64
+
+config FMNA_LOG_MFI_AUTH_TOKEN_BASE64_FULL
+	bool "Log full MFi Authentication Token in Base64 encoded format"
+	select BASE64
+
+endchoice
+
 # Product Plan configuration
 config FMNA_NORDIC_PRODUCT_PLAN
 	bool "Use Nordic Product Plan"

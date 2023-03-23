@@ -20,10 +20,13 @@
 #include <fmna.h>
 
 #include <zephyr/sys/atomic.h>
+#include <zephyr/sys/base64.h>
 
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(fmna, CONFIG_FMNA_LOG_LEVEL);
+
+#define MFI_AUTH_TOKEN_LOG_SHORT_LEN	16
 
 /* Flags used to safely perform enable and disable operations. */
 enum {
@@ -38,6 +41,79 @@ BUILD_ASSERT(CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE >= 4096,
 
 static ATOMIC_DEFINE(flags, FMNA_NUM_FLAGS);
 static struct k_work basic_display_work;
+
+static size_t token_length_calculate(const uint8_t token[FMNA_SW_AUTH_TOKEN_BLEN])
+{
+	size_t idx = FMNA_SW_AUTH_TOKEN_BLEN - 1;
+
+	/* Length of token is calculated by trimming trailing zeroes. */
+	while (idx >= 0 && token[idx] == 0) {
+		idx--;
+	}
+
+	/* Index to length. */
+	return idx + 1;
+}
+
+static void auth_token_base64_log(uint8_t auth_token[FMNA_SW_AUTH_TOKEN_BLEN], size_t len)
+{
+	int err = 0;
+	char *encoded = NULL;
+	size_t encoded_len;
+
+	if (len == 0) {
+		LOG_INF("SW Authentication Token (base64 format): (... %d trailing zero bytes ...)",
+			FMNA_SW_AUTH_TOKEN_BLEN);
+		return;
+	}
+
+	err = base64_encode(NULL, 0, &encoded_len, auth_token, len);
+	__ASSERT((err == -ENOMEM) && (encoded_len != 0),
+		"Failed to calculate Base64 encoded string length");
+
+	encoded = k_malloc(encoded_len);
+	err = (encoded == NULL) ? -ENOMEM : 0;
+
+	if (!err) {
+		err = base64_encode(encoded, encoded_len, &encoded_len, auth_token, len);
+	}
+
+	if (!err) {
+		LOG_INF("SW Authentication Token (base64 format):");
+
+		if (IS_ENABLED(CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_FULL)) {
+			LOG_INF("%s", encoded);
+		} else if (IS_ENABLED(CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_SHORT)) {
+			size_t encoded_trimmed_len = 2 * MFI_AUTH_TOKEN_LOG_SHORT_LEN;
+			if (strlen(encoded) > encoded_trimmed_len) {
+				const uint8_t *encoded_suffix = &encoded[encoded_len - MFI_AUTH_TOKEN_LOG_SHORT_LEN];
+				LOG_INF("%.*s (... %d more chars ...) %.*s",
+					MFI_AUTH_TOKEN_LOG_SHORT_LEN, encoded, encoded_len - encoded_trimmed_len,
+					MFI_AUTH_TOKEN_LOG_SHORT_LEN, encoded_suffix);
+			} else {
+				/* Token is short enough already and will not flood the logs. */
+				LOG_INF("%s", encoded);
+			}
+		}
+	} else {
+		LOG_WRN("Could not log base64 encoded SW Authentication Token, "
+			"returned error: %d", err);
+	}
+
+	k_free(encoded);
+}
+
+static void auth_token_hex_log(uint8_t auth_token[FMNA_SW_AUTH_TOKEN_BLEN], size_t len)
+{
+	if (IS_ENABLED(CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_HEX_FULL)) {
+		LOG_HEXDUMP_INF(auth_token, len, "SW Authentication Token (byte format):");
+	} else if (IS_ENABLED(CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_HEX_SHORT)) {
+		LOG_HEXDUMP_INF(auth_token, MFI_AUTH_TOKEN_LOG_SHORT_LEN, "SW Authentication Token (byte format):");
+		LOG_INF("(... %d more bytes ...)", len - MFI_AUTH_TOKEN_LOG_SHORT_LEN);
+	}
+
+	LOG_INF("(... %d trailing zero bytes ...)", FMNA_SW_AUTH_TOKEN_BLEN - len);
+}
 
 static void basic_display_work_handler(struct k_work *work)
 {
@@ -65,8 +141,15 @@ static void basic_display_work_handler(struct k_work *work)
 		LOG_ERR("fmna_storage_auth_token_load returned error: %d",
 			err);
 	} else {
-		LOG_HEXDUMP_INF(auth_token, 16, "SW Authentication Token:");
-		LOG_INF("(... %d more bytes ...)", FMNA_SW_AUTH_TOKEN_BLEN - 16);
+		size_t auth_token_len = token_length_calculate(auth_token);
+
+		if (IS_ENABLED(CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_SHORT) ||
+		    IS_ENABLED(CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_FULL)) {
+			auth_token_base64_log(auth_token, auth_token_len);
+		} else if (IS_ENABLED(CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_HEX_SHORT) ||
+			   IS_ENABLED(CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_HEX_FULL)) {
+			auth_token_hex_log(auth_token, auth_token_len);
+		}
 	}
 
 	err = fmna_serial_number_get(serial_number);

@@ -67,6 +67,13 @@ Changelog
 
 * Improved the mechanism of injecting the Find My Long Term Key (LTK) into the Bluetooth stack in a scenario with multiple simultaneous owner connections.
 * Added a clearing operation for bond data of the Find My peers during the :c:func:`fmna_enable` API call to avoid pollution of the settings area with unused data.
+* Added the :kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_FORMAT` Kconfig option to enable printing the MFi Authentication Token in either HEX or Base64 format:
+
+  * The :kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_HEX_SHORT` Kconfig option logs only the first 16 bytes of the token in the HEX format.
+  * The :kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_HEX_FULL` Kconfig option logs the full token with trimmed trailing zeros in the HEX format.
+  * The :kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_SHORT` Kconfig option logs both first and last 16 characters of the Base64 encoded token.
+  * The :kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_FULL` Kconfig option logs the full Base64 encoded token.
+  * The MFi Authentication Token is now printed in the Base64 format (:kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_SHORT`) during the Find My initialization.
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.
