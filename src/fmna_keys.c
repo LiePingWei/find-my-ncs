@@ -14,6 +14,7 @@
 #include "fmna_state.h"
 
 /* BLE internal header, use with caution. */
+#include <bluetooth/host/conn_internal.h>
 #include <bluetooth/host/keys.h>
 #include <bluetooth/host/settings.h>
 
@@ -61,7 +62,7 @@ static bool use_secondary_pk = false;
 /* Declaration of variables that are relevant to the BLE stack. */
 static uint8_t bt_id;
 static uint8_t bt_ltk[16];
-static struct bt_keys *fmna_bt_keys[CONFIG_BT_MAX_CONN];
+static struct bt_keys fmna_bt_keys[CONFIG_BT_MAX_CONN];
 
 /* Make sure that number of keys supported in the Zephyr Bluetooth stack is sufficient. */
 BUILD_ASSERT(CONFIG_FMNA_MAX_CONN <= CONFIG_BT_MAX_PAIRED);
@@ -81,52 +82,32 @@ static K_TIMER_DEFINE(key_rotation_timer, key_rotation_timeout_handle, NULL);
 
 static bool bt_ltk_check(const struct bt_conn *conn)
 {
-	return (fmna_bt_keys[bt_conn_index(conn)] != NULL);
+	return (conn->le.keys != NULL);
 }
 
-static void bt_ltk_set(const struct bt_conn *conn)
+static void bt_ltk_set(struct bt_conn *conn)
 {
-	struct bt_keys *bt_keys;
-	struct bt_ltk new_ltk;
+	struct bt_keys *new_fmna_bt_keys;
 
-	bt_keys = bt_keys_get_addr(bt_id, bt_conn_get_dst(conn));
-	if (!bt_keys) {
-		LOG_ERR("bt_ltk_set: Owner key set cannot be found");
-		return;
-	}
+	BUILD_ASSERT(sizeof(bt_ltk) == sizeof(new_fmna_bt_keys->ltk.val));
+
+	/* Pick the bt_keys instance that corresponds to the connection object index. */
+	new_fmna_bt_keys = &fmna_bt_keys[bt_conn_index(conn)];
+	memset(new_fmna_bt_keys, 0, sizeof(*new_fmna_bt_keys));
 
 	/* Set a proper key properties for the newly created keyset. */
-	bt_keys->keys = BT_KEYS_LTK_P256;
-	bt_keys->enc_size = sizeof(bt_keys->ltk.val);
+	new_fmna_bt_keys->keys = BT_KEYS_LTK_P256;
+	new_fmna_bt_keys->enc_size = sizeof(new_fmna_bt_keys->ltk.val);
 
 	/* Configure the new LTK. EDIV and Rand values are set to 0. */
-	memset(&new_ltk, 0, sizeof(new_ltk));
-	memcpy(new_ltk.val, bt_ltk, sizeof(new_ltk.val));
+	memcpy(new_fmna_bt_keys->ltk.val, bt_ltk, sizeof(new_fmna_bt_keys->ltk.val));
 
-	/*
-	 * Update the LTK value in the BLE stack.
-	 * TODO: Check if it makes sense to guard against data corruption with mutexes, etc.
-	 */
-	memcpy(&bt_keys->ltk, &new_ltk, sizeof(bt_keys->ltk));
+	/* Inject the Find My LTK into the BLE stack connection object. */
+	conn->le.keys = new_fmna_bt_keys;
 
-	fmna_bt_keys[bt_conn_index(conn)] = bt_keys;
-
-	LOG_HEXDUMP_DBG(new_ltk.val, sizeof(new_ltk.val), "Setting BLE LTK");
-}
-
-static void bt_ltk_clear(const struct bt_conn *conn)
-{
-	uint8_t conn_index;
-
-	conn_index = bt_conn_index(conn);
-
-	if (!fmna_bt_keys[conn_index]) {
-		/* Nothing to clear. */
-		return;
-	}
-
-	bt_keys_clear(fmna_bt_keys[conn_index]);
-	fmna_bt_keys[conn_index] = NULL;
+	LOG_HEXDUMP_DBG(new_fmna_bt_keys->ltk.val,
+			sizeof(new_fmna_bt_keys->ltk.val),
+			"Setting BLE LTK");
 }
 
 static int symmetric_key_roll(uint8_t sk[FMNA_SYMMETRIC_KEY_LEN])
@@ -537,9 +518,6 @@ static void fmna_peer_security_changed(struct bt_conn *conn, bt_security_t level
 {
 	if (fmna_state_is_paired()) {
 		if (bt_ltk_check(conn)) {
-			/* Reset the LTK. */
-			bt_ltk_clear(conn);
-
 			if (!err) {
 				fmna_conn_multi_status_bit_set(
 					conn, FMNA_CONN_MULTI_STATUS_BIT_OWNER_CONNECTED);
@@ -558,13 +536,6 @@ static void fmna_peer_security_changed(struct bt_conn *conn, bt_security_t level
 			bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 			LOG_WRN("fmna_keys: FMNA LTK not allocated for %s", addr);
 		}
-	}
-}
-
-static void fmna_peer_disconnected(struct bt_conn *conn)
-{
-	if (fmna_state_is_paired()) {
-		bt_ltk_clear(conn);
 	}
 }
 
@@ -1017,9 +988,6 @@ static bool app_event_handler(const struct app_event_header *aeh)
 		switch (event->id) {
 		case FMNA_EVENT_PEER_CONNECTED:
 			fmna_peer_connected(event->conn);
-			break;
-		case FMNA_EVENT_PEER_DISCONNECTED:
-			fmna_peer_disconnected(event->conn);
 			break;
 		case FMNA_EVENT_PEER_SECURITY_CHANGED:
 			fmna_peer_security_changed(event->conn,
