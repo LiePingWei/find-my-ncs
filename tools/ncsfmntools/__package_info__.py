@@ -4,4 +4,4 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-4-Clause
 #
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
