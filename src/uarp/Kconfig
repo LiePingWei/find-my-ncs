@@ -82,6 +82,13 @@ config FMNA_UARP_REBOOT_DELAY_TIME
 	help
 	  Reboot delay time after successfully update in milliseconds.
 
+config FMNA_UARP_LOG_TRANSFER_THROUGHPUT
+	bool "Print logs reporting UARP transfer throughput"
+	depends on FMNA_UARP_LOG_LEVEL_INF || FMNA_UARP_LOG_LEVEL_DBG
+	default y
+	help
+	  Logs time elapsed during payload transfer, payload size and the transfer throughput.
+
 config FMNA_UARP_DEDICATED_THREAD
 	bool "Use dedicated thread for UARP"
 	help

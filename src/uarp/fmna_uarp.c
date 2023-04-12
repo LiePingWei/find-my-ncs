@@ -86,6 +86,8 @@ static struct fmna_uarp_accessory
 	bool dfu_target_init_done;
 } accessory;
 
+static int64_t payload_ready_timestamp;
+
 static uint32_t query_active_firmware_version(void *accessory_delegate,
 					      uint32_t asset_tag,
 					      struct UARPVersion *version);
@@ -549,6 +551,10 @@ static void payload_ready(void *accessory_delegate, void *asset_delegate)
 	BUILD_ASSERT(sizeof(payload4cc) == PAYLOAD_4CC_LENGTH,
 		     "Invalid payload 4CC length. Check FMNA_UARP_PAYLOAD_4CC configuration.");
 
+	if (IS_ENABLED(CONFIG_FMNA_UARP_LOG_TRANSFER_THROUGHPUT)) {
+		payload_ready_timestamp = k_uptime_get();
+	}
+
 	LOG_INF("Payload Ready - Index %d Tag <%c%c%c%c>",
 		asset->selectedPayloadIndex,
 		asset->payload.payload4cc[0],
@@ -788,6 +794,21 @@ static void payload_data_complete(void *accessory_delegate, void *asset_delegate
 
 	if (accessory->state != ASSET_ACTIVE) {
 		return;
+	}
+
+	if (IS_ENABLED(CONFIG_FMNA_UARP_LOG_TRANSFER_THROUGHPUT)) {
+		static const uint64_t bytes_per_kbyte = 1000;
+		int64_t timestamp = k_uptime_get();
+		uint64_t elapsed_ms = timestamp - payload_ready_timestamp;
+		uint64_t throughput = asset->payload.plHdr.payloadLength * MSEC_PER_SEC /
+											elapsed_ms;
+
+		LOG_INF("Payload transfer complete");
+		LOG_INF("Payload size: %" PRIu32 " [B], elapsed time: %" PRIu64 ".%" PRIu64
+			" [s], throughput: %" PRIu64 ".%" PRIu64 " [kB/s]",
+			asset->payload.plHdr.payloadLength,
+			elapsed_ms / MSEC_PER_SEC, elapsed_ms % MSEC_PER_SEC,
+			throughput / bytes_per_kbyte, throughput % bytes_per_kbyte);
 	}
 
 	ocrypto_sha256_final(&accessory->hash_ctx, hash);
