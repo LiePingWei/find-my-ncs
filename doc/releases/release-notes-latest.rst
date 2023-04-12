@@ -76,6 +76,8 @@ Changelog
   * The :kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_FULL` Kconfig option logs the full Base64 encoded token.
   * The MFi Authentication Token is now printed in the Base64 format (:kconfig:option:`CONFIG_FMNA_LOG_MFI_AUTH_TOKEN_BASE64_SHORT`) during the Find My initialization.
 
+* Limited log severity to avoid flooding logs while performing UARP transfer.
+
 CLI Tools
 =========
 

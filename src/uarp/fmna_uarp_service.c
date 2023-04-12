@@ -115,7 +115,7 @@ static ssize_t data_cp_write(struct bt_conn *conn,
 			     const void *buf, uint16_t len,
 			     uint16_t offset, uint8_t flags)
 {
-	LOG_INF("UARP data control point write, handle: %u, conn: %p, len: %d",
+	LOG_DBG("UARP data control point write, handle: %u, conn: %p, len: %d",
 		attr->handle, (void *) conn, len);
 
 	if (!IS_ENABLED(CONFIG_FMNA_UARP_TEST)) {
@@ -140,7 +140,7 @@ static void indication_ack_cb(struct bt_conn *conn,
 				   struct bt_gatt_indicate_params *params,
 				   uint8_t err)
 {
-	LOG_INF("Received UARP CP indication ACK with status: 0x%04X", err);
+	LOG_DBG("Received UARP CP indication ACK with status: 0x%04X", err);
 	submit_event_indication_ack(conn, err);
 }
 

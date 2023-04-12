@@ -135,6 +135,10 @@ config UARP_DISABLE_REQUIRE_LOGS
 	help
 	  Disable logging from __UARP_Require/Check/Verify family macros.
 
+choice UARPDK_LOG_LEVEL_CHOICE
+	default UARPDK_LOG_LEVEL_WRN
+endchoice
+
 config UARP_DISABLE_VERIFY
 	bool "Disable 'Verify' macros"
 	help
