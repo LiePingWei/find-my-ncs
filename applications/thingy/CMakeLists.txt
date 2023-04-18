@@ -6,9 +6,9 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
-set(CONF_FILE prj.conf)
-if (EXISTS "boards/${BOARD}.conf")
-  set(CONF_FILE ${CONF_FILE} boards/${BOARD}.conf)
+set(CONF_FILE ${CMAKE_CURRENT_SOURCE_DIR}/prj.conf)
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/boards/${BOARD}.conf)
+  set(CONF_FILE ${CONF_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/boards/${BOARD}.conf)
 endif()
 
 set(mcuboot_CONF_FILE ${CMAKE_CURRENT_SOURCE_DIR}/child_image/mcuboot.conf)

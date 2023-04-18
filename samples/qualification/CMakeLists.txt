@@ -6,7 +6,7 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
-set(CONF_FILE prj.conf)
+set(CONF_FILE ${CMAKE_CURRENT_SOURCE_DIR}/prj.conf)
 set(FIND_MY_SAMPLES_DIR
     "$ENV{ZEPHYR_BASE}/../find-my/samples/"
     CACHE PATH "Common configuration directory")

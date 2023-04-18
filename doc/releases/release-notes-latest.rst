@@ -78,6 +78,8 @@ Changelog
 
 * Limited log severity to avoid flooding logs while performing UARP transfer.
 * Added the :kconfig:option:`CONFIG_FMNA_UARP_LOG_TRANSFER_THROUGHPUT` Kconfig option to enable logging UARP transfer throughput.
+* Fixed an issue with applying the application-specific board configuration overlays in the Find My Thingy application.
+  The board configuration files were not applied when the application was built from a directory other than the Find My Thingy application directory.
 
 CLI Tools
 =========
