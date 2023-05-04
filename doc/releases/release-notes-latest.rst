@@ -80,6 +80,8 @@ Changelog
 * Added the :kconfig:option:`CONFIG_FMNA_UARP_LOG_TRANSFER_THROUGHPUT` Kconfig option to enable logging UARP transfer throughput.
 * Fixed an issue with applying the application-specific board configuration overlays in the Find My Thingy application.
   The board configuration files were not applied when the application was built from a directory other than the Find My Thingy application directory.
+* Fixed an issue in the Softdevice Controller library that used 0 dBm for Find My connection TX power regardless of the :kconfig:option:`CONFIG_FMNA_TX_POWER` Kconfig option value.
+  The Find My connection TX power is now correctly inherited from the Find My advertising set as configured by the :kconfig:option:`CONFIG_FMNA_TX_POWER` Kconfig option.
 
 CLI Tools
 =========

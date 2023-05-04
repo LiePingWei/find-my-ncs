@@ -79,3 +79,5 @@ Known issues and limitations
 * Find My characteristics are always available regardless of the accessory state.
   This limitation will require a waiver for Find My qualification.
 * Firmware updates of the nRF5340 network core are not supported with the UARP protocol.
+* The Softdevice Controller library incorrectly uses 0 dBm for Find My connection TX power regardless of the :kconfig:option:`CONFIG_FMNA_TX_POWER` Kconfig option value.
+  The issue is fixed on the nRF Connect SDK **main** branch and in all releases beginning from the **v2.4.0** tag.
