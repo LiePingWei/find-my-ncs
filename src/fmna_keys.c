@@ -15,6 +15,7 @@
 
 /* BLE internal header, use with caution. */
 #include <bluetooth/host/conn_internal.h>
+#include <bluetooth/host/gatt_internal.h>
 #include <bluetooth/host/keys.h>
 #include <bluetooth/host/settings.h>
 
@@ -700,11 +701,17 @@ static int fmna_bond_storage_data_clear(const bt_addr_le_t *addr)
 
 		err = settings_delete(key);
 		if (err) {
-			break;
+			return err;
 		};
 	}
 
-	return err;
+	/* Clear Bluetooth RAM contents for GATT storage items: CCC, SC and CF. */
+	err = bt_gatt_clear(bt_id, addr);
+	if (err) {
+		return err;
+	};
+
+	return 0;
 }
 
 static int parse_bond_storage_data(const char *key, bt_addr_le_t *addr, bool *fmna_bond)
@@ -771,6 +778,13 @@ static int storage_addr_get_cb(const char *key, size_t len, settings_read_cb rea
 	return found ? -EALREADY : 0;
 }
 
+static void fmna_bond_drop_keys(struct bt_keys *keys, void *data)
+{
+	if (keys->id == bt_id) {
+		bt_keys_clear(keys);
+	}
+}
+
 static int fmna_bond_storage_cleanup(void)
 {
 	int err = 0;
@@ -808,6 +822,9 @@ static int fmna_bond_storage_cleanup(void)
 		bt_addr_le_copy(&prev, &cur);
 		bt_addr_le_copy(&cur, BT_ADDR_LE_NONE);
 	};
+
+	/* Clear Bluetooth RAM contents for Keys storage item. */
+	bt_keys_foreach_type(BT_KEYS_ALL, fmna_bond_drop_keys, NULL);
 
 	return err;
 }
