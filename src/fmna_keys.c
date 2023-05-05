@@ -836,11 +836,13 @@ int fmna_keys_init(uint8_t id, bool is_paired)
 	bt_id = id;
 	key_rotation_timer_period = KEY_ROTATION_TIMER_PERIOD;
 
-	err = fmna_bond_storage_cleanup();
-	if (err) {
-		LOG_ERR("fmna_bond_storage_cleanup failed, err: %d", err);
-		/* Do not propagate the returned error further. */
-		err = 0;
+	if (IS_ENABLED(CONFIG_FMNA_BT_BOND_CLEAR)) {
+		err = fmna_bond_storage_cleanup();
+		if (err) {
+			LOG_ERR("fmna_bond_storage_cleanup failed, err: %d", err);
+			/* Do not propagate the returned error further. */
+			err = 0;
+		}
 	}
 
 	if (is_paired) {

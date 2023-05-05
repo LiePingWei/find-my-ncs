@@ -57,6 +57,20 @@ config FMNA_TX_POWER
 	default 4
 	range 4 8
 
+config FMNA_BT_BOND_CLEAR
+	bool "Clear Find My peers bond data during the enabling process"
+	help
+	  Clear bond data of the Find My peers in the Bluetooth stack during
+	  the fmna_enable API call. All bonding information (keys, ccc, sc, cf)
+	  related to the configured Find My identity are removed. This
+	  configuration can be used to remove pollution of the settings area
+	  with unused data that occured in certain edge cases in the past
+	  nRF Connect SDK releases (v2.3.0 and all releases before that). This
+	  option is disabled by default as it is not needed for the nRF Connect
+	  SDK v2.4.0 release and beyond. In the newest firmware, the Find My
+	  connection is no longer associated with any bonding information
+	  and settings pollution should not happen.
+
 config FMNA_CUSTOM_SERIAL_NUMBER
 	bool "Use custom serial number from provisioned data"
 
