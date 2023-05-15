@@ -138,7 +138,7 @@ int motion_init(void)
 	return err;
 }
 
-static int gyro_pwr_init(const struct device *unused)
+static int gyro_pwr_init(void)
 {
 	int err;
 	const struct gpio_dt_spec pwr = GPIO_DT_SPEC_GET(GYRO_PWR_NODE, enable_gpios);
