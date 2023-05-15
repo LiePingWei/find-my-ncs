@@ -230,7 +230,7 @@ static void handle_write(struct bt_conn *conn, uint8_t *buf, uint16_t len)
 			if (!ok) {
 				return;
 			}
-		
+
 			LOG_INF("Active UARP connection is 0x%08X", (int)conn);
 
 			active_conn = conn;
@@ -306,7 +306,7 @@ static void rx_handler(struct k_work *work)
 static K_WORK_DEFINE(rx_work, rx_handler);
 
 #ifdef CONFIG_FMNA_UARP_IMAGE_CONFIRMATION_ON_STARTUP
-static int img_confirm_sys_init(const struct device *dev)
+static int img_confirm_sys_init(void)
 {
 	fmna_uarp_img_confirm();
 	return 0;

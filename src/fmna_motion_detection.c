@@ -370,7 +370,7 @@ APP_EVENT_SUBSCRIBE(fmna_motion_detection, fmna_event);
 APP_EVENT_SUBSCRIBE(fmna_motion_detection, fmna_debug_event);
 #endif
 
-static int motion_detection_init(const struct device *unused)
+static int motion_detection_init(void)
 {
 	if (IS_ENABLED(CONFIG_FMNA_CAPABILITY_DETECT_MOTION_ENABLED)) {
 		separated_ut_timer_period   = SEPARATED_UT_TIMER_PERIOD;
