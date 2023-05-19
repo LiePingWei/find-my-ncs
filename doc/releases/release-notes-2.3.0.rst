@@ -80,3 +80,8 @@ Known issues and limitations
       You can disable this option in one of the future updates (for example, within a year) once you are confident that your users have their settings storage cleared with the initial update.
 * The Softdevice Controller library incorrectly uses 0 dBm for Find My connection TX power regardless of the :kconfig:option:`CONFIG_FMNA_TX_POWER` Kconfig option value.
   The issue is fixed on the nRF Connect SDK **main** branch and in all releases beginning from the **v2.4.0** tag.
+* Overlaying authentication callbacks using the :c:func:`bt_conn_auth_cb_overlay` function in the :file:`fmna_conn.c` file during the Find My connection establishment results in a NULL pointer dereference, which leads to undefined behavior.
+  This API function is used to enforce the Just Works pairing method.
+  For non-secure targets (nRF5340 DK and Thingy:53), it results in a SecureFault exception and a crash.
+  The issue is fixed on the nRF Connect SDK **main** branch and in all releases beginning from the **v2.4.0** tag.
+  **Workaround:** Manually cherry-pick and apply commit with fix to ``sdk-zephyr`` (commit hash: ``10d1197916f81fd8017c2962a88476aba671c773``).

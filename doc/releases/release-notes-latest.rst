@@ -84,6 +84,9 @@ Changelog
   The board configuration files were not applied when the application was built from a directory other than the Find My Thingy application directory.
 * Fixed an issue in the Softdevice Controller library that used 0 dBm for Find My connection TX power regardless of the :kconfig:option:`CONFIG_FMNA_TX_POWER` Kconfig option value.
   The Find My connection TX power is now correctly inherited from the Find My advertising set as configured by the :kconfig:option:`CONFIG_FMNA_TX_POWER` Kconfig option.
+* Fixed an issue with overlaying authentication callbacks using the :c:func:`bt_conn_auth_cb_overlay` function in the :file:`fmna_conn.c` file during the Find My connection establishment.
+  This API function is used to enforce the Just Works pairing method and resulted in a NULL pointer dereference, which led to undefined behavior.
+  For non-secure targets (nRF5340 DK and Thingy:53), it resulted in a SecureFault exception and a crash.
 
 CLI Tools
 =========
