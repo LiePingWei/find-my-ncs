@@ -86,3 +86,7 @@ Known issues and limitations
 * Find My characteristics are always available regardless of the accessory state.
   This limitation will require a waiver for Find My qualification.
 * Firmware updates of the nRF5340 network core are not supported with the UARP protocol.
+* Invalid timer period comparison in the Motion Detection module causes Unwanted Tracking Detection to work incorrectly and crash the application due to the unsatisfied assert statement.
+  A fix introduced in the Zephyr kernel changed the way the timer period is set and it is necessary to align the Motion Detection module with this change.
+  The issue is fixed on the nRF Connect SDK **main** branch and in all releases beginning from the **v2.5.0** tag.
+  **Workaround:** Manually cherry-pick and apply commit with fix to ``sdk-find-my`` (commit hash: ``68e82297568d9c8e1d244e87858b4bd332643605``).
