@@ -60,7 +60,8 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* Fixed an invalid timer period comparison in the Motion Detection module, which caused Unwanted Tracking Detection to work incorrectly and crash the application due to the unsatisfied assert statement.
+  A fix introduced in the Zephyr kernel changed the way the timer period is set and it was necessary to align the Motion Detection module with this change.
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.

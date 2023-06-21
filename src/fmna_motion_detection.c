@@ -28,7 +28,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define SEPARATED_UT_MAX_SOUND_COUNT 10
 
 #define TIMER_PERIOD_IS_EQUAL(_running_timer_period, _ref_period) \
-	((_running_timer_period.ticks) == (_ref_period.ticks - 1))
+	((_running_timer_period.ticks) == (_ref_period.ticks))
 
 /* Time span in separated state before enabling motion detector. */
 static k_timeout_t separated_ut_timer_period;
