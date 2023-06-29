@@ -87,6 +87,6 @@ Known issues and limitations
   **Workaround:** Manually cherry-pick and apply commit with fix to ``sdk-zephyr`` (commit hash: ``10d1197916f81fd8017c2962a88476aba671c773``).
 * Unpairing from the device in the :c:member:`bt_conn_cb.security_changed` callback using :c:func:`bt_unpair` function results in an assertion in the Debug configuration or NULL pointer dereference in the Release configuration in the Bluetooth Host keys module.
   This function call is used for rejecting a simultaneous pairing attempt.
-  The issue is fixed on the nRF Connect SDK **main** branch and in all releases beginning from the **v2.5.0** tag.
+  The issue is fixed on the nRF Connect SDK **main** branch and in all releases beginning from the **v2.4.1** tag.
 
   **Workaround:** Manually port changes with fix to ``sdk-zephyr`` (commit hash ``cd264b21e4a90ed85a63116bd148b890ab347db8`` from the upstream ``zephyr`` repository).
