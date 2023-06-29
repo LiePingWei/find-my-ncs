@@ -90,3 +90,8 @@ Known issues and limitations
   A fix introduced in the Zephyr kernel changed the way the timer period is set and it is necessary to align the Motion Detection module with this change.
   The issue is fixed on the nRF Connect SDK **main** branch and in all releases beginning from the **v2.5.0** tag.
   **Workaround:** Manually cherry-pick and apply commit with fix to ``sdk-find-my`` (commit hash: ``68e82297568d9c8e1d244e87858b4bd332643605``).
+* Unpairing from the device in the :c:member:`bt_conn_cb.security_changed` callback using :c:func:`bt_unpair` function results in an assertion in the Debug configuration or NULL pointer dereference in the Release configuration in the Bluetooth Host keys module.
+  This function call is used for rejecting a simultaneous pairing attempt.
+  The issue is fixed on the nRF Connect SDK **main** branch and in all releases beginning from the **v2.5.0** tag.
+
+  **Workaround:** Manually port changes with fix to ``sdk-zephyr`` (commit hash ``cd264b21e4a90ed85a63116bd148b890ab347db8`` from the upstream ``zephyr`` repository).
