@@ -167,7 +167,7 @@ int _fm_server_decrypt(word32 msg_nbytes,
 	return 0;
 }
 
-void test_ecies()
+ZTEST(suite_fmn_crypto, test_ecies)
 {
 	byte ct[65 + sizeof(msg) - 1 + 16];
 	word32 ct_len = sizeof(ct);

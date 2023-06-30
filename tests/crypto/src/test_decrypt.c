@@ -51,7 +51,7 @@ static const byte E3_invalid[6 + 16] = {
 
 static const byte msg[] = "sample";
 
-void test_decrypt()
+ZTEST(suite_fmn_crypto, test_decrypt)
 {
 	byte pt[sizeof(msg) - 1];
 	word32 pt_len = sizeof(pt);

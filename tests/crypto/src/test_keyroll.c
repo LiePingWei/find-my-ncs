@@ -190,7 +190,7 @@ static const uint8_t LTK_2[16] = {
 	0xb2, 0x36, 0x97, 0x2f, 0x29, 0x27, 0x99, 0x07
 };
 
-void test_keyroll()
+ZTEST(suite_fmn_crypto, test_keyroll)
 {
 	byte skn1[32];
 	zassert_equal(fm_crypto_roll_sk(SKN_0, skn1), 0, "");

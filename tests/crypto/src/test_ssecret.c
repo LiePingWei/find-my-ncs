@@ -60,7 +60,7 @@ static const byte MAC[32] = {
 	0x2b, 0x34, 0x8d, 0x93, 0xb3, 0x5a, 0x23, 0x32
 };
 
-void test_ssecret()
+ZTEST(suite_fmn_crypto, test_ssecret)
 {
 	byte serverss[32];
 	zassert_equal(fm_crypto_derive_server_shared_secret(SEED_S, SEED_K1, serverss), 0, "");

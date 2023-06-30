@@ -81,7 +81,7 @@ static const byte sig_short[] = {
 
 static const byte msg[] = "sample";
 
-void test_ecdsa()
+ZTEST(suite_fmn_crypto, test_ecdsa)
 {
 	zassert_equal(fm_crypto_verify_s2(Q, sizeof(sig), sig, sizeof(msg) - 1, msg), 0, "");
 

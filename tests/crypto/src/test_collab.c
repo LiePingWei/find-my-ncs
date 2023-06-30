@@ -195,7 +195,7 @@ static const byte SKS[32] = {
 	0x57, 0x7f, 0x3c, 0xd4, 0xad, 0xc9, 0x20, 0x69
 };
 
-void test_collab()
+ZTEST(suite_fmn_crypto, test_collab)
 {
 	struct fm_crypto_ckg_context ckg_ctx;
 	zassert_equal(fm_crypto_ckg_init(&ckg_ctx), 0, "");
