@@ -60,7 +60,11 @@ Supported development kits
 Changelog
 *********
 
-There are no entries for this section yet.
+* Changed the bonding flags from "Bonding" to "No Bonding" in the Bluetooth LE Just Works pairing phase, which is the initial step of the Find My pairing flow.
+  From now on, all Find My samples and applications perform Bluetooth LE pairing on the Find My Bluetooth identity without storing any bonding information.
+  The "No Bonding" mode is particularly important for the pair before use accessories.
+  These types of accessories usually bond using their main Bluetooth application identity and prevent the Find My pairing flow in the "Bonding" mode from succeeding.
+  In this case, the Find My pairing fails as the Zephyr Bluetooth Host cannot store more than one bond for the same peer (identified by the Identity Address).
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.

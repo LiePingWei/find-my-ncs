@@ -17,6 +17,11 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
 #define MAX_CONN_WORK_CHECK_PERIOD K_MSEC(100)
 
+BUILD_ASSERT(!(IS_ENABLED(CONFIG_FMNA_BT_PAIRING_NO_BONDING) &&
+	     IS_ENABLED(CONFIG_BT_BONDING_REQUIRED)),
+	     "CONFIG_FMNA_BT_PAIRING_NO_BONDING cannot be used together "
+	     "with CONFIG_BT_BONDING_REQUIRED");
+
 struct conn_owner_finder {
 	struct bt_conn ** const owners;
 	uint8_t * const owner_cnt;
@@ -103,6 +108,13 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 	err = bt_conn_auth_cb_overlay(conn, NULL);
 	if (err) {
 		LOG_ERR("bt_conn_auth_cb_overlay returned error: %d", err);
+	}
+
+	if (IS_ENABLED(CONFIG_FMNA_BT_PAIRING_NO_BONDING)) {
+		err = bt_conn_set_bondable(conn, false);
+		if (err) {
+			LOG_ERR("bt_conn_set_bondable returned error: %d", err);
+		}
 	}
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));

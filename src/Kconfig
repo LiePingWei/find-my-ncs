@@ -133,6 +133,21 @@ config FMNA_PAIRING_MODE_AUTOSTART
 	  disabled, you need to call the fmna_resume API to enter the pairing
 	  mode in the aforementioned scenarios.
 
+config FMNA_BT_PAIRING_NO_BONDING
+	bool
+	default y
+	select BT_BONDABLE_PER_CONNECTION
+	help
+	  Set the bonding flags to "No Bonding" for the Bluetooth LE Just Works
+	  pairing scheme that is the initial step of the complete Find My
+	  pairing flow.
+	  The "No Bonding" mode is especially important for the pair before use
+	  accessories. These types of accessories usually bond using their main
+	  Bluetooth application identity and prevent the Find My pairing flow
+	  in the "Bonding" mode from succeeding. In this case, the Find My
+	  pairing fails as the Zephyr Bluetooth Host cannot store more than one
+	  bond for the same peer (identified by the Identity Address).
+
 # AIS configuration
 menu "Accessory Information Service (AIS)"
 
