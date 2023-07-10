@@ -9,6 +9,7 @@ config FMNA
 	select BT
 	select BT_PERIPHERAL
 	select BT_SMP
+	select BT_SMP_APP_PAIRING_ACCEPT
 	select BT_EXT_ADV
 	select BT_TPS
 

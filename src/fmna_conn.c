@@ -74,6 +74,26 @@ bool fmna_conn_check(struct bt_conn *conn)
 	return (conn_info.id == fmna_bt_id);
 }
 
+static enum bt_security_err pairing_accept(
+	struct bt_conn *conn,
+	const struct bt_conn_pairing_feat * const feat)
+{
+	ARG_UNUSED(feat);
+
+	__ASSERT(fmna_conn_check(conn), "FMNA identity is expected!");
+
+	if (fmna_state_is_paired()) {
+		LOG_WRN("Already paired, rejecting incoming BT pairing request");
+		return BT_SECURITY_ERR_PAIR_NOT_ALLOWED;
+	}
+
+	return BT_SECURITY_ERR_SUCCESS;
+}
+
+static struct bt_conn_auth_cb auth_cb = {
+	.pairing_accept = pairing_accept,
+};
+
 static void connected(struct bt_conn *conn, uint8_t conn_err)
 {
 	int err;
@@ -105,7 +125,7 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 		return;
 	}
 
-	err = bt_conn_auth_cb_overlay(conn, NULL);
+	err = bt_conn_auth_cb_overlay(conn, &auth_cb);
 	if (err) {
 		LOG_ERR("bt_conn_auth_cb_overlay returned error: %d", err);
 	}
