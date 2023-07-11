@@ -57,3 +57,13 @@ Known issues and limitations
 * Find My characteristics are always available regardless of the accessory state.
   This limitation will require a waiver for Find My qualification.
 * Firmware updates of the nRF5340 network core are not supported with the UARP protocol.
+* Find My pairing is rejected during the Just Works Bluetooth LE pairing phase if the device is already bonded with the same peer on any Bluetooth identity.
+  The issue can be reproduced in the case of the pair before use accessories.
+  These types of accessories usually bond using their main Bluetooth application identity and prevent the Find My pairing flow in the "Bonding" mode from succeeding.
+  In this case, the Find My pairing fails as the Zephyr Bluetooth Host cannot store more than one bond for the same peer (identified by the Identity Address).
+  The issue is fixed on the nRF Connect SDK **main** branch and in all releases beginning from the **v2.5.0** tag.
+
+  **Workaround:** Manually cherry-pick and apply commits with fixes to:
+
+  * ``sdk-zephyr`` (commit hash ``9a0b8a317a91089f048c38233635240f21ab298d``)
+  * ``sdk-find-my`` (commit hash ``36e75564d83b2d2068e08d9d9df7cbfedd668cb6``)
