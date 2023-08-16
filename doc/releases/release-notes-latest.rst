@@ -60,6 +60,12 @@ Supported development kits
 Changelog
 *********
 
+* Added functions :c:func:`fmna_paired_adv_enable` and :c:func:`fmna_paired_adv_disable` to provide paired advertising management APIs.
+  See the API reference documentation for more details.
+* Removed the automatic mechanism in the Find My library that disables the Find My paired advertising once a Bluetooth peer connects to the device using Bluetooth identity other than the Find My identity and enables paired advertising once such a peer disconnects.
+  The automatic mechanism is replaced by the :c:func:`fmna_paired_adv_enable` and :c:func:`fmna_paired_adv_disable` API functions to provide more flexibility for the developers.
+* Aligned the Find My Coexistence sample to use the :c:func:`fmna_paired_adv_enable` and :c:func:`fmna_paired_adv_disable` functions.
+* Updated the application development guide for *pair before use* accessories to cover the :c:func:`fmna_paired_adv_enable` and :c:func:`fmna_paired_adv_disable` functions.
 * Upgraded the documentation layout to match the standard nRF Connect SDK documentation.
 * Changed the bonding flags from "Bonding" to "No Bonding" in the Bluetooth LE Just Works pairing phase, which is the initial step of the Find My pairing flow.
   From now on, all Find My samples and applications perform Bluetooth LE pairing on the Find My Bluetooth identity without storing any bonding information.

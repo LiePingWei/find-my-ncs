@@ -50,8 +50,15 @@ Typically, this configuration should be set to two for *pair before use* accesso
 Find My advertising
 ===================
 
-Find My advertising should be disabled when *pair before use* accessories are connected to a host for its primary purpose.
-This behaviour is implemented in the Find My stack and does not require any additional API calls from the user.
+Advertising with the Find My Network payloads must be disabled when *pair before use* accessories are connected to a host for its primary purpose.
+To comply with this requirement from the Find My specification, use the following APIs for managing the Find My Network paired advertising:
+
+* The :c:func:`fmna_paired_adv_enable` function to enable the Find My Network paired advertising on the accessory.
+  Call this function once the primary purpose Bluetooth peer disconnects from your device and the Find My advertising can be resumed.
+  This function is typically used in the :c:member:`bt_conn_cb.disconnected` callback.
+* The :c:func:`fmna_paired_adv_disable` function to disable the Find My Network paired advertising on the accessory.
+  Call this function once the Bluetooth peer connects to your device for its primary purpose and the Find My advertising should be stopped.
+  This function is typically used in the :c:member:`bt_conn_cb.connected` callback.
 
 Device name
 ***********

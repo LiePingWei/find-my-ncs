@@ -522,8 +522,9 @@ static struct bt_conn_auth_info_cb hr_sensor_auth_info_cb_display = {
 	.pairing_complete = hr_sensor_pairing_complete,
 };
 
-static void hr_sensor_connected(struct bt_conn *conn, uint8_t err)
+static void hr_sensor_connected(struct bt_conn *conn, uint8_t conn_err)
 {
+	int err;
 	char addr[BT_ADDR_LE_STR_LEN];
 
 	/* Filter out peers not connected to the HR sensor application. */
@@ -531,17 +532,29 @@ static void hr_sensor_connected(struct bt_conn *conn, uint8_t err)
 		return;
 	}
 
-	if (err) {
-		printk("HR connection establishment error: %d\n", err);
+	if (conn_err) {
+		printk("HR connection establishment error: %d\n", conn_err);
 		return;
 	}
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	printk("HR Peer connected: %s\n", addr);
+
+	/* FMNA specification guidelines for pair before use accessories:
+	 * Disable the FMN paired advertising once the Bluetooth peer connects
+	 * to the device for its primary purpose (HR sensor in the context of
+	 * this sample).
+	 */
+	err = fmna_paired_adv_disable();
+	if (err) {
+		printk("fmna_paired_adv_disable failed (err %d)\n", err);
+		return;
+	}
 }
 
 static void hr_sensor_disconnected(struct bt_conn *conn, uint8_t reason)
 {
+	int err;
 	char addr[BT_ADDR_LE_STR_LEN];
 
 	/* Filter out peers not connected to the HR sensor application. */
@@ -551,6 +564,17 @@ static void hr_sensor_disconnected(struct bt_conn *conn, uint8_t reason)
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	printk("HR Peer disconnected (reason %u): %s\n", reason, addr);
+
+	/* FMNA specification guidelines for pair before use accessories:
+	 * Enable the FMN paired advertising once the Bluetooth connection
+	 * for the accessory primary purpose (HR sensor in the context of
+	 * this sample) is terminated.
+	 */
+	err = fmna_paired_adv_enable();
+	if (err) {
+		printk("fmna_paired_adv_enable failed (err %d)\n", err);
+		return;
+	}
 
 	/* Process the disconnect logic in the workqueue so that
 	 * the BLE stack is finished with the connection bookkeeping

@@ -26,7 +26,7 @@ LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 #define PERSISTENT_CONN_ADV_TIMEOUT      3
 
 static enum fmna_state state = FMNA_STATE_DISABLED;
-static bool is_adv_paused = false;
+static bool is_paired_adv_paused = false;
 static bool is_maintained = false;
 static bool unpair_pending = false;
 static bool persistent_conn_adv = false;
@@ -79,7 +79,7 @@ static int nearby_adv_start(void)
 	int err;
 	struct fmna_adv_nearby_config config;
 
-	if (is_adv_paused) {
+	if (is_paired_adv_paused) {
 		LOG_DBG("Nearby advertising is still paused");
 		return 0;
 	}
@@ -105,7 +105,7 @@ static int separated_adv_start(void)
 	int err;
 	struct fmna_adv_separated_config config;
 
-	if (is_adv_paused) {
+	if (is_paired_adv_paused) {
 		LOG_DBG("Separated advertising is still paused");
 		return 0;
 	}
@@ -350,7 +350,6 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 		}
 
 		/* Reset the FMN state. */
-		is_adv_paused = false;
 		is_maintained = false;
 		unpair_pending = false;
 		persistent_conn_adv = false;
@@ -507,15 +506,15 @@ static void fmna_pair_status_changed(struct bt_conn *conn,
 	}
 }
 
-int fmna_state_pause(void)
+int fmna_paired_adv_disable(void)
 {
 	int err;
 
-	if (state == FMNA_STATE_DISABLED) {
-		return -EINVAL;
-	}
+	is_paired_adv_paused = true;
 
-	is_adv_paused = true;
+	if ((state == FMNA_STATE_DISABLED) || (state == FMNA_STATE_UNPAIRED)) {
+		return 0;
+	}
 
 	err = fmna_adv_stop();
 	if (err) {
@@ -523,18 +522,20 @@ int fmna_state_pause(void)
 		return err;
 	}
 
-	LOG_DBG("Pausing FMN advertising");
+	LOG_DBG("Disabling FMN paired advertising");
 
 	return 0;
 }
 
-int fmna_state_resume(void)
+int fmna_paired_adv_enable(void)
 {
-	if (state == FMNA_STATE_DISABLED) {
-		return -EINVAL;
+	is_paired_adv_paused = false;
+
+	if ((state == FMNA_STATE_DISABLED) || (state == FMNA_STATE_UNPAIRED)) {
+		return 0;
 	}
 
-	is_adv_paused = false;
+	LOG_DBG("Enabling FMN paired advertising");
 
 	return advertise_restart_on_no_state_change();
 }

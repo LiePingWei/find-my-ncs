@@ -50,7 +50,6 @@ struct fmna_conn {
 
 static struct fmna_conn conns[CONFIG_BT_MAX_CONN];
 static uint8_t max_connections = CONFIG_FMNA_MAX_CONN;
-static uint8_t non_fmna_conns = 0;
 static uint8_t fmna_bt_id;
 
 static void max_conn_work_handle(struct k_work *item);
@@ -110,18 +109,6 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 	}
 
 	if (!fmna_conn_check(conn)) {
-		/* A peer has connected to the accessory for its primary purpose
-		* (HR Sensor). Pause the FMN stack activity.
-		*/
-		if (non_fmna_conns == 0) {
-			err = fmna_state_pause();
-			if (err) {
-				LOG_ERR("fmna_state_pause returned error: %d", err);
-			}
-		}
-
-		non_fmna_conns++;
-
 		return;
 	}
 
@@ -149,7 +136,6 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
-	int err;
 	char addr[BT_ADDR_LE_STR_LEN];
 	struct fmna_conn *fmna_conn = &conns[bt_conn_index(conn)];
 
@@ -158,22 +144,6 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	}
 
 	if (!fmna_conn_check(conn)) {
-		__ASSERT(non_fmna_conns > 0,
-			"non_fmna_conns is invalid: %d", non_fmna_conns);
-
-		non_fmna_conns--;
-
-		/* A peer, that previously connected to the accessory its primary
-		* purpose (HR Sensor), has disconnected. Resume the FMN stack
-		* activity.
-		*/
-		if (non_fmna_conns == 0) {
-			err = fmna_state_resume();
-			if (err) {
-				LOG_ERR("fmna_state_resume returned error: %d", err);
-			}
-		}
-
 		return;
 	}
 
@@ -381,39 +351,6 @@ static void peer_disconnected(struct bt_conn *conn)
 	memset(fmna_conn, 0, sizeof(*fmna_conn));
 }
 
-
-static void state_changed_peer_counter(struct bt_conn *conn, void *user_data)
-{
-	struct bt_conn_info conn_info;
-
-	bt_conn_get_info(conn, &conn_info);
-
-	if (conn_info.state != BT_CONN_STATE_CONNECTED) {
-		return;
-	}
-
-	if (conn_info.id != fmna_bt_id) {
-		non_fmna_conns++;
-	}
-}
-
-static void disabled_to_enabled_state_transition_handle(void)
-{
-	int err;
-
-	/* Count the number of non-Find-My peers. */
-	non_fmna_conns = 0;
-	bt_conn_foreach(BT_CONN_TYPE_LE, state_changed_peer_counter, NULL);
-
-	/* Pause the FMN advertising if pair-before-use peer is connected. */
-	if (non_fmna_conns > 0) {
-		err = fmna_state_pause();
-		if (err) {
-			LOG_ERR("fmna_state_pause returned error: %d", err);
-		}
-	}
-}
-
 static void unpaired_state_transition_handle(void)
 {
 	max_connections = CONFIG_FMNA_MAX_CONN;
@@ -422,7 +359,6 @@ static void unpaired_state_transition_handle(void)
 static void state_changed(void)
 {
 	enum fmna_state current_state;
-	static enum fmna_state prev_state = FMNA_STATE_DISABLED;
 
 	current_state = fmna_state_get();
 	switch (current_state) {
@@ -432,12 +368,6 @@ static void state_changed(void)
 	default:
 		break;
 	}
-
-	if ((prev_state == FMNA_STATE_DISABLED) && (current_state != FMNA_STATE_DISABLED)) {
-		disabled_to_enabled_state_transition_handle();
-	}
-
-	prev_state = current_state;
 }
 
 static void persistent_conn_request_handle(struct bt_conn *conn, uint8_t persistent_conn_status)

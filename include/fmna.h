@@ -263,6 +263,84 @@ struct fmna_enable_cb {
  */
 int fmna_battery_level_set(uint8_t percentage_level);
 
+/** @brief Enable the Find My Network paired advertising on the accessory.
+ *
+ *  This function enables advertising with the Find My Network payloads
+ *  on the accessory that are used to identify the device by the network
+ *  and send its location to the owner. This type of advertising is used
+ *  in the paired state.
+ *
+ *  The symmetrical @ref fmna_paired_adv_disable API is used to disable
+ *  paired advertising. Both enable and disable API functions are part
+ *  of the paired advertising management APIs.
+ *
+ *  The management APIs provide a mechanism for disabling the paired
+ *  advertising on "pair before use" accessories. Such devices require
+ *  paired advertising to be stopped when connected to a Bluetooth peer
+ *  for its primary purpose. These APIs can also be used instead of the
+ *  @ref fmna_enable and @ref fmna_disable functions to disable the
+ *  location finding in case a non-owner detects the FMN accessory travelling
+ *  with them or wants to use one without being tracked. However, in
+ *  this case the Find My stack is still in the ready state (see
+ *  @ref fmna_is_ready) and performs operations related to other
+ *  functionalities (for example key rotation, motion detection, NFC
+ *  emulation).
+ *
+ *  By default, the paired advertising is enabled. This API function is
+ *  not needed for an application which does not use the symmetrical
+ *  @ref fmna_paired_adv_disable API.
+ *
+ *  This function does not impact the accessory behaviour until it is in
+ *  the Find My paired state (see the @ref paired_state_changed callback
+ *  from the @ref fmna_enable_cb structure). It is still possible to use
+ *  the API in the unpaired state to preconfigure the desired behaviour
+ *  after the Find My pairing.
+ *
+ *  The paired advertising configuration persists after the disabling
+ *  process (see the @ref fmna_disable function) and after the enabling
+ *  process (see the @ref fmna_enable function).
+ *
+ *  @return Zero on success, otherwise a negative error code.
+ */
+int fmna_paired_adv_enable(void);
+
+/** @brief Disable the Find My Network paired advertising on the accessory.
+ *
+ *  This function disables advertising with the Find My Network payloads
+ *  on the accessory that are used to identify the device by the network
+ *  and send its location to the owner. This type of advertising is used
+ *  in the paired state.
+ *
+ *  The symmetrical @ref fmna_paired_adv_enable API is used to enable
+ *  paired advertising. Both enable and disable API functions are part
+ *  of the paired advertising management APIs.
+ *
+ *  The management APIs provide a mechanism for disabling the paired
+ *  advertising on "pair before use" accessories. Such devices require
+ *  paired advertising to be stopped when connected to a Bluetooth peer
+ *  for its primary purpose. These APIs can also be used instead of the
+ *  @ref fmna_enable and @ref fmna_disable functions to disable the
+ *  location finding in case a non-owner detects the FMN accessory travelling
+ *  with them or wants to use one without being tracked. However, in
+ *  this case the Find My stack is still in the ready state (see
+ *  @ref fmna_is_ready) and performs operations related to other
+ *  functionalities (for example key rotation, motion detection, NFC
+ *  emulation).
+ *
+ *  This function does not impact the accessory behaviour until it is in
+ *  the Find My paired state (see the @ref paired_state_changed callback
+ *  from the @ref fmna_enable_cb structure). It is still possible to use
+ *  the API in the unpaired state to preconfigure the desired behaviour
+ *  after the Find My pairing.
+ *
+ *  The paired advertising configuration persists after the disabling
+ *  process (see the @ref fmna_disable function) and after the enabling
+ *  process (see the @ref fmna_enable function).
+ *
+ *  @return Zero on success, otherwise a negative error code.
+ */
+int fmna_paired_adv_disable(void);
+
 /** @brief Resume advertising in the pairing mode.
  *
  *  This function resumes advertising in the pairing mode after a timeout.

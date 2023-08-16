@@ -36,10 +36,6 @@ bool fmna_state_is_paired(void);
 
 bool fmna_state_is_enabled(void);
 
-int fmna_state_pause(void);
-
-int fmna_state_resume(void);
-
 int fmna_state_init(uint8_t bt_id, bool is_paired);
 
 int fmna_state_uninit(void);
