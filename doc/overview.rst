@@ -7,7 +7,7 @@ Overview
    :local:
    :depth: 2
 
-The nRF Connect SDK, together with this Find My add-on and nRF52 SoCs, provide a single-chip Bluetooth Low Energy accessory solution that fulfills the requirements defined by the MFi program for the Find My Network (FMN).
+The nRF Connect SDK, together with this Find My add-on and Nordic Semiconductor SoCs, provide a single-chip Bluetooth Low Energy accessory solution that fulfills the requirements defined by the MFi program for the Find My Network (FMN).
 
 nRF Connect SDK
 ***************
