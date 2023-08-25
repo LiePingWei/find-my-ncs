@@ -60,6 +60,7 @@ Supported development kits
 Changelog
 *********
 
+* Upgraded the documentation layout to match the standard nRF Connect SDK documentation.
 * Changed the bonding flags from "Bonding" to "No Bonding" in the Bluetooth LE Just Works pairing phase, which is the initial step of the Find My pairing flow.
   From now on, all Find My samples and applications perform Bluetooth LE pairing on the Find My Bluetooth identity without storing any bonding information.
   The "No Bonding" mode is particularly important for the pair before use accessories.
