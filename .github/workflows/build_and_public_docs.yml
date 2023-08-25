@@ -123,10 +123,8 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip3 install --user -r nrf/scripts/requirements-fixed.txt
-          pip3 install --user -r nrf/scripts/requirements.txt
-          pip3 install --user -r bootloader/mcuboot/scripts/requirements.txt
-          pip3 install --user -r zephyr/scripts/requirements.txt
+          pip3 install --user -r nrf/scripts/requirements-doc.txt
+          pip3 install --user -r nrf/scripts/requirements-extra.txt
           pip3 install --user -r find-my/doc/requirements.txt
 
       - name: Build documentation
