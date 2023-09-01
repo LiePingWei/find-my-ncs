@@ -21,7 +21,7 @@ config FMNA
 
 	select APP_EVENT_MANAGER
 
-	select PM_SINGLE_IMAGE if !FMNA_UARP
+	imply PM_SINGLE_IMAGE if !FMNA_UARP
 
 if FMNA
 
