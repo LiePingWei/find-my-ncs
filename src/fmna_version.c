@@ -9,7 +9,10 @@
 #include <zephyr/logging/log.h>
 
 #include <zephyr/dfu/mcuboot.h>
+
+#if defined(CONFIG_FMNA_UARP)
 #include <pm_config.h>
+#endif
 
 LOG_MODULE_DECLARE(fmna, CONFIG_FMNA_LOG_LEVEL);
 
@@ -48,7 +51,7 @@ int fmna_version_fw_get(struct fmna_version *ver)
 	ver->minor = CONFIG_FMNA_FIRMWARE_VERSION_MINOR;
 	ver->revision = CONFIG_FMNA_FIRMWARE_VERSION_REVISION;
 	ver->build_num = 0;
-	
+
 	return 0;
 }
 #endif /* defined(CONFIG_FMNA_UARP) */
