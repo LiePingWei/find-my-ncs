@@ -69,6 +69,7 @@ Changelog
 * Added the :c:member:`bt_conn_auth_cb.pairing_accept` Bluetooth authentication callback to handle all Bluetooth pairing attempts on the Find My identity.
   It blocks incoming Bluetooth pairing requests on the Find My identity if the device is already Find My paired.
 * Added a possibility to disable the Partition Manager module for projects without the UARP DFU configuration.
+* Added support for a common target-based DTS configuration in Find My samples.
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.

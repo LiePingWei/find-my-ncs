@@ -22,6 +22,16 @@ if (NOT EXISTS "${FIND_MY_COMMON_CONFIG_DIR}/app_${CMAKE_BUILD_TYPE}.conf")
           "Please add file ${FIND_MY_COMMON_CONFIG_DIR}/app_${CMAKE_BUILD_TYPE}.conf")
 endif()
 
+# Collect DTS overlay files
+set(FIND_MY_APP_COMMON_TARGET_DTS_OVERLAY
+  ${FIND_MY_COMMON_CONFIG_DIR}/boards/${BOARD}.overlay)
+
+if(EXISTS ${FIND_MY_APP_COMMON_TARGET_DTS_OVERLAY})
+  set(DTC_OVERLAY_FILE
+    ${FIND_MY_APP_COMMON_TARGET_DTS_OVERLAY}
+    ${DTC_OVERLAY_FILE})
+endif()
+
 # Set static partition configuration if it exists
 set(PM_STATIC_YML_FILE
   ${FIND_MY_COMMON_CONFIG_DIR}/pm_static_${BOARD}.yml
