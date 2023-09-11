@@ -26,14 +26,14 @@ You can build each Find My sample in the following configurations:
 - The Release configuration called *ZRelease*
 - The Debug configuration called *ZDebug*
 
-To select the build configuration, populate the CMAKE_BUILD_TYPE variable in the build process.
+To select the build configuration, populate the ``CMAKE_BUILD_TYPE`` variable in the build process.
 For example:
 
 .. code-block:: console
 
    west build -b nrf52dk_nrf52832 -- -DCMAKE_BUILD_TYPE=ZRelease
 
-The *ZDebug* build configuration is used by default if the CMAKE_BUILD_TYPE variable is not specified
+The *ZDebug* build configuration is used by default if the ``CMAKE_BUILD_TYPE`` variable is not specified
 
 Your build command displays the information about the selected build configuration at the beginning of its log output.
 For the Release configuration, it would look like this:
