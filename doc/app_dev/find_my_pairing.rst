@@ -12,10 +12,10 @@ To pair with the Find My iOS application, you have to configure the Find My acce
 Each MFi partner using this SDK, should set their product plan configuration accordingly.
 
 By default, all Find My samples in this SDK use Nordic Semiconductor product plan.
-This setting is indicated by the CONFIG_FMNA_NORDIC_PRODUCT_PLAN configuration.
+This setting is indicated by the :kconfig:option:`CONFIG_FMNA_NORDIC_PRODUCT_PLAN` Kconfig option.
 You need to have a dedicated product plan for your accessory application development.
 
-Before you start to configure your product plan, make sure that the CONFIG_FMNA_NORDIC_PRODUCT_PLAN configuration is disabled.
+Before you start to configure your product plan, make sure that the :kconfig:option:`CONFIG_FMNA_NORDIC_PRODUCT_PLAN` Kconfig option is disabled.
 The following sections demonstrate how to set specific parameters for your plan.
 
 Product Data (PD)
