@@ -23,3 +23,11 @@ The required version of west is 0.10.0 or higher.
       west update
       // find-my repository is downloaded
       // your github access will be checked
+
+#. Navigate to the Find My tools directory:
+
+   .. code-block:: console
+
+      cd <ncs_path>/find-my/tools
+
+   Follow the installation section of the :ref:`cli_tools` to install a set of tools that help with the creation of Find My firmware.
