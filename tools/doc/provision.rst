@@ -15,7 +15,6 @@ An example of running the tool with the mandatory arguments:
        --device NRF52840
        --mfi-token l1iyWTwIgR7[...]
        --mfi-uuid abab1212-3434-caca-bebe-cebacebaceba
-       --settings-base 0xfe000
 
 Optional arguments
 ==================
