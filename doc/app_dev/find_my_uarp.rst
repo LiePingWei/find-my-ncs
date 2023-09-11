@@ -31,8 +31,8 @@ This is what happens during the UARP update procedure:
 Enabling UARP for application
 *****************************
 
-The ``CONFIG_FMNA_CAPABILITY_FW_UPDATE_ENABLED`` option enables firmware update capability for Find My.
-As a result, the ``CONFIG_FMNA_UARP`` operation will be available and enabled by default.
+The :kconfig:option:`CONFIG_FMNA_CAPABILITY_FW_UPDATE_ENABLED` Kconfig option enables firmware update capability for Find My.
+As a result, the :kconfig:option:`CONFIG_FMNA_UARP` Kconfig option will be available and enabled by default.
 It performs the following tasks necessary for the updates over the UARP using the MCUBoot bootloader:
 
 * Divides flash into partitions required by the MCUBoot.
@@ -142,7 +142,7 @@ Any accessory reset will not corrupt the firmware, but the bootloader will conti
 When the swapping has completed, the bootloader starts the new firmware from the ``Primary Image``.
 The application is responsible for reporting to the bootloader that it works correctly.
 By default, the confirmation function is executed once the owner device connects to the accessory.
-If you have enabled the ``CONFIG_FMNA_UARP_IMAGE_CONFIRMATION_ON_STARTUP`` option, there is an automatic confirmation during the system startup.
+If you have enabled the :kconfig:option:`CONFIG_FMNA_UARP_IMAGE_CONFIRMATION_ON_STARTUP` Kconfig option, there is an automatic confirmation during the system startup.
 After the confirmation, the new firmware becomes active permanently.
 
 The application may not able to confirm, for example, if it crashes at startup.
