@@ -13,6 +13,9 @@ The required version of west is 0.10.0 or higher.
 
       west config manifest.group-filter +find-my
 
+   .. note::
+      For more information about how west groups work, see `west groups documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/develop/west/manifest.html#project-groups>`_.
+
 #. Update west to download the Find My repository:
 
    .. code-block:: console
@@ -20,5 +23,3 @@ The required version of west is 0.10.0 or higher.
       west update
       // find-my repository is downloaded
       // your github access will be checked
-
-For more information about how west groups work, see `west groups documentation <https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/develop/west/manifest.html#project-groups>`_.
