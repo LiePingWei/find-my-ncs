@@ -39,31 +39,70 @@ To check the versions, run:
 
 .. code-block:: console
 
-   pip --version
-
-You will see the pip version and the Python version. If you see Python 2, try ``pip3`` instead of ``pip``.
+   pip3 --version
 
 Installation
 ============
 
-Installation is optional.
-You can run the Python scripts directly from the sources.
+.. note::
+   Installation is strongly recommended.
+   The Find My documentation set assumes that you have the tool installed and accessible from your command window prompt.
+   Alternatively, you can run the Python scripts directly from the sources (see the :ref:`cli_tools_running_from_sources` for details).
 
-To install the package, run the following command in the folder containing the :file:`setup.py` file:
+To install ``ncsfmntools``, open the command prompt window as an administrator in the folder containing this :file:`README.rst` file and the :file:`setup.py` file.
+Then, follow the installation section that is relevant for your OS.
+
+macOS installation command
+--------------------------
+
+On macOS, enter the following command in a command-line window:
 
 .. code-block:: console
 
-   pip install --user .
+   pip3 install .
 
-You can skip the ``--user`` option to install the tools globally for all users in the system.
+.. note::
+   Ensure the ``ncsfmntools`` location is added to your system path.
+
+Linux installation command
+--------------------------
+
+On Linux, enter the following command in a command-line window:
+
+.. code-block:: console
+
+   pip3 install --user .
+
+.. note::
+   Ensure the ``ncsfmntools`` location is added to your system path.
+
+Windows installation command
+----------------------------
+
+On Windows, enter the following command in a command-line window:
+
+.. code-block:: console
+
+   pip3 install .
+
+.. note::
+   Ensure the ``ncsfmntools`` location is added to the path in environmental variables.
+
+Validation
+----------
+
+After the installation, you can use the ``ncsfmntools`` CLI from your command prompt window.
+
+Development mode
+----------------
 
 To install the package in the **development mode**, use the ``editable`` flag:
 
+Here is an example command to install ``ncsfmntools`` in the **development mode**  for the Linux environment:
+
 .. code-block:: console
 
-   pip install --editable --user .
-
-After this, you can call the scripts from your terminal with the command ``ncsfmntools``.
+   pip3 install --editable --user .
 
 Uninstallation
 ==============
@@ -72,16 +111,18 @@ To uninstall the package, run:
 
 .. code-block:: console
 
-   pip uninstall ncsfmntools
+   pip3 uninstall ncsfmntools
+
+.. _cli_tools_running_from_sources:
 
 Running from the sources
 ========================
 
-If you skipped the installation, you have to install the Python modules manually:
+If you skipped the installation, you have to install the dependent Python modules manually before running ``ncsfmntools`` from the sources:
 
 .. code-block:: console
 
-   pip install --user intelhex six pynrfjprog
+   pip3 install --user intelhex six pynrfjprog
 
 Now, you can run the tools with the ``python`` command.
 Use the path to the :file:`ncsfmntools` directory as a first argument:
