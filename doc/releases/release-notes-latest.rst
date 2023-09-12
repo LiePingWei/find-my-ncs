@@ -77,6 +77,11 @@ Changelog
 * Added a possibility to disable the Partition Manager module for projects without the UARP DFU configuration.
 * Added support for a common target-based DTS configuration in Find My samples.
 * Added support for board-specific configurations in the Find My samples.
+* Improved the documentation content:
+
+  * Added a new step to the :ref:`ncs_install` page regarding the installation process of the :ref:`cli_tools` package.
+  * Improved the installation section in the :ref:`cli_tools` page to cover all supported operating systems.
+  * Improved syntax for Kconfig and CMake symbols for all documentation pages.
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.
