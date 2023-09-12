@@ -77,6 +77,7 @@ Changelog
 * Added a possibility to disable the Partition Manager module for projects without the UARP DFU configuration.
 * Added support for a common target-based DTS configuration in Find My samples.
 * Added support for board-specific configurations in the Find My samples.
+* Increased the MCUboot partition size in the Debug configuration for all dependent Find My samples and applications.
 * Improved the documentation content:
 
   * Added a new step to the :ref:`ncs_install` page regarding the installation process of the :ref:`cli_tools` package.
