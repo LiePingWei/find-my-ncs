@@ -54,7 +54,7 @@ Changelog
 * Added an indication of the paired state using **LED 3** in the Find My Simple and Qualification samples.
 * Pairing mode timeout is no longer restarted on the accessory once a Find My pairing candidate connects to it.
 * Added a new :kconfig:option:`CONFIG_FMNA_PAIRING_MODE_TIMEOUT` configuration option for setting the pairing mode timeout.
-* Added a new :kconfig:option:`CONFIG_FMNA_PAIRING_MODE_AUTOSTART` configuration option for disabling automatic advertising in the pairing mode.
+* Added a new ``CONFIG_FMNA_PAIRING_MODE_AUTOSTART`` configuration option for disabling automatic advertising in the pairing mode.
 
   When this option is disabled and the accessory is unpaired, you need to start advertising using the :c:func:`fmna_resume` function.
 * Blinking **LED 3** indicates active pairing mode in the Find My Simple and Qualification samples.

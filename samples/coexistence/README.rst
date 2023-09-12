@@ -75,6 +75,11 @@ Button 4:
 LED 1:
    Indicates that the play sound action is in progress.
 
+LED 3:
+   LED is lit to indicate the paired state.
+
+   LED is off to indicate the unpaired state.
+
 LED 4:
    Indicates that the Find My functionality is enabled.
 

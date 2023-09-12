@@ -56,6 +56,9 @@ static void reset_work_handle(struct k_work *item);
 static K_WORK_DELAYABLE_DEFINE(reset_work, reset_work_handle);
 #endif
 
+/* Pairing mode timeout value can only be positive or zero. */
+BUILD_ASSERT(CONFIG_FMNA_PAIRING_MODE_TIMEOUT >= 0);
+
 static int unpaired_adv_start(bool change_address)
 {
 	int err;
@@ -242,11 +245,14 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 			nearby_separated_timeout = NEARBY_SEPARATED_TIMEOUT_DEFAULT;
 		}
 
-		if (IS_ENABLED(CONFIG_FMNA_PAIRING_MODE_AUTOSTART)) {
+		if (IS_ENABLED(CONFIG_FMNA_PAIRING_MODE_AUTO_ENTER)) {
 			/* Restart the pairing mode on a transition to the unpaired state. */
 			pairing_mode = true;
-			k_work_reschedule(&pairing_mode_timeout_work,
-					K_SECONDS(CONFIG_FMNA_PAIRING_MODE_TIMEOUT));
+
+			if (CONFIG_FMNA_PAIRING_MODE_TIMEOUT != 0) {
+				k_work_reschedule(&pairing_mode_timeout_work,
+						K_SECONDS(CONFIG_FMNA_PAIRING_MODE_TIMEOUT));
+			}
 
 			err = unpaired_adv_start(true);
 			if (err) {
@@ -265,6 +271,7 @@ static int state_set(struct bt_conn *conn, enum fmna_state new_state)
 		}
 
 		if (prev_state == FMNA_STATE_UNPAIRED) {
+			pairing_mode = false;
 			k_work_cancel_delayable(&pairing_mode_timeout_work);
 		}
 
@@ -540,7 +547,27 @@ int fmna_paired_adv_enable(void)
 	return advertise_restart_on_no_state_change();
 }
 
-int fmna_resume(void)
+int fmna_pairing_mode_cancel(void)
+{
+	int err;
+
+	if (state != FMNA_STATE_UNPAIRED) {
+		return -EINVAL;
+	}
+
+	pairing_mode = false;
+	k_work_cancel_delayable(&pairing_mode_timeout_work);
+
+	err = fmna_adv_stop();
+	if (err) {
+		LOG_ERR("fmna_adv_stop returned error: %d", err);
+		return err;
+	}
+
+	return 0;
+}
+
+int fmna_pairing_mode_enter(void)
 {
 	int err;
 
@@ -549,8 +576,11 @@ int fmna_resume(void)
 	}
 
 	pairing_mode = true;
-	k_work_reschedule(&pairing_mode_timeout_work,
-			  K_SECONDS(CONFIG_FMNA_PAIRING_MODE_TIMEOUT));
+
+	if (CONFIG_FMNA_PAIRING_MODE_TIMEOUT != 0) {
+		k_work_reschedule(&pairing_mode_timeout_work,
+				  K_SECONDS(CONFIG_FMNA_PAIRING_MODE_TIMEOUT));
+	}
 
 	err = unpaired_adv_start(true);
 	if (err) {
@@ -559,6 +589,11 @@ int fmna_resume(void)
 	}
 
 	return err;
+}
+
+int fmna_resume(void)
+{
+	return fmna_pairing_mode_enter();
 }
 
 enum fmna_state fmna_state_get(void)

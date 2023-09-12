@@ -339,7 +339,7 @@ static void button_changed(uint32_t button_state, uint32_t has_changed)
 				user_request_signal(SIGNAL_SN_LOOKUP);
 			}
 		} else if (hold_time < FMNA_FACTORY_RESET_BUTTON_MIN_HOLD_TIME_MS) {
-			err = fmna_resume();
+			err = fmna_pairing_mode_enter();
 			if (err) {
 				LOG_ERR("Cannot resume the FMN activity (err: %d)", err);
 			} else {

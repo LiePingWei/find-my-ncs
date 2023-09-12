@@ -60,6 +60,14 @@ To comply with this requirement from the Find My specification, use the followin
   Call this function once the Bluetooth peer connects to your device for its primary purpose and the Find My advertising should be stopped.
   This function is typically used in the :c:member:`bt_conn_cb.connected` callback.
 
+Find My pairing mode
+--------------------
+
+If your accessory is in the Find My pairing mode and the primary purpose Bluetooth peer connects to it, you must also cancel the pairing mode.
+To comply with this requirement, you must call the :c:func:`fmna_pairing_mode_cancel` function in the :c:member:`bt_conn_cb.connected` callback.
+You must also ensure that the Find My pairing mode cannot be activated while the primary purpose Bluetooth peer is still connected with your device.
+As soon as the peer disconnects, you can restart the pairing mode advertising using the :c:func:`fmna_pairing_mode_enter` function.
+
 Device name
 ***********
 

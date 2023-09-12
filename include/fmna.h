@@ -341,13 +341,93 @@ int fmna_paired_adv_enable(void);
  */
 int fmna_paired_adv_disable(void);
 
+/** @brief Cancel the pairing mode.
+ *
+ *  This function instructs the Find My stack to cancel the pairing mode
+ *  and to stop the pairing mode advertising.
+ *
+ *  This API function does not terminate ongoing Find My connections that
+ *  are in the middle of their pairing flow. Due to this reason, the Find My
+ *  stack may indicate the transition to the paired state with the
+ *  @ref paired_state_changed callback after this function call.
+ *
+ *  This API function does not trigger the @ref pairing_mode_exited callback
+ *  as this callback function is only called on the pairing mode timeout.
+ *
+ *  The pairing mode management APIs provide a mechanism for disabling
+ *  the pairing mode on "pair before use" accessories. Such devices require
+ *  the pairing mode to be cancelled when connected to a Bluetooth peer
+ *  for its primary purpose. In case of a standard use case, these APIs
+ *  provide flexibility for developers to define the custom pairing mode
+ *  policy.
+ *
+ *  This function can only be used when the FMN stack is enabled (see
+ *  @ref fmna_is_ready API) and in the unpaired state (see the
+ *  @ref paired_state_changed callback).
+ *
+ *  @return Zero on success, otherwise a negative error code.
+ */
+int fmna_pairing_mode_cancel(void);
+
+/** @brief Enter the pairing mode or refresh the pairing mode timeout.
+ *
+ *  This function instructs the Find My stack to enter the pairing mode
+ *  and to start the pairing mode advertising. The stack exits the pairing
+ *  mode after the predefined timeout which can be configured with the
+ *  @kconfig{CONFIG_FMNA_PAIRING_MODE_TIMEOUT} Kconfig option. The pairing
+ *  mode timeout is indicated by the @ref pairing_mode_exited callback.
+ *
+ *  This function also resets the @kconfig{CONFIG_FMNA_PAIRING_MODE_TIMEOUT}
+ *  timeout in seconds when the accessory is already in the pairing mode.
+ *
+ *  If the @kconfig{CONFIG_FMNA_PAIRING_MODE_TIMEOUT} is set to zero, the
+ *  pairing mode will never end unless the user calls the dedicated
+ *  cancellation API: @ref fmna_pairing_mode_cancel.
+ *
+ *  By default, the @kconfig{CONFIG_FMNA_PAIRING_MODE_AUTO_ENTER} Kconfig
+ *  option is enabled. Due to this configuration, this function does not have
+ *  to be called during the state transition. The Find My stack automatically
+ *  enters the pairing mode whenever it transitions to the unpaired state. Such
+ *  a transition can happen in the following scenarios:
+ *  - The FMN stack gets enabled (see the @ref fmna_enable API).
+ *  - The accessory becomes unpaired (see @ref paired_state_changed callback).
+ *  With the @kconfig{CONFIG_FMNA_PAIRING_MODE_AUTO_ENTER} Kconfig option
+ *  enabled and the @kconfig{CONFIG_FMNA_PAIRING_MODE_TIMEOUT} Kconfig value
+ *  greater than zero, it is necessary to call this function only on the user
+ *  request to restart the pairing mode or refresh its timeout.
+ *
+ *  With the @kconfig{CONFIG_FMNA_PAIRING_MODE_AUTO_ENTER} Kconfig option
+ *  disabled, the user is expected to manage the pairing mode using this API
+ *  function and the @ref fmna_pairing_mode_cancel function.
+ *
+ *  This function also resumes advertising in the pairing mode after a timeout.
+ *  Such a timeout is indicated by the @ref pairing_mode_exited callback from
+ *  the @ref fmna_enable_cb structure.
+ *
+ *  The pairing mode management APIs provide a mechanism for disabling
+ *  the pairing mode on "pair before use" accessories. Such devices require
+ *  the pairing mode to be cancelled when connected to a Bluetooth peer
+ *  for its primary purpose. In case of a standard use case, these APIs
+ *  provide flexibility for developers to define the custom pairing mode
+ *  policy.
+ *
+ *  This function can only be used when the FMN stack is enabled (see
+ *  @ref fmna_is_ready API) and in the unpaired state (see the
+ *  @ref paired_state_changed callback).
+ *
+ *  @return Zero on success, otherwise a negative error code.
+ */
+int fmna_pairing_mode_enter(void);
+
 /** @brief Resume advertising in the pairing mode.
+ *
+ *  @deprecated Use @ref fmna_pairing_mode_enter instead.
  *
  *  This function resumes advertising in the pairing mode after a timeout.
  *  Such a timeout is indicated by the @ref pairing_mode_exited callback from
  *  the @ref fmna_enable_cb structure.
  *
- *  With the @kconfig{CONFIG_FMNA_PAIRING_MODE_AUTOSTART} option disabled, the
+ *  With the @kconfig{CONFIG_FMNA_PAIRING_MODE_AUTO_ENTER} option disabled, the
  *  user needs to call this function to enter the pairing mode and to start
  *  advertising in following scenarios:
  *  - The FMN stack gets enabled (see the @ref fmna_enable API).
@@ -358,7 +438,7 @@ int fmna_paired_adv_disable(void);
  *
  *  @return Zero on success, otherwise a negative error code.
  */
-int fmna_resume(void);
+__deprecated int fmna_resume(void);
 
 /** @brief Enable the Find My Network (FMN) stack on the accessory.
  *

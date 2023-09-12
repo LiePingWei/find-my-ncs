@@ -118,21 +118,24 @@ config FMNA_PAIRING_MODE_TIMEOUT
 	  Override the default timeout for the pairing mode. Please note
 	  that changes to this configuration are highly discouraged since
 	  the specification requires a 10-minute timeout (or 600 seconds).
-	  You can also use this configuration to implement the dynamic timeout.
-	  In this case, it is best to set a value for this option that is
-	  the greatest common divisor of all desired timeout values.
-	  You should resume the advertising until you achieve your desired
-	  timeout value.
 
-config FMNA_PAIRING_MODE_AUTOSTART
-	bool "Autostart the advertising in the pairing mode"
+	  Set this option to zero in case you do not want to use the Find My
+	  stack timeout feature. In this case, you need to use the pairing mode
+	  management APIs: fmna_pairing_mode_enter and fmna_pairing_mode_cancel
+	  to implement your custom pairing mode policy.
+
+config FMNA_PAIRING_MODE_AUTO_ENTER
+	bool "Automatically enter the Find My pairing mode"
 	default y
 	help
-	  Use the autostart feature to automatically start the Find My
-	  advertising in the pairing mode when the FMN stack gets enabled or
-	  the accessory becomes unpaired. With this configuration option
-	  disabled, you need to call the fmna_resume API to enter the pairing
-	  mode in the aforementioned scenarios.
+	  Use this option to automatically enter the Find My pairing mode and
+	  to start the pairing mode advertising when the FMN stack transitions
+	  to the unpaired state. With this configuration option disabled, you
+	  need to call the fmna_pairing_mode_enter API to enter the pairing
+	  mode in the aforementioned scenarios. Having this option disabled
+	  may become handy to implement more elaborate pairing mode policies
+	  that require the user to take certain action before the pairing mode
+	  is activated on the device (e.g. button press).
 
 config FMNA_BT_PAIRING_NO_BONDING
 	bool

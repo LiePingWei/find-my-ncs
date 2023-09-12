@@ -66,6 +66,13 @@ Changelog
   The automatic mechanism is replaced by the :c:func:`fmna_paired_adv_enable` and :c:func:`fmna_paired_adv_disable` API functions to provide more flexibility for the developers.
 * Aligned the Find My Coexistence sample to use the :c:func:`fmna_paired_adv_enable` and :c:func:`fmna_paired_adv_disable` functions.
 * Updated the application development guide for *pair before use* accessories to cover the :c:func:`fmna_paired_adv_enable` and :c:func:`fmna_paired_adv_disable` functions.
+* Added functions :c:func:`fmna_pairing_mode_enter` and :c:func:`fmna_pairing_mode_cancel` to provide management APIs for the Find My pairing mode.
+  See the API reference documentation for more details.
+* Deprecated the :c:func:`fmna_resume` function that is replaced by the :c:func:`fmna_pairing_mode_enter` function.
+* Removed the ``CONFIG_FMNA_PAIRING_MODE_AUTOSTART`` Kconfig option that is replaced by :kconfig:option:`CONFIG_FMNA_PAIRING_MODE_AUTO_ENTER`.
+* Aligned all Find My samples to use the :c:func:`fmna_pairing_mode_enter` function and the :kconfig:option:`CONFIG_FMNA_PAIRING_MODE_AUTO_ENTER` Kconfig option instead of deprecated APIs.
+* Added new behavior to the Find My Coexistence sample that cancels the Find My pairing mode on the Bluetooth connection event with the HR Sensor.
+* Updated the :ref:`find_my_coexistence` documentation for *pair before use* accessories to cover the :c:func:`fmna_pairing_mode_cancel` function.
 * Upgraded the documentation layout to match the standard nRF Connect SDK documentation.
 * Changed the bonding flags from "Bonding" to "No Bonding" in the Bluetooth LE Just Works pairing phase, which is the initial step of the Find My pairing flow.
   From now on, all Find My samples and applications perform Bluetooth LE pairing on the Find My Bluetooth identity without storing any bonding information.

@@ -27,8 +27,9 @@ BUILD_ASSERT(BT_ID_COUNT == CONFIG_BT_ID_MAX, "BT identities misconfigured");
 
 #define FMNA_PEER_SOUND_DURATION K_SECONDS(5)
 
-#define FMNA_SOUND_LED      DK_LED1
-#define FMNA_ACTIVATION_LED DK_LED4
+#define FMNA_SOUND_LED        DK_LED1
+#define FMNA_PAIRED_STATE_LED DK_LED3
+#define FMNA_ACTIVATION_LED   DK_LED4
 
 #define FMNA_ADV_RESUME_BUTTON             DK_BTN1_MSK
 #define FMNA_ACTIVATION_BUTTON             DK_BTN1_MSK
@@ -52,7 +53,8 @@ BUILD_ASSERT(BT_ID_COUNT == CONFIG_BT_ID_MAX, "BT identities misconfigured");
 #define BATTERY_LEVEL_CHANGE_RATE 7
 
 static bool fmna_location_available;
-static bool fmna_pairing_mode_exit;
+static bool fmna_pairing_mode;
+static bool fmna_paired;
 
 static const struct bt_data hr_sensor_ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -63,6 +65,7 @@ static const struct bt_data hr_sensor_ad[] = {
 };
 static struct bt_le_ext_adv *hr_sensor_adv_set;
 static bool hr_sensor_pairing_mode;
+static struct bt_conn *hr_sensor_conn;
 
 static uint8_t battery_level = 100;
 
@@ -171,12 +174,45 @@ static void fmna_pairing_mode_exited(void)
 {
 	printk("Exited the FMN pairing mode\n");
 
-	fmna_pairing_mode_exit = true;
+	fmna_pairing_mode = false;
+}
+
+static void fmna_paired_state_changed(bool new_paired_state)
+{
+	printk("The FMN accessory transitioned to the %spaired state\n",
+	       new_paired_state ? "" : "un");
+
+	fmna_paired = new_paired_state;
+	fmna_pairing_mode = !new_paired_state;
+
+	/* FMNA specification guidelines for pair before use accessories:
+	 * The FMN pairing mode cannot be active when the Bluetooth peer is
+	 * connected to the device for its primary purpose (HR sensor in
+	 * the context of this sample).
+	 *
+	 * The fmna_pairing_mode_cancel API call is required here because the
+	 * CONFIG_FMNA_PAIRING_MODE_AUTO_ENTER Kconfig option is enabled.
+	 */
+	if (fmna_pairing_mode && hr_sensor_conn) {
+		int err;
+
+		err = fmna_pairing_mode_cancel();
+		if (err) {
+			printk("Cannot cancel the FMN pairing mode (err: %d)\n", err);
+		} else {
+			printk("FMN pairing mode cancelled\n");
+
+			fmna_pairing_mode = false;
+		}
+	}
+
+	dk_set_led(FMNA_PAIRED_STATE_LED, new_paired_state);
 }
 
 static const struct fmna_enable_cb fmna_enable_callbacks = {
 	.location_availability_changed = fmna_location_availability_changed,
 	.pairing_mode_exited = fmna_pairing_mode_exited,
+	.paired_state_changed = fmna_paired_state_changed,
 };
 
 static int fmna_id_create(uint8_t id)
@@ -245,15 +281,26 @@ static void fmna_adv_resume_action_handle(void)
 {
 	int err;
 
-	if (fmna_pairing_mode_exit) {
-		err = fmna_resume();
-		if (err) {
-			printk("Cannot resume the FMN activity (err: %d)\n", err);
-		} else {
-			printk("FMN pairing mode resumed\n");
+	if (!fmna_paired && !fmna_pairing_mode) {
+		/* FMNA specification guidelines for pair before use accessories:
+		 * The FMN pairing mode cannot be active when the Bluetooth peer is
+		 * connected to the device for its primary purpose (HR sensor in
+		 * the context of this sample).
+		 */
+		if (hr_sensor_conn) {
+			printk("FMN pairing mode cannot be resumed due to "
+			       "the active HR sensor connection\n");
+			return;
 		}
 
-		fmna_pairing_mode_exit = false;
+		err = fmna_pairing_mode_enter();
+		if (err) {
+			printk("Cannot resume the FMN pairing mode (err: %d)\n", err);
+		} else {
+			printk("FMN pairing mode resumed\n");
+
+			fmna_pairing_mode = true;
+		}
 	}
 }
 
@@ -274,8 +321,6 @@ static void fmna_enable_work_handle(struct k_work *item)
 	} else {
 		printk("FMN enabled\n");
 
-		fmna_pairing_mode_exit = false;
-
 		dk_set_led(FMNA_ACTIVATION_LED, 1);
 	}
 }
@@ -293,7 +338,6 @@ static void fmna_disable_work_handle(struct k_work *item)
 		printk("FMN disabled\n");
 
 		/* Reset the necessary flags. */
-		fmna_pairing_mode_exit = true;
 		fmna_location_available = false;
 
 		dk_set_led(FMNA_ACTIVATION_LED, 0);
@@ -540,6 +584,24 @@ static void hr_sensor_connected(struct bt_conn *conn, uint8_t conn_err)
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	printk("HR Peer connected: %s\n", addr);
 
+	hr_sensor_conn = conn;
+
+	/* FMNA specification guidelines for pair before use accessories:
+	 * Cancel the FMN pairing mode once the Bluetooth peer connects to the
+	 * device for its primary purpose (HR sensor in the context of this
+	 * sample).
+	 */
+	if (fmna_pairing_mode) {
+		err = fmna_pairing_mode_cancel();
+		if (err) {
+			printk("Cannot cancel the FMN pairing mode (err: %d)\n", err);
+		} else {
+			printk("FMN pairing mode cancelled\n");
+
+			fmna_pairing_mode = false;
+		}
+	}
+
 	/* FMNA specification guidelines for pair before use accessories:
 	 * Disable the FMN paired advertising once the Bluetooth peer connects
 	 * to the device for its primary purpose (HR sensor in the context of
@@ -564,6 +626,8 @@ static void hr_sensor_disconnected(struct bt_conn *conn, uint8_t reason)
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	printk("HR Peer disconnected (reason %u): %s\n", reason, addr);
+
+	hr_sensor_conn = NULL;
 
 	/* FMNA specification guidelines for pair before use accessories:
 	 * Enable the FMN paired advertising once the Bluetooth connection

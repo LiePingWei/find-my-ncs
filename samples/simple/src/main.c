@@ -295,9 +295,9 @@ static void adv_resume_action_handle(void)
 	int err;
 
 	if (!paired) {
-		err = fmna_resume();
+		err = fmna_pairing_mode_enter();
 		if (err) {
-			printk("Cannot resume the FMN activity (err: %d)\n", err);
+			printk("Cannot enter the FMN pairing mode (err: %d)\n", err);
 		} else {
 			printk("%s the FMN pairing mode\n",
 			       pairing_mode ? "Extending" : "Enabling");
