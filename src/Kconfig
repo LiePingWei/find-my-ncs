@@ -293,6 +293,15 @@ config BT_CONN_PARAM_UPDATE_TIMEOUT
 config SETTINGS_DYNAMIC_HANDLERS
 	default n
 
+# Override default libc implementation choice
+
+choice LIBC_IMPLEMENTATION
+	default MINIMAL_LIBC
+	help
+	  Use minimal libc implementation to reduce memory footprint and prevent
+	  build issues.
+endchoice
+
 rsource "uarp/Kconfig"
 
 # Logger configuration
