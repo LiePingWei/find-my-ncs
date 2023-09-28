@@ -25,7 +25,7 @@ setup(name='ncsfmntools',
       include_package_data=True,
       install_requires=[
             'intelhex~=2.3.0',
-            'six~=1.15.0',
+            'six~=1.15',
             'pynrfjprog~=10.10'
       ],
       entry_points='''
