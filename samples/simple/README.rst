@@ -91,7 +91,7 @@ After provisioning the MFi tokens to your development kit and programming it, co
 
    a. Open the Find My application.
    #. Navigate to the :guilabel:`Items` tab.
-   #. Tap the :guilabel:`Add New Item` button.
+   #. Tap the :guilabel:`Add Item` button.
    #. In the pop-up window, select the :guilabel:`Other Supported Item` option.
 
 #. Observe that iOS starts to search for FMN items.
@@ -99,4 +99,6 @@ After provisioning the MFi tokens to your development kit and programming it, co
 #. Complete the FMN pairing process.
 #. Select the paired accessory from the item list and tap the :guilabel:`Play Sound` button.
 #. Observe that **LED 1** is lit for 5 seconds on the accessory to indicate the play sound action.
-#. In the Find My application, tap the :guilabel:`Unpair` button to remove the accessory from the item list.
+#. In the Find My application, tap the :guilabel:`Remove Item` button to remove the accessory from the item list.
+#. In the pop-up window, tap the :guilabel:`Remove` button to confirm the removal.
+#. In the subsequent pop-up window, tap again the :guilabel:`Remove` button to complete the process.

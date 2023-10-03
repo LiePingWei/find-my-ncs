@@ -83,6 +83,7 @@ Changelog
   * Added a new step to the :ref:`ncs_install` page regarding the installation process of the :ref:`cli_tools` package.
   * Improved the installation section in the :ref:`cli_tools` page to cover all supported operating systems.
   * Improved syntax for Kconfig and CMake symbols for all documentation pages.
+  * Improved the Testing section content in the Find My samples and applications.
 
 .. TODO: If there are any changelog entries related to the CLI tools, uncomment the following section and add them to it.
          Otherwise, remove this part of the release notes template.

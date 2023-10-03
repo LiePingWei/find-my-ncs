@@ -94,7 +94,7 @@ After provisioning the MFi tokens to your development kit and programming it, co
 
    a. Open the Find My application.
    #. Navigate to the :guilabel:`Items` tab.
-   #. Tap the :guilabel:`Add New Item` button.
+   #. Tap the :guilabel:`Add Item` button.
    #. In the pop-up window, select the :guilabel:`Other Supported Item` option.
 
 #. Observe that iOS starts to search for FMN items.
